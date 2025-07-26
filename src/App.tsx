@@ -5,17 +5,19 @@ import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
 import IntegrationSetup from './components/IntegrationSetup';
 import CampaignToggle from './components/CampaignToggle';
+import PerformanceChart from './components/PerformanceChart';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
+import { useChartData } from './hooks/useChartData';
 import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
 
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
+  const { chart1, chart2, loading: chartLoading, error: chartError, refetch: refetchCharts } = useChartData();
 
   // Get chart labels and efficiency metrics based on current mode
-  const chartLabels = getChartLabels(mode);
   const efficiencyMetrics = getEfficiencyMetrics(mode);
 
   // Convert real-time data to display format
@@ -218,77 +220,23 @@ function App() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Leads Scraped Chart */}
-            <div 
-              className="rounded-lg p-6 transition-all duration-200"
-              style={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #444444' 
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#666666';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#444444';
-              }}
-            >
-              <div className="mb-4">
-                <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{chartLabels.chart1.title}</div>
-                <div className="text-2xl font-bold text-white">{chartLabels.chart1.value}</div>
-                <div className="text-sm flex items-center" style={{ color: '#10b981' }}>
-                  <TrendingUp className="w-4 h-4 mr-1" />
-                  {chartLabels.chart1.change}
-                </div>
-              </div>
-              <div className="h-32 mb-4">
-                <ChartSVG className="w-full h-full" />
-              </div>
-              <div className="flex justify-between text-xs" style={{ color: '#777777' }}>
-                <span>Day 1</span>
-                <span>Day 5</span>
-                <span>Day 10</span>
-                <span>Day 15</span>
-                <span>Day 20</span>
-                <span>Day 25</span>
-                <span>Day 30</span>
-              </div>
-            </div>
-
-            {/* Replies & Meetings Chart */}
-            <div 
-              className="rounded-lg p-6 transition-all duration-200"
-              style={{ 
-                backgroundColor: '#1a1a1a', 
-                border: '1px solid #444444' 
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#666666';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#444444';
-              }}
-            >
-              <div className="mb-4">
-                <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{chartLabels.chart2.title}</div>
-                <div className="text-2xl font-bold text-white">{chartLabels.chart2.value}</div>
-                <div className="text-sm flex items-center" style={{ color: '#10b981' }}>
-                  <TrendingUp className="w-4 h-4 mr-1" />
-                  {chartLabels.chart2.change}
-                </div>
-              </div>
-              <div className="h-32 mb-4">
-                <ChartSVG className="w-full h-full" />
-              </div>
-              <div className="flex justify-between text-xs" style={{ color: '#777777' }}>
-                <span>Day 1</span>
-                <span>Day 5</span>
-                <span>Day 10</span>
-                <span>Day 15</span>
-                <span>Day 20</span>
-                <span>Day 25</span>
-                <span>Day 30</span>
-              </div>
-            </div>
+            <PerformanceChart
+              title={chart1.title}
+              data={chart1.data}
+              totalValue={chart1.totalValue}
+              changePercent={chart1.changePercent}
+              isPositive={true}
+              color="#888888"
+            />
+            
+            <PerformanceChart
+              title={chart2.title}
+              data={chart2.data}
+              totalValue={chart2.totalValue}
+              changePercent={chart2.changePercent}
+              isPositive={true}
+              color="#888888"
+            />
           </div>
         </div>
 
