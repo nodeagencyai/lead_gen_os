@@ -13,6 +13,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
   const [leadsLimit, setLeadsLimit] = useState(100);
   const [actionType, setActionType] = useState<'scrape' | 'process'>('scrape');
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [processLimit, setProcessLimit] = useState(50);
   const [availableLeads, setAvailableLeads] = useState([
     { id: '1', name: 'John Smith', company: 'TechCorp Solutions', status: 'new' },
     { id: '2', name: 'Sarah Johnson', company: 'Innovate Digital', status: 'new' },
@@ -291,6 +292,39 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   ))}
                 </div>
               </div>
+
+              {/* Process Limit */}
+              <div className="mb-8">
+                <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
+                  Number of leads to process (max {selectedLeads.length} selected)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedLeads.length || 1}
+                  value={processLimit}
+                  onChange={(e) => setProcessLimit(Math.min(Number(e.target.value), selectedLeads.length))}
+                  placeholder="Enter number of leads to process"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                    e.target.style.backgroundColor = '#1a1a1a';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.backgroundColor = '#0f0f0f';
+                  }}
+                />
+                <div className="text-xs mt-2" style={{ color: '#888888' }}>
+                  This will process the first {Math.min(processLimit, selectedLeads.length)} leads from your selection
+                </div>
+              </div>
             </>
           )}
 
@@ -339,7 +373,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
               ) : (
                 <>
                   <Search size={20} />
-                  <span>Process Selected Leads ({selectedLeads.length})</span>
+                  <span>Process {Math.min(processLimit, selectedLeads.length)} Leads</span>
                 </>
               )}
             </button>
