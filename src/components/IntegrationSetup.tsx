@@ -3,10 +3,10 @@ import { Key, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Integration {
-  platform: string;
+  id: string;
   name: string;
   description: string;
-  apiKey: string;
+  webhookUrl: string;
   isActive: boolean;
   status: 'connected' | 'disconnected' | 'error';
 }
@@ -14,26 +14,50 @@ interface Integration {
 const IntegrationSetup: React.FC = () => {
   const [integrations, setIntegrations] = useState<Integration[]>([
     {
-      platform: 'instantly',
+      id: 'instantly',
       name: 'Instantly',
       description: 'Email automation platform',
-      apiKey: '',
+      webhookUrl: '',
       isActive: false,
       status: 'disconnected'
     },
     {
-      platform: 'heyreach',
+      id: 'heyreach',
       name: 'HeyReach',
       description: 'LinkedIn automation platform',
-      apiKey: '',
+      webhookUrl: '',
       isActive: false,
       status: 'disconnected'
     },
     {
-      platform: 'apollo',
-      name: 'Apollo',
-      description: 'Lead generation and email platform',
-      apiKey: '',
+      id: 'apollo_scraping',
+      name: 'Apollo Lead Scraping',
+      description: 'N8N workflow for Apollo lead extraction',
+      webhookUrl: '',
+      isActive: false,
+      status: 'disconnected'
+    },
+    {
+      id: 'linkedin_scraping',
+      name: 'LinkedIn Lead Scraping',
+      description: 'N8N workflow for Sales Navigator lead extraction',
+      webhookUrl: '',
+      isActive: false,
+      status: 'disconnected'
+    },
+    {
+      id: 'email_campaign',
+      name: 'Email Campaign Automation',
+      description: 'N8N workflow for automated email campaigns',
+      webhookUrl: '',
+      isActive: false,
+      status: 'disconnected'
+    },
+    {
+      id: 'linkedin_outreach',
+      name: 'LinkedIn Outreach Automation',
+      description: 'N8N workflow for LinkedIn connection and messaging',
+      webhookUrl: '',
       isActive: false,
       status: 'disconnected'
     }
@@ -41,54 +65,76 @@ const IntegrationSetup: React.FC = () => {
 
   const [saving, setSaving] = useState<string | null>(null);
 
-  const handleApiKeyChange = (platform: string, apiKey: string) => {
+  const handleWebhookUrlChange = (id: string, webhookUrl: string) => {
     setIntegrations(prev => prev.map(integration => 
-      integration.platform === platform 
-        ? { ...integration, apiKey }
+      integration.id === id 
+        ? { ...integration, webhookUrl }
         : integration
     ));
   };
 
-  const testConnection = async (platform: string, apiKey: string) => {
-    // Test API connection based on platform
+  const testConnection = async (id: string, webhookUrl: string) => {
+    // Test webhook connection
     try {
-      let testUrl = '';
-      let headers: Record<string, string> = {};
-
-      switch (platform) {
-        case 'instantly':
-          testUrl = 'https://api.instantly.ai/api/v1/account';
-          headers = { 'Authorization': `Bearer ${apiKey}` };
-          break;
-        case 'heyreach':
-          testUrl = 'https://api.heyreach.io/api/v1/account';
-          headers = { 'Authorization': `Bearer ${apiKey}` };
-          break;
-        case 'apollo':
-          testUrl = 'https://api.apollo.io/v1/auth/health';
-          headers = { 'X-Api-Key': apiKey };
-          break;
-      }
-
-      const response = await fetch(testUrl, { headers });
-      return response.ok;
+      // Test webhook with a ping request
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'test',
+          message: 'Connection test from dashboard'
+        })
+      });
+      
+      // Consider 200-299 status codes as successful
+      return response.status >= 200 && response.status < 300;
     } catch (error) {
+      console.error('Webhook test failed:', error);
       return false;
     }
   };
 
-  const saveIntegration = async (platform: string) => {
-    const integration = integrations.find(i => i.platform === platform);
-    if (!integration || !integration.apiKey) return;
+  const testApiConnection = async (id: string, webhookUrl: string) => {
+    // Test API connections for Instantly and HeyReach
+    if (id === 'instantly' || id === 'heyreach') {
+      try {
+        // For API integrations, we expect the webhook URL to be an API key
+        let testUrl = '';
+        let headers: Record<string, string> = {};
 
-    setSaving(platform);
+        if (id === 'instantly') {
+          testUrl = 'https://api.instantly.ai/api/v1/account';
+          headers = { 'Authorization': `Bearer ${webhookUrl}` };
+        } else if (id === 'heyreach') {
+          testUrl = 'https://api.heyreach.io/api/v1/account';
+          headers = { 'Authorization': `Bearer ${webhookUrl}` };
+        }
+
+        const response = await fetch(testUrl, { headers });
+        return response.ok;
+      } catch (error) {
+        return false;
+      }
+    }
+    
+    // For N8N webhooks, test the webhook endpoint
+    return testConnection(id, webhookUrl);
+  };
+
+  const saveIntegration = async (id: string) => {
+    const integration = integrations.find(i => i.id === id);
+    if (!integration || !integration.webhookUrl) return;
+
+    setSaving(id);
 
     try {
       // Test connection first
-      const isValid = await testConnection(platform, integration.apiKey);
+      const isValid = await testApiConnection(id, integration.webhookUrl);
       
       if (!isValid) {
-        throw new Error('Invalid API key or connection failed');
+        throw new Error('Invalid webhook URL or connection failed');
       }
 
       // Save to Supabase
@@ -99,8 +145,8 @@ const IntegrationSetup: React.FC = () => {
         .from('integrations')
         .upsert({
           user_id: user.user.id,
-          platform,
-          api_key_encrypted: integration.apiKey, // In production, encrypt this
+          platform: id,
+          api_key_encrypted: integration.webhookUrl, // Store webhook URL or API key
           is_active: true,
           settings: {}
         });
@@ -109,7 +155,7 @@ const IntegrationSetup: React.FC = () => {
 
       // Update local state
       setIntegrations(prev => prev.map(i => 
-        i.platform === platform 
+        i.id === id 
           ? { ...i, isActive: true, status: 'connected' as const }
           : i
       ));
@@ -117,7 +163,7 @@ const IntegrationSetup: React.FC = () => {
     } catch (error) {
       console.error('Integration save error:', error);
       setIntegrations(prev => prev.map(i => 
-        i.platform === platform 
+        i.id === id 
           ? { ...i, status: 'error' as const }
           : i
       ));
@@ -131,13 +177,13 @@ const IntegrationSetup: React.FC = () => {
       <div className="max-w-4xl mx-auto p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4 text-white">Integration Setup</h1>
-          <p style={{ color: '#ffffff' }}>Connect your automation platforms to start seeing real data</p>
+          <p style={{ color: '#ffffff' }}>Connect your N8N workflows and automation platforms</p>
         </div>
 
         <div className="space-y-6">
           {integrations.map((integration) => (
             <div 
-              key={integration.platform}
+              key={integration.id}
               className="rounded-lg p-6 transition-all duration-200"
               style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
               onMouseEnter={(e) => {
@@ -173,10 +219,10 @@ const IntegrationSetup: React.FC = () => {
 
               <div className="flex items-center space-x-4">
                 <input
-                  type="password"
-                  placeholder={`Enter ${integration.name} API key`}
-                  value={integration.apiKey}
-                  onChange={(e) => handleApiKeyChange(integration.platform, e.target.value)}
+                  type="text"
+                  placeholder={integration.id.includes('_') ? `Enter N8N webhook URL` : `Enter ${integration.name} API key`}
+                  value={integration.webhookUrl}
+                  onChange={(e) => handleWebhookUrlChange(integration.id, e.target.value)}
                   className="flex-1 px-4 py-2 rounded-lg focus:outline-none transition-all duration-300"
                   style={{
                     backgroundColor: '#0f0f0f',
@@ -193,8 +239,8 @@ const IntegrationSetup: React.FC = () => {
                   }}
                 />
                 <button
-                  onClick={() => saveIntegration(integration.platform)}
-                  disabled={!integration.apiKey || saving === integration.platform}
+                  onClick={() => saveIntegration(integration.id)}
+                  disabled={!integration.webhookUrl || saving === integration.id}
                   className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80"
                   style={{
                     backgroundColor: '#333333',
@@ -214,7 +260,7 @@ const IntegrationSetup: React.FC = () => {
                     }
                   }}
                 >
-                  {saving === integration.platform ? 'Testing...' : 'Save & Test'}
+                  {saving === integration.id ? 'Testing...' : 'Save & Test'}
                 </button>
               </div>
             </div>
@@ -222,11 +268,12 @@ const IntegrationSetup: React.FC = () => {
         </div>
 
         <div className="mt-8 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
-          <h3 className="text-lg font-semibold mb-2 text-white">How to get API keys:</h3>
+          <h3 className="text-lg font-semibold mb-2 text-white">Setup Instructions:</h3>
           <ul className="space-y-2 text-sm" style={{ color: '#888888' }}>
             <li><strong style={{ color: '#ffffff' }}>Instantly:</strong> Go to Settings → API → Generate new API key</li>
             <li><strong style={{ color: '#ffffff' }}>HeyReach:</strong> Go to Account → API Access → Create API key</li>
-            <li><strong style={{ color: '#ffffff' }}>Apollo:</strong> Go to Settings → Integrations → API → Generate key</li>
+            <li><strong style={{ color: '#ffffff' }}>N8N Workflows:</strong> Copy the webhook URL from each workflow's webhook trigger node</li>
+            <li><strong style={{ color: '#ffffff' }}>Webhook Format:</strong> https://your-n8n-instance.com/webhook/workflow-name</li>
           </ul>
         </div>
       </div>
