@@ -127,80 +127,108 @@ const IntegrationSetup: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-4 text-white">Integration Setup</h1>
-        <p className="text-gray-400">Connect your automation platforms to start seeing real data</p>
-      </div>
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-4xl mx-auto p-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4 text-white">Integration Setup</h1>
+          <p style={{ color: '#ffffff' }}>Connect your automation platforms to start seeing real data</p>
+        </div>
 
-      <div className="space-y-6">
-        {integrations.map((integration) => (
-          <div 
-            key={integration.platform}
-            className="rounded-lg p-6"
-            style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <Key className="w-6 h-6 text-gray-400" />
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{integration.name}</h3>
-                  <p className="text-sm text-gray-400">{integration.description}</p>
+        <div className="space-y-6">
+          {integrations.map((integration) => (
+            <div 
+              key={integration.platform}
+              className="rounded-lg p-6 transition-all duration-200"
+              style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#555555';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#333333';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <Key className="w-6 h-6" style={{ color: '#888888' }} />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{integration.name}</h3>
+                    <p className="text-sm" style={{ color: '#888888' }}>{integration.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {integration.status === 'connected' && (
+                    <div className="flex items-center space-x-1" style={{ color: '#10b981' }}>
+                      <Check className="w-4 h-4" />
+                      <span className="text-sm">Connected</span>
+                    </div>
+                  )}
+                  {integration.status === 'error' && (
+                    <div className="flex items-center space-x-1" style={{ color: '#ef4444' }}>
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">Error</span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                {integration.status === 'connected' && (
-                  <div className="flex items-center space-x-1 text-green-500">
-                    <Check className="w-4 h-4" />
-                    <span className="text-sm">Connected</span>
-                  </div>
-                )}
-                {integration.status === 'error' && (
-                  <div className="flex items-center space-x-1 text-red-500">
-                    <AlertCircle className="w-4 h-4" />
-                    <span className="text-sm">Error</span>
-                  </div>
-                )}
+
+              <div className="flex items-center space-x-4">
+                <input
+                  type="password"
+                  placeholder={`Enter ${integration.name} API key`}
+                  value={integration.apiKey}
+                  onChange={(e) => handleApiKeyChange(integration.platform, e.target.value)}
+                  className="flex-1 px-4 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                    e.target.style.backgroundColor = '#1a1a1a';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.backgroundColor = '#0f0f0f';
+                  }}
+                />
+                <button
+                  onClick={() => saveIntegration(integration.platform)}
+                  disabled={!integration.apiKey || saving === integration.platform}
+                  className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80"
+                  style={{
+                    backgroundColor: '#333333',
+                    border: '1px solid #555555',
+                    color: '#ffffff'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = '#444444';
+                      e.currentTarget.style.borderColor = '#666666';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!e.currentTarget.disabled) {
+                      e.currentTarget.style.backgroundColor = '#333333';
+                      e.currentTarget.style.borderColor = '#555555';
+                    }
+                  }}
+                >
+                  {saving === integration.platform ? 'Testing...' : 'Save & Test'}
+                </button>
               </div>
             </div>
+          ))}
+        </div>
 
-            <div className="flex items-center space-x-4">
-              <input
-                type="password"
-                placeholder={`Enter ${integration.name} API key`}
-                value={integration.apiKey}
-                onChange={(e) => handleApiKeyChange(integration.platform, e.target.value)}
-                className="flex-1 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                style={{
-                  backgroundColor: '#0f0f0f',
-                  border: '1px solid #333333',
-                  color: '#ffffff'
-                }}
-              />
-              <button
-                onClick={() => saveIntegration(integration.platform)}
-                disabled={!integration.apiKey || saving === integration.platform}
-                className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
-                style={{
-                  backgroundColor: '#333333',
-                  border: '1px solid #555555',
-                  color: '#ffffff'
-                }}
-              >
-                {saving === integration.platform ? 'Testing...' : 'Save & Test'}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-8 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
-        <h3 className="text-lg font-semibold mb-2 text-white">How to get API keys:</h3>
-        <ul className="space-y-2 text-sm text-gray-400">
-          <li><strong>Instantly:</strong> Go to Settings → API → Generate new API key</li>
-          <li><strong>HeyReach:</strong> Go to Account → API Access → Create API key</li>
-          <li><strong>Apollo:</strong> Go to Settings → Integrations → API → Generate key</li>
-        </ul>
+        <div className="mt-8 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+          <h3 className="text-lg font-semibold mb-2 text-white">How to get API keys:</h3>
+          <ul className="space-y-2 text-sm" style={{ color: '#888888' }}>
+            <li><strong style={{ color: '#ffffff' }}>Instantly:</strong> Go to Settings → API → Generate new API key</li>
+            <li><strong style={{ color: '#ffffff' }}>HeyReach:</strong> Go to Account → API Access → Create API key</li>
+            <li><strong style={{ color: '#ffffff' }}>Apollo:</strong> Go to Settings → Integrations → API → Generate key</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
