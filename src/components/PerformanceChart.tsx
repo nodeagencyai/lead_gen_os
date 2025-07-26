@@ -112,28 +112,6 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
               fill="none"
               className="transition-all duration-300"
             />
-            
-            {/* Data points */}
-            {data.map((point, index) => {
-              const maxValue = Math.max(...data.map(d => d.value));
-              const minValue = Math.min(...data.map(d => d.value));
-              const range = maxValue - minValue || 1;
-              const x = 20 + (index / (data.length - 1)) * 360;
-              const y = 80 - ((point.value - minValue) / range) * 60;
-              
-              return (
-                <circle
-                  key={index}
-                  cx={x}
-                  cy={y}
-                  r="3"
-                  fill={color}
-                  className="opacity-70 hover:opacity-100 transition-opacity"
-                >
-                  <title>{`${formatDate(point.date)}: ${point.value}`}</title>
-                </circle>
-              );
-            })}
           </svg>
         ) : (
           <div className="flex items-center justify-center h-full text-sm" style={{ color: '#666666' }}>
