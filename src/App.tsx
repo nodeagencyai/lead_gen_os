@@ -7,11 +7,16 @@ import IntegrationSetup from './components/IntegrationSetup';
 import CampaignToggle from './components/CampaignToggle';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
+import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
 
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
+
+  // Get chart labels and efficiency metrics based on current mode
+  const chartLabels = getChartLabels(mode);
+  const efficiencyMetrics = getEfficiencyMetrics(mode);
 
   // Convert real-time data to display format
   const keyMetrics = mode === 'email' ? [
