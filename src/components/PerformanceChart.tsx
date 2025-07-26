@@ -45,28 +45,34 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return `Day ${date.getDate()}`;
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   // Generate x-axis labels from data
   const xAxisLabels = useMemo(() => {
     if (!data || data.length === 0) return [];
     
-    const labelCount = 7;
-    const step = Math.max(1, Math.floor(data.length / (labelCount - 1)));
+    const labelCount = 5; // Reduce to 5 labels for cleaner look
+    const step = Math.max(1, Math.floor(data.length / labelCount));
     const labels = [];
     
-    for (let i = 0; i < data.length; i += step) {
-      if (labels.length < labelCount) {
-        labels.push(formatDate(data[i].date));
-      }
+    // Always show first date
+    labels.push(formatDate(data[0].date));
+    
+    // Show evenly spaced dates in between
+    for (let i = 1; i < labelCount - 1; i++) {
+      const index = Math.floor((i / (labelCount - 1)) * (data.length - 1));
+      labels.push(formatDate(data[index].date));
     }
     
-    // Ensure we always show the last data point
-    if (labels.length > 0 && data.length > 1) {
-      labels[labels.length - 1] = formatDate(data[data.length - 1].date);
+    // Always show last date
+    if (data.length > 1) {
+      labels.push(formatDate(data[data.length - 1].date));
     }
-    
+
     return labels;
   }, [data]);
 
