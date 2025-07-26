@@ -3,19 +3,30 @@ import { TrendingUp, TrendingDown, Search } from 'lucide-react';
 import LeadFinder from './components/LeadFinder.tsx';
 import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
+import IntegrationSetup from './components/IntegrationSetup';
 import CampaignToggle from './components/CampaignToggle';
 import { useCampaignStore } from './store/campaignStore';
-import { getKeyMetrics, getEfficiencyMetrics, getCampaigns, getChartLabels, getTableHeaders } from './data/campaignData';
+import { useRealTimeData } from './hooks/useRealTimeData';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
   const { mode } = useCampaignStore();
+  const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
 
-  const keyMetrics = getKeyMetrics(mode);
-  const efficiencyMetrics = getEfficiencyMetrics(mode);
-  const campaigns = getCampaigns(mode);
-  const chartLabels = getChartLabels(mode);
-  const tableHeaders = getTableHeaders(mode);
+  // Convert real-time data to display format
+  const keyMetrics = mode === 'email' ? [
+    { title: 'Emails Sent', value: emailMetrics.sent.toLocaleString(), change: '+18%', positive: true },
+    { title: 'Emails Opened', value: emailMetrics.opened.toLocaleString(), change: '+12%', positive: true },
+    { title: 'Email Replies', value: emailMetrics.replied.toLocaleString(), change: '+25%', positive: true },
+    { title: 'Meetings Booked', value: emailMetrics.meetings.toLocaleString(), change: '+15%', positive: true },
+    { title: 'Bounce Rate', value: `${emailMetrics.bounceRate}%`, change: '-8%', positive: true }
+  ] : [
+    { title: 'Connection Requests', value: linkedinMetrics.connectionRequests.toLocaleString(), change: '+22%', positive: true },
+    { title: 'Connections Accepted', value: linkedinMetrics.connectionsAccepted.toLocaleString(), change: '+16%', positive: true },
+    { title: 'Messages Sent', value: linkedinMetrics.messagesSent.toLocaleString(), change: '+20%', positive: true },
+    { title: 'Message Replies', value: linkedinMetrics.messageReplies.toLocaleString(), change: '+18%', positive: true },
+    { title: 'Meetings Booked', value: linkedinMetrics.meetings.toLocaleString(), change: '+12%', positive: true }
+  ];
 
   const ChartSVG = ({ className }: { className?: string }) => (
     <svg className={className} viewBox="0 0 400 100" fill="none">
@@ -40,6 +51,9 @@ function App() {
     return <CampaignsOverview onNavigate={setCurrentView} />;
   }
 
+  if (currentView === 'integrations') {
+    return <IntegrationSetup />;
+  }
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
@@ -82,10 +96,11 @@ function App() {
               Campaigns
             </button>
             <button 
+              onClick={() => setCurrentView('integrations')}
               className="transition-colors hover:opacity-80" 
-             style={{ color: '#888888' }}
+             style={{ color: currentView === 'integrations' ? '#ffffff' : '#888888' }}
             >
-              Settings
+              Integrations
             </button>
           </div>
           <div className="flex items-center">
@@ -100,10 +115,26 @@ function App() {
           <h1 className="text-3xl font-bold" style={{ color: '#ffffff' }}>
             {mode === 'email' ? 'Email Campaign Dashboard' : 'LinkedIn Campaign Dashboard'}
           </h1>
-          <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333', color: '#888888' }}>
-            {mode === 'email' ? 'Apollo + Instantly' : 'Sales Navigator + HeyReach'}
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={forceRefresh}
+              disabled={loading}
+              className="text-sm px-3 py-1 rounded-full transition-colors hover:opacity-80 disabled:opacity-50"
+              style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+            >
+              {loading ? 'Refreshing...' : 'Refresh Data'}
+            </button>
+            <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333', color: '#888888' }}>
+              {mode === 'email' ? 'Apollo + Instantly' : 'Sales Navigator + HeyReach'}
+            </div>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #ef4444', color: '#ef4444' }}>
+            Error loading real-time data: {error}
+          </div>
+        )}
 
         {/* Key Metrics */}
         <div className="mb-8">
@@ -297,7 +328,7 @@ function App() {
             <table className="w-full">
               <thead style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
                 <tr>
-                  {tableHeaders.map((header, index) => (
+                  {(mode === 'email' ? ['Campaign Name', 'Emails Sent', 'Replies', 'Meetings', 'Reply Rate'] : ['Campaign Name', 'Connections', 'Replies', 'Meetings', 'Response Rate']).map((header, index) => (
                     <th key={index} className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>
                       {header}
                     </th>
@@ -305,7 +336,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map((campaign, index) => (
+                {campaigns.slice(0, 5).map((campaign, index) => (
                   <tr 
                     key={index} 
                     className="transition-colors"
@@ -318,10 +349,10 @@ function App() {
                     }}
                   >
                     <td className="p-4 text-sm text-white">{campaign.name}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.leads}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.responses}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.conversions}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.rate}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.leads || campaign.sent || 0}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.responses || campaign.replies || 0}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.conversions || campaign.meetings || 0}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.rate || '0%'}</td>
                   </tr>
                 ))}
               </tbody>
