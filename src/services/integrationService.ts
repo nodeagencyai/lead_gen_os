@@ -194,7 +194,7 @@ export class IntegrationService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.VITE_N8N_AUTH_TOKEN}`
+          'Authorization': `Bearer ${import.meta.env.VITE_N8N_AUTH_TOKEN}`
         },
         body: JSON.stringify(payload)
       });
