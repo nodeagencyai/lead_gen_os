@@ -247,63 +247,17 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
             </>
           ) : (
             <>
-              {/* Lead Processing Section */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="block text-sm font-semibold" style={{ color: '#ffffff' }}>
-                    Select leads to process ({selectedLeads.length} selected)
-                  </label>
-                  <button
-                    onClick={() => handleSelectAllLeads(selectedLeads.length !== availableLeads.length)}
-                    className="text-sm px-3 py-1 rounded transition-colors hover:opacity-80"
-                    style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
-                  >
-                    {selectedLeads.length === availableLeads.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
-                
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {availableLeads.map((lead) => (
-                    <div 
-                      key={lead.id}
-                      className="flex items-center space-x-3 p-3 rounded-lg transition-colors hover:bg-opacity-80"
-                      style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedLeads.includes(lead.id)}
-                        onChange={(e) => handleLeadSelection(lead.id, e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-white">{lead.name}</div>
-                        <div className="text-xs" style={{ color: '#888888' }}>{lead.company}</div>
-                      </div>
-                      <div 
-                        className="text-xs px-2 py-1 rounded-full"
-                        style={{ 
-                          backgroundColor: '#3b82f6' + '20',
-                          color: '#3b82f6' 
-                        }}
-                      >
-                        {lead.status}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Process Limit */}
               <div className="mb-8">
                 <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
-                  Number of leads to process (max {selectedLeads.length} selected)
+                  Number of leads to process
                 </label>
                 <input
                   type="number"
                   min="1"
-                  max={selectedLeads.length || 1}
+                  max="10000"
                   value={processLimit}
-                  onChange={(e) => setProcessLimit(Math.min(Number(e.target.value), selectedLeads.length))}
+                  onChange={(e) => setProcessLimit(Number(e.target.value))}
                   placeholder="Enter number of leads to process"
                   className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
                   style={{
@@ -322,7 +276,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   }}
                 />
                 <div className="text-xs mt-2" style={{ color: '#888888' }}>
-                  This will process the first {Math.min(processLimit, selectedLeads.length)} leads from your selection
+                  This will process the first {processLimit} leads from your database
                 </div>
               </div>
             </>
@@ -332,7 +286,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
           <div className="text-center">
             <button
               onClick={handleStartAction}
-              disabled={(actionType === 'scrape' && !targetAudience.trim()) || (actionType === 'process' && selectedLeads.length === 0) || isLoading}
+              disabled={(actionType === 'scrape' && !targetAudience.trim()) || (actionType === 'process' && !processLimit) || isLoading}
               className="px-10 py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 mx-auto shadow-lg hover:shadow-xl"
               style={{
                 backgroundColor: '#333333',
@@ -373,7 +327,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
               ) : (
                 <>
                   <Search size={20} />
-                  <span>Process {Math.min(processLimit, selectedLeads.length)} Leads</span>
+                  <span>Process {processLimit} Leads</span>
                 </>
               )}
             </button>
