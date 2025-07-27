@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Key, Check, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import CampaignToggle from './CampaignToggle';
 
 interface Integration {
   id: string;
