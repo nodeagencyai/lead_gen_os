@@ -13,7 +13,7 @@ interface Integration {
 }
 
 interface IntegrationSetupProps {
-  onNavigate?: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'settings') => void;
+  onNavigate?: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations') => void;
 }
 
 const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
@@ -225,13 +225,6 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                 style={{ color: '#ffffff' }}
               >
                 Integrations
-              </button>
-              <button 
-                onClick={() => onNavigate('settings')}
-                className="transition-colors hover:opacity-80" 
-                style={{ color: '#888888' }}
-              >
-                Settings
               </button>
             </div>
             <div className="flex items-center">
