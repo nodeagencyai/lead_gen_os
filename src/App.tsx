@@ -4,7 +4,6 @@ import LeadFinder from './components/LeadFinder.tsx';
 import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
 import IntegrationSetup from './components/IntegrationSetup';
-import Settings from './components/Settings';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
 import { useCampaignStore } from './store/campaignStore';
@@ -13,7 +12,7 @@ import { useChartData } from './hooks/useChartData';
 import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'settings'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
   const { chart1, chart2, loading: chartLoading, error: chartError, refetch: refetchCharts } = useChartData();
@@ -63,10 +62,6 @@ function App() {
     return <IntegrationSetup onNavigate={setCurrentView} />;
   }
 
-  if (currentView === 'settings') {
-    return <Settings onNavigate={setCurrentView} />;
-  }
-
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
@@ -114,13 +109,6 @@ function App() {
              style={{ color: currentView === 'integrations' ? '#ffffff' : '#888888' }}
             >
               Integrations
-            </button>
-            <button 
-              onClick={() => setCurrentView('settings')}
-              className="transition-colors hover:opacity-80" 
-              style={{ color: currentView === 'settings' ? '#ffffff' : '#888888' }}
-            >
-              Settings
             </button>
           </div>
           <div className="flex items-center">
