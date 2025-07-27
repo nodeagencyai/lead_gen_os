@@ -11,7 +11,11 @@ interface Integration {
   status: 'connected' | 'disconnected' | 'error';
 }
 
-const IntegrationSetup: React.FC = () => {
+interface IntegrationSetupProps {
+  onNavigate?: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'settings') => void;
+}
+
+const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   const [integrations, setIntegrations] = useState<Integration[]>([
     {
       id: 'instantly',
@@ -174,6 +178,68 @@ const IntegrationSetup: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Navigation */}
+      {onNavigate && (
+        <nav className="px-6 py-4" style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/Node Logo-White.png" 
+                alt="Logo" 
+                className="h-8 w-auto"
+              />
+            </div>
+            <div className="flex space-x-8">
+              <button 
+                onClick={() => onNavigate('dashboard')}
+                className="transition-colors hover:opacity-80"
+                style={{ color: '#888888' }}
+              >
+                Dashboard
+              </button>
+              <button 
+                onClick={() => onNavigate('leadfinder')}
+                className="transition-colors hover:opacity-80"
+                style={{ color: '#888888' }}
+              >
+                Generate
+              </button>
+              <button 
+                onClick={() => onNavigate('leads')}
+                className="transition-colors hover:opacity-80"
+                style={{ color: '#888888' }}
+              >
+                Leads
+              </button>
+              <button 
+                onClick={() => onNavigate('campaigns')}
+                className="transition-colors hover:opacity-80" 
+                style={{ color: '#888888' }}
+              >
+                Campaigns
+              </button>
+              <button 
+                onClick={() => onNavigate('integrations')}
+                className="transition-colors hover:opacity-80" 
+                style={{ color: '#ffffff' }}
+              >
+                Integrations
+              </button>
+              <button 
+                onClick={() => onNavigate('settings')}
+                className="transition-colors hover:opacity-80" 
+                style={{ color: '#888888' }}
+              >
+                Settings
+              </button>
+            </div>
+            <div className="flex items-center">
+              <CampaignToggle />
+            </div>
+          </div>
+        </nav>
+      )}
+
       <div className="max-w-4xl mx-auto p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4 text-white">Integration Setup</h1>

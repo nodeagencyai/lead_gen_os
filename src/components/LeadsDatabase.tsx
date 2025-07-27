@@ -18,7 +18,7 @@ interface Lead {
 }
 
 interface LeadsDatabaseProps {
-  onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads') => void;
+  onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'settings') => void;
 }
 
 const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
@@ -236,6 +236,14 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             <button 
               className="transition-colors hover:opacity-80" 
               style={{ color: '#888888' }}
+              onClick={() => onNavigate('integrations')}
+            >
+              Integrations
+            </button>
+            <button 
+              className="transition-colors hover:opacity-80" 
+              style={{ color: '#888888' }}
+              onClick={() => onNavigate('settings')}
             >
               Settings
             </button>

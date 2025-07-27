@@ -4,7 +4,7 @@ import CampaignToggle from './CampaignToggle';
 import { useCampaignStore } from '../store/campaignStore';
 
 interface LeadFinderProps {
-  onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads') => void;
+  onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'settings') => void;
 }
 
 const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
@@ -103,8 +103,16 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
               Campaigns
             </button>
             <button 
+              onClick={() => onNavigate('integrations')}
+              className="transition-colors hover:opacity-80" 
+              style={{ color: '#888888' }}
+            >
+              Integrations
+            </button>
+            <button 
               className="transition-colors hover:opacity-80" 
              style={{ color: '#888888' }}
+              onClick={() => onNavigate('settings')}
             >
               Settings
             </button>
