@@ -62,11 +62,12 @@ function App() {
   if (currentView === 'integrations') {
     return <IntegrationSetup onNavigate={setCurrentView} />;
   }
-  return (
+
   if (currentView === 'settings') {
     return <Settings onNavigate={setCurrentView} />;
   }
 
+  return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
       <nav className="px-6 py-4" style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
