@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 interface AdminLoginProps {
   onAuthenticated: () => void;
@@ -45,19 +45,11 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
       <div className="w-full max-w-md mx-auto px-6">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ backgroundColor: '#1a1a1a', border: '2px solid #333333' }}
-            >
-              <Lock className="w-8 h-8" style={{ color: '#888888' }} />
-            </div>
-          </div>
           <h1 className="text-3xl font-bold mb-2" style={{ color: '#ffffff' }}>
             Admin Access
           </h1>
           <p className="text-base" style={{ color: '#888888' }}>
-            Enter the admin password to access Lead Generation OS
+            Enter the admin password to access LeadGenOS
           </p>
         </div>
 
@@ -88,12 +80,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
           <form onSubmit={handleSubmit}>
             {/* Password Input */}
             <div className="mb-6">
-              <label 
-                className="block text-sm font-semibold mb-3" 
-                style={{ color: '#ffffff' }}
-              >
-                Admin Password
-              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -162,7 +148,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                 </>
               ) : (
                 <>
-                  <Lock className="w-5 h-5" />
                   <span>Access Dashboard</span>
                 </>
               )}
