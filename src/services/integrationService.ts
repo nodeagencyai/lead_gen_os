@@ -60,81 +60,7 @@ export class IntegrationService {
     }
   }
 
-  private static async fetchViaProxy() {
-    try {
-      // Get campaigns via proxy
-      const campaignResponse = await fetch('http://localhost:3001/api/instantly/campaigns');
-      
-      if (!campaignResponse.ok) {
-        throw new Error(`Proxy campaigns API failed: ${campaignResponse.status}`);
-      }
-      
-      const campaigns = await campaignResponse.json();
-      
-      // Get analytics via proxy
-      const analyticsResponse = await fetch('http://localhost:3001/api/instantly/campaigns/analytics');
-      const analytics = analyticsResponse.ok ? await analyticsResponse.json() : [];
-
-      return {
-        campaigns: campaigns.items || [],
-        analytics: {
-          emails_sent: 0,
-          emails_opened: 0,
-          emails_replied: 0,
-          meetings_booked: 0,
-          bounce_rate: 0
-        }
-      };
-    } catch (error) {
-      console.error('❌ Proxy API Error:', error);
-      throw error;
-    }
-  }
-
-  private static async fetchDirectAPI() {
-    const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
-    if (!apiKey) {
-      console.error('❌ Instantly API key not found in environment variables');
-      console.error('Available env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
-      throw new Error('Instantly API key not configured - check environment variables in production deployment');
-    }
-
-    console.log('🔑 Using Instantly API key for direct API calls');
-    const headers = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-
-    try {
-      // Get campaigns via direct API
-      const campaignResponse = await fetch('https://api.instantly.ai/api/v2/campaigns', { headers });
-      
-      if (!campaignResponse.ok) {
-        throw new Error(`Direct campaigns API failed: ${campaignResponse.status}`);
-      }
-      
-      const campaigns = await campaignResponse.json();
-      
-      // Get analytics via direct API
-      const analyticsResponse = await fetch('https://api.instantly.ai/api/v2/campaigns/analytics', { headers });
-      const analytics = analyticsResponse.ok ? await analyticsResponse.json() : [];
-
-      return {
-        campaigns: campaigns.items || [],
-        analytics: {
-          emails_sent: 0,
-          emails_opened: 0,
-          emails_replied: 0,
-          meetings_booked: 0,
-          bounce_rate: 0
-        }
-      };
-    } catch (error) {
-      console.error('❌ Direct API Error:', error);
-      throw error;
-    }
-  }
+  // NOTE: Old proxy methods removed - now using centralized API client with serverless functions
 
   static async getInstantlyAnalytics() {
     // This method is now integrated into getInstantlyData() 
@@ -155,37 +81,17 @@ export class IntegrationService {
   }
 
   static async getCampaignDetails(campaignId: string) {
-    const isDevelopment = import.meta.env.DEV;
+    console.log(`🔄 Fetching campaign ${campaignId} details via serverless API...`);
     
     try {
-      let response;
+      // Use API client to call serverless function
+      const result = await apiClient.get(`/api/instantly/campaigns/${campaignId}`);
       
-      if (isDevelopment) {
-        // Try proxy first
-        try {
-          response = await fetch(`http://localhost:3001/api/instantly/campaigns/${campaignId}`);
-        } catch (proxyError) {
-          console.warn('Proxy not available, using direct API');
-          const headers = {
-            'Authorization': `Bearer ${import.meta.env.VITE_INSTANTLY_API_KEY}`,
-            'Content-Type': 'application/json'
-          };
-          response = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}`, { headers });
-        }
-      } else {
-        // Production: direct API
-        const headers = {
-          'Authorization': `Bearer ${import.meta.env.VITE_INSTANTLY_API_KEY}`,
-          'Content-Type': 'application/json'
-        };
-        response = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}`, { headers });
+      if (result.error) {
+        throw new Error(`Failed to fetch campaign details: ${result.error}`);
       }
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch campaign details: ${response.status}`);
-      }
-      
-      return await response.json();
+      return result.data;
     } catch (error) {
       console.error(`Error fetching campaign ${campaignId} details:`, error);
       throw error;
@@ -289,168 +195,9 @@ export class IntegrationService {
     }
   }
 
-  private static async fetchHeyReachDirectAPI() {
-    const apiKey = import.meta.env.VITE_HEYREACH_API_KEY;
-    if (!apiKey) {
-      console.error('❌ HeyReach API key not found in environment variables');
-      console.error('Available env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
-      throw new Error('HeyReach API key not configured - check environment variables in production deployment');
-    }
+  // NOTE: fetchHeyReachDirectAPI removed - using serverless proxy only
 
-    console.log('🔑 Using HeyReach API key for direct API calls');
-    
-    const headers = {
-      'X-API-KEY': apiKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-
-    try {
-      // Test authentication first
-      console.log('🔄 Testing HeyReach API key validity...');
-      
-      const authTestResponse = await fetch(
-        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.AUTH_CHECK}`,
-        { 
-          headers,
-          mode: 'cors',
-          credentials: 'omit'
-        }
-      );
-      
-      console.log(`🔍 Auth test response:`, authTestResponse.status, authTestResponse.statusText);
-      
-      if (!authTestResponse.ok) {
-        const errorText = await authTestResponse.text();
-        console.error('❌ HeyReach API key authentication failed:', errorText);
-        throw new Error(`HeyReach API key authentication failed: ${authTestResponse.status} - ${errorText}`);
-      }
-      
-      console.log('✅ HeyReach API key is valid');
-      return await this.fetchHeyReachWithAuth(headers);
-      
-    } catch (error) {
-      console.error('❌ HeyReach API Error details:', error);
-      
-      // Check if it's a CORS error
-      if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
-        console.error('🚫 CORS Error: HeyReach API may not allow browser requests');
-        console.error('💡 This API might only work from server-side or with a proxy');
-        throw new Error(`HeyReach API CORS error: The API doesn't allow requests from browsers. This requires a server-side proxy or backend integration.`);
-      }
-      
-      throw new Error(`HeyReach API authentication failed: ${error.message}`);
-    }
-  }
-
-  private static async fetchHeyReachWithAuth(headers: Record<string, string>) {
-    try {
-      console.log('🔄 Fetching HeyReach data with working endpoints...');
-      
-      // Use the correct HeyReach API format (POST with empty body)
-      const requestOptions = {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({})
-      };
-
-      // Get LinkedIn accounts
-      let accounts = [];
-      try {
-        console.log('📡 Fetching LinkedIn accounts...');
-        const accountsResponse = await fetch(
-          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.LI_ACCOUNTS}`,
-          requestOptions
-        );
-        
-        if (accountsResponse.ok) {
-          const accountsData = await accountsResponse.json();
-          accounts = accountsData.items || [];
-          console.log(`✅ Found ${accounts.length} LinkedIn accounts`);
-        }
-      } catch (error) {
-        console.warn('⚠️ LinkedIn accounts fetch error:', error.message);
-      }
-
-      // Get campaigns
-      let campaigns = [];
-      try {
-        console.log('📡 Fetching campaigns...');
-        const campaignsResponse = await fetch(
-          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CAMPAIGNS}`,
-          requestOptions
-        );
-        
-        if (campaignsResponse.ok) {
-          const campaignsData = await campaignsResponse.json();
-          campaigns = campaignsData.items || [];
-          console.log(`✅ Found ${campaigns.length} campaigns`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Campaigns fetch error:', error.message);
-      }
-
-      // Try to get conversations/messages (optional)
-      let conversations = [];
-      let messages = [];
-      
-      try {
-        console.log('📡 Fetching conversations...');
-        const conversationsResponse = await fetch(
-          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CONVERSATIONS}`,
-          requestOptions
-        );
-        
-        if (conversationsResponse.ok) {
-          const conversationsData = await conversationsResponse.json();
-          conversations = conversationsData.items || [];
-          console.log(`✅ Found ${conversations.length} conversations`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Conversations fetch error:', error.message);
-      }
-
-      // Calculate analytics from the data we have
-      const analytics = {
-        linkedin_accounts: accounts.length,
-        active_accounts: accounts.filter(acc => acc.isActive).length,
-        total_campaigns: campaigns.length,
-        active_campaigns: accounts.reduce((sum, acc) => sum + (acc.activeCampaigns || 0), 0),
-        total_conversations: conversations.length,
-        auth_valid_accounts: accounts.filter(acc => acc.authIsValid).length
-      };
-
-      console.log('📊 HeyReach analytics:', analytics);
-
-      return {
-        accounts: accounts,
-        campaigns: campaigns,
-        conversations: conversations,
-        messages: messages,
-        analytics: analytics
-      };
-      
-    } catch (error) {
-      console.error('❌ HeyReach API Error:', error);
-      throw error;
-    }
-  }
-
-  private static async getHeyReachAnalyticsWithHeaders(headers: Record<string, string>) {
-    try {
-      const response = await fetch(
-        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.ANALYTICS}`,
-        { headers }
-      );
-      if (response.ok) {
-        return await response.json();
-      }
-      return null;
-    } catch (error) {
-      console.error('HeyReach Analytics Error:', error);
-      return null;
-    }
-  }
+  // NOTE: Old HeyReach direct API methods removed - now using centralized API client with serverless functions
 
   static async getHeyReachAnalytics() {
     // This method is now integrated into getHeyReachData()

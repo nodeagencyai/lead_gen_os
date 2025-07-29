@@ -20,6 +20,9 @@
     },
     "api/debug/env.js": {
       "maxDuration": 10
+    },
+    "api/test.js": {
+      "maxDuration": 10
     }
   },
   "headers": [
@@ -36,19 +39,17 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, X-Requested-With"
+          "value": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-API-Key"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "false"
         },
         {
           "key": "Access-Control-Max-Age",
           "value": "86400"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
     }
   ]
 }

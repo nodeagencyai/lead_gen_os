@@ -1,12 +1,15 @@
 // Vercel Serverless Function for Instantly Analytics
 export default async function handler(req, res) {
-  // Set CORS headers
+  // Set comprehensive CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'false');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('🔄 CORS preflight request handled for /api/instantly/analytics');
     return res.status(200).end();
   }
 
@@ -16,13 +19,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const INSTANTLY_API_KEY = process.env.VITE_INSTANTLY_API_KEY;
+    // Use server-side environment variable (NO VITE_ prefix)
+    const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY;
     
     if (!INSTANTLY_API_KEY) {
       console.error('❌ Instantly API key not found');
       return res.status(500).json({ 
         error: 'API key not configured',
-        debug: 'VITE_INSTANTLY_API_KEY environment variable is missing'
+        debug: 'INSTANTLY_API_KEY environment variable is missing'
       });
     }
 

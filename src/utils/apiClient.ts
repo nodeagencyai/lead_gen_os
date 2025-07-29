@@ -40,18 +40,13 @@ class ApiClient {
   }
 
   private getBaseUrl(): string {
-    // In development, try local proxy first, then fall back to Vercel
-    if (import.meta.env.DEV) {
-      return 'http://localhost:3001';
-    }
-    
-    // In production, use Vercel serverless functions
+    // FORCE: Always use serverless proxy routes - NO direct external API calls
     if (typeof window !== 'undefined') {
       return window.location.origin;
     }
     
-    // Fallback
-    return '';
+    // Development fallback - but still use proxy routes
+    return 'http://localhost:5173';
   }
 
   private async makeRequest<T>(
@@ -175,41 +170,23 @@ class ApiClient {
     return this.retryRequest<T>(endpoint, { method: 'DELETE' });
   }
 
-  // Specialized methods for different APIs
+  // Specialized methods for different APIs - FORCE proxy routes only
   async instantly<T>(endpoint: string): Promise<ApiResponse<T>> {
-    // Try local proxy first in development
-    if (import.meta.env.DEV) {
-      try {
-        const result = await this.get<T>(`/api/instantly${endpoint}`);
-        if (!result.error) {
-          return result;
-        }
-        console.warn('⚠️ Local proxy failed, trying Vercel API...');
-      } catch (error) {
-        console.warn('⚠️ Local proxy unavailable, using Vercel API...');
-      }
-    }
-
-    // Use Vercel serverless function
+    // ALWAYS use serverless proxy - NO direct external API calls
+    console.log(`📡 FORCED PROXY: /api/instantly${endpoint}`);
     return this.get<T>(`/api/instantly${endpoint}`);
   }
 
   async heyreach<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    // Try local proxy first in development
-    if (import.meta.env.DEV) {
-      try {
-        const result = await this.post<T>(`/api/heyreach${endpoint}`, data);
-        if (!result.error) {
-          return result;
-        }
-        console.warn('⚠️ Local proxy failed, trying Vercel API...');
-      } catch (error) {
-        console.warn('⚠️ Local proxy unavailable, using Vercel API...');
-      }
-    }
-
-    // Use Vercel serverless function
+    // ALWAYS use serverless proxy - NO direct external API calls
+    console.log(`📡 FORCED PROXY: /api/heyreach${endpoint}`);
     return this.post<T>(`/api/heyreach${endpoint}`, data);
+  }
+
+  // Add test method to verify proxy is working
+  async testProxy(): Promise<ApiResponse> {
+    console.log('🧪 Testing proxy connection...');
+    return this.get('/api/test');
   }
 
   // Debug methods
