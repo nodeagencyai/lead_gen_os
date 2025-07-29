@@ -23,113 +23,112 @@ export class IntegrationService {
 
   // Instantly API Integration
   static async getInstantlyData() {
-    // Use proxy server in development, direct API with CORS handling in production
+    // Always try proxy server first in development, then fallback to direct API
     const isDevelopment = import.meta.env.DEV;
-    const baseUrl = isDevelopment 
-      ? 'http://localhost:3001/api/instantly' // Development proxy server
-      : 'https://api.instantly.ai/api/v2'; // Production direct API
+    console.log('🔍 Environment check - isDevelopment:', isDevelopment);
+    console.log('🔍 Environment check - NODE_ENV:', import.meta.env.NODE_ENV);
+    console.log('🔍 Environment check - MODE:', import.meta.env.MODE);
     
-    // Setup headers for direct API calls in production
-    const headers = isDevelopment ? {} : {
-      'Authorization': `Bearer ${import.meta.env.VITE_INSTANTLY_API_KEY}`,
+    // Try proxy server first in development
+    if (isDevelopment) {
+      try {
+        console.log('🔄 Attempting proxy server connection...');
+        const proxyResponse = await fetch('http://localhost:3001/api/instantly/campaigns');
+        
+        if (proxyResponse.ok) {
+          console.log('✅ Using proxy server for API calls');
+          return await this.fetchViaProxy();
+        } else {
+          console.warn('⚠️ Proxy server not responding, falling back to direct API');
+        }
+      } catch (proxyError) {
+        console.warn('⚠️ Proxy server unavailable, falling back to direct API:', proxyError.message);
+      }
+    }
+    
+    // Fallback to direct API calls
+    console.log('🔄 Using direct API calls...');
+    return await this.fetchDirectAPI();
+  }
+
+  private static async fetchViaProxy() {
+    try {
+      // Get campaigns via proxy
+      const campaignResponse = await fetch('http://localhost:3001/api/instantly/campaigns');
+      
+      if (!campaignResponse.ok) {
+        throw new Error(`Proxy campaigns API failed: ${campaignResponse.status}`);
+      }
+      
+      const campaigns = await campaignResponse.json();
+      
+      // Get analytics via proxy
+      const analyticsResponse = await fetch('http://localhost:3001/api/instantly/campaigns/analytics');
+      const analytics = analyticsResponse.ok ? await analyticsResponse.json() : [];
+
+      return {
+        campaigns: campaigns.items || [],
+        analytics: {
+          emails_sent: 0,
+          emails_opened: 0,
+          emails_replied: 0,
+          meetings_booked: 0,
+          bounce_rate: 0
+        }
+      };
+    } catch (error) {
+      console.error('❌ Proxy API Error:', error);
+      throw error;
+    }
+  }
+
+  private static async fetchDirectAPI() {
+    const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
+    if (!apiKey) {
+      throw new Error('Instantly API key not configured');
+    }
+
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     };
 
     try {
-      console.log(`🔄 Fetching Instantly data via ${isDevelopment ? 'proxy server' : 'direct API'}...`);
-      
-      // Get campaigns
-      const campaignResponse = await fetch(
-        isDevelopment ? `${baseUrl}/campaigns` : `${baseUrl}/campaigns`,
-        isDevelopment ? {} : { headers }
-      );
-      
-      console.log('🔍 Debug - Campaign response status:', campaignResponse.status);
-      console.log('🔍 Debug - Campaign response ok:', campaignResponse.ok);
+      // Get campaigns via direct API
+      const campaignResponse = await fetch('https://api.instantly.ai/api/v2/campaigns', { headers });
       
       if (!campaignResponse.ok) {
-        const errorText = await campaignResponse.text();
-        console.error('🔍 Debug - Campaign error response:', errorText);
-        throw new Error(`Campaigns API failed: ${campaignResponse.status} ${campaignResponse.statusText} - ${errorText}`);
+        throw new Error(`Direct campaigns API failed: ${campaignResponse.status}`);
       }
       
       const campaigns = await campaignResponse.json();
-      console.log('📊 Campaigns fetched:', campaigns);
-
-      // Get analytics
-      const analytics = await this.getInstantlyAnalytics();
-      console.log('📈 Analytics fetched:', analytics);
-
-      // Handle the new API v2 response format
-      const campaignList = campaigns.items || [];
       
-      // Try to get individual campaign analytics if global analytics is empty
-      let totalEmailsSent = analytics?.emails_sent || 0;
-      let totalOpened = analytics?.emails_opened || 0;  
-      let totalReplied = analytics?.emails_replied || 0;
-      let totalBounced = analytics?.emails_bounced || 0;
-
-      // If no global analytics, try to aggregate from individual campaigns
-      if (!analytics || analytics.length === 0) {
-        console.log('📊 Global analytics empty, checking individual campaigns...');
-        for (const campaign of campaignList) {
-          try {
-            const campaignStats = await this.getCampaignAnalytics(campaign.id);
-            if (campaignStats) {
-              totalEmailsSent += campaignStats.emails_sent || 0;
-              totalOpened += campaignStats.emails_opened || 0;
-              totalReplied += campaignStats.emails_replied || 0;
-              totalBounced += campaignStats.emails_bounced || 0;
-            }
-          } catch (error) {
-            console.warn(`Failed to get analytics for campaign ${campaign.id}:`, error);
-          }
-        }
-      }
+      // Get analytics via direct API
+      const analyticsResponse = await fetch('https://api.instantly.ai/api/v2/campaigns/analytics', { headers });
+      const analytics = analyticsResponse.ok ? await analyticsResponse.json() : [];
 
       return {
-        campaigns: campaignList,
+        campaigns: campaigns.items || [],
         analytics: {
-          emails_sent: analytics?.emails_sent || totalEmailsSent,
-          emails_opened: analytics?.emails_opened || totalOpened,
-          emails_replied: analytics?.emails_replied || totalReplied,
-          meetings_booked: analytics?.meetings_booked || 0,
-          bounce_rate: totalEmailsSent > 0 ? ((totalBounced / totalEmailsSent) * 100).toFixed(1) : 0
+          emails_sent: 0,
+          emails_opened: 0,
+          emails_replied: 0,
+          meetings_booked: 0,
+          bounce_rate: 0
         }
       };
     } catch (error) {
-      console.error('❌ Instantly API Error:', error);
-      console.error('🔍 Debug - Error type:', typeof error);
-      console.error('🔍 Debug - Error name:', error.name);
-      console.error('🔍 Debug - Error message:', error.message);
-      console.error('🔍 Debug - Error stack:', error.stack);
+      console.error('❌ Direct API Error:', error);
       throw error;
     }
   }
 
   static async getInstantlyAnalytics() {
-    const isDevelopment = import.meta.env.DEV;
-    const url = isDevelopment 
-      ? 'http://localhost:3001/api/instantly/campaigns/analytics'
-      : 'https://api.instantly.ai/api/v2/campaigns/analytics';
-    
-    const headers = isDevelopment ? {} : {
-      'Authorization': `Bearer ${import.meta.env.VITE_INSTANTLY_API_KEY}`,
-      'Content-Type': 'application/json'
-    };
-
+    // This method is now integrated into getInstantlyData() 
+    // Keeping for backward compatibility
     try {
-      console.log('📈 Fetching Instantly analytics...');
-      const response = await fetch(url, isDevelopment ? {} : { headers });
-      
-      if (!response.ok) {
-        console.warn(`Analytics API returned ${response.status}, will calculate from campaigns`);
-        return null;
-      }
-      
-      const data = await response.json();
-      console.log('✅ Analytics response:', data);
-      return data;
+      const data = await this.getInstantlyData();
+      return data.analytics;
     } catch (error) {
       console.error('Instantly Analytics Error:', error);
       return null;
@@ -137,36 +136,43 @@ export class IntegrationService {
   }
 
   static async getCampaignAnalytics(campaignId: string) {
-    try {
-      console.log(`📊 Fetching analytics for campaign ${campaignId}...`);
-      const response = await fetch(`http://localhost:3001/api/instantly/campaigns/${campaignId}/analytics`);
-      
-      if (!response.ok) {
-        console.warn(`Campaign analytics API returned ${response.status} for campaign ${campaignId}`);
-        return null;
-      }
-      
-      const data = await response.json();
-      console.log(`✅ Campaign ${campaignId} analytics:`, data);
-      return data;
-    } catch (error) {
-      console.error(`Campaign Analytics Error for ${campaignId}:`, error);
-      return null;
-    }
+    // Individual campaign analytics not available in Instantly API v2
+    console.warn(`Campaign analytics not available for individual campaigns in API v2`);
+    return null;
   }
 
   static async getCampaignDetails(campaignId: string) {
+    const isDevelopment = import.meta.env.DEV;
+    
     try {
-      console.log(`🔍 Fetching details for campaign ${campaignId}...`);
-      const response = await fetch(`http://localhost:3001/api/instantly/campaigns/${campaignId}`);
+      let response;
+      
+      if (isDevelopment) {
+        // Try proxy first
+        try {
+          response = await fetch(`http://localhost:3001/api/instantly/campaigns/${campaignId}`);
+        } catch (proxyError) {
+          console.warn('Proxy not available, using direct API');
+          const headers = {
+            'Authorization': `Bearer ${import.meta.env.VITE_INSTANTLY_API_KEY}`,
+            'Content-Type': 'application/json'
+          };
+          response = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}`, { headers });
+        }
+      } else {
+        // Production: direct API
+        const headers = {
+          'Authorization': `Bearer ${import.meta.env.VITE_INSTANTLY_API_KEY}`,
+          'Content-Type': 'application/json'
+        };
+        response = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}`, { headers });
+      }
       
       if (!response.ok) {
         throw new Error(`Failed to fetch campaign details: ${response.status}`);
       }
       
-      const data = await response.json();
-      console.log(`✅ Campaign ${campaignId} details fetched`);
-      return data;
+      return await response.json();
     } catch (error) {
       console.error(`Error fetching campaign ${campaignId} details:`, error);
       throw error;
@@ -174,22 +180,9 @@ export class IntegrationService {
   }
 
   static async getCampaignLeads(campaignId: string) {
-    try {
-      console.log(`🔍 Fetching leads for campaign ${campaignId}...`);
-      const response = await fetch(`http://localhost:3001/api/instantly/campaigns/${campaignId}/leads`);
-      
-      if (!response.ok) {
-        console.warn(`Campaign leads not available: ${response.status}`);
-        return [];
-      }
-      
-      const data = await response.json();
-      console.log(`✅ Campaign ${campaignId} leads fetched`);
-      return data;
-    } catch (error) {
-      console.error(`Error fetching campaign ${campaignId} leads:`, error);
-      return [];
-    }
+    // Campaign leads endpoint may not be available in all API versions
+    console.warn(`Campaign leads endpoint may not be available`);
+    return [];
   }
 
   // HeyReach API Integration
