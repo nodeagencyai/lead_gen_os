@@ -1,22 +1,42 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Search } from 'lucide-react';
+import { TrendingUp, TrendingDown, Search, LogOut } from 'lucide-react';
 import LeadFinder from './components/LeadFinder.tsx';
 import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
 import IntegrationSetup from './components/IntegrationSetup';
+import AdminLogin from './components/AdminLogin';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
 import { DebugPanel } from './components/DebugPanel';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
 import { useChartData } from './hooks/useChartData';
+import { useAdminAuth } from './hooks/useAdminAuth';
 import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
 
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
+  const { isAuthenticated, isLoading, authenticate, logout } = useAdminAuth();
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
   const { chart1, chart2, loading: chartLoading, error: chartError, refetch: refetchCharts } = useChartData();
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg" style={{ color: '#888888' }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show admin login if not authenticated
+  if (!isAuthenticated) {
+    return <AdminLogin onAuthenticated={authenticate} />;
+  }
 
   // Get chart labels and efficiency metrics based on current mode and real data
   const efficiencyMetrics = getEfficiencyMetrics(mode, emailMetrics, linkedinMetrics);
@@ -112,8 +132,29 @@ function App() {
               Integrations
             </button>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
             <CampaignToggle />
+            <button
+              onClick={logout}
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+              style={{ 
+                backgroundColor: '#333333', 
+                border: '1px solid #555555', 
+                color: '#ffffff' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#444444';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#333333';
+                e.currentTarget.style.borderColor = '#555555';
+              }}
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm">Logout</span>
+            </button>
           </div>
         </div>
       </nav>
