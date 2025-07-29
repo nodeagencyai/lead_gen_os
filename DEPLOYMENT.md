@@ -88,4 +88,40 @@ The proxy server will run on `http://localhost:3001` and proxy requests to:
 3. **Access your app**: `http://localhost:5173`
 
 ### Production Deployment
-In production, the app automatically falls back to direct API calls, so no proxy server is needed.
+
+**🚀 NEW: Serverless API Solution**
+
+The app now uses Vercel serverless functions that automatically handle CORS issues in production. No more proxy server needed!
+
+#### What Changed:
+- ✅ **Serverless API Routes**: All API calls now go through `/api/*` endpoints
+- ✅ **Automatic CORS Handling**: No more "Failed to fetch" errors
+- ✅ **Secure API Keys**: API keys are handled server-side only
+- ✅ **Works Immediately**: Deploy and it works in production
+- ✅ **Debug Panel**: Built-in debugging tools
+
+#### API Endpoints Available:
+- `POST /api/heyreach/auth` - Test HeyReach authentication
+- `POST /api/heyreach/accounts` - Get LinkedIn accounts
+- `POST /api/heyreach/campaigns` - Get HeyReach campaigns
+- `POST /api/heyreach/conversations` - Get conversations
+- `GET /api/instantly/campaigns` - Get Instantly campaigns
+- `GET /api/instantly/analytics` - Get Instantly analytics
+- `GET /api/debug/env` - Debug environment variables
+
+#### Environment Variables (Required in Production):
+Make sure these are set in your Vercel dashboard:
+```
+VITE_INSTANTLY_API_KEY=your_instantly_api_key
+VITE_HEYREACH_API_KEY=your_heyreach_api_key
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+#### Testing the Deployment:
+1. Deploy to Vercel
+2. Visit your deployed app
+3. Click the "🔧 Debug" button (bottom right)
+4. Run API tests to verify everything works
+
+No proxy server needed in production - it all works through serverless functions!

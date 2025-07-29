@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { INTEGRATION_CONFIG } from '../config/integrations';
+import { apiClient } from '../utils/apiClient';
 
 export class IntegrationService {
   // Get encrypted API keys from Supabase
@@ -21,34 +22,42 @@ export class IntegrationService {
     return data.api_key_encrypted;
   }
 
-  // Instantly API Integration
+  // Instantly API Integration - Now using serverless API
   static async getInstantlyData() {
-    // Always try proxy server first in development, then fallback to direct API
-    const isDevelopment = import.meta.env.DEV;
-    console.log('🔍 Environment check - isDevelopment:', isDevelopment);
-    console.log('🔍 Environment check - NODE_ENV:', import.meta.env.NODE_ENV);
-    console.log('🔍 Environment check - MODE:', import.meta.env.MODE);
+    console.log('🔄 Fetching Instantly data via serverless API...');
     
-    // Try proxy server first in development
-    if (isDevelopment) {
-      try {
-        console.log('🔄 Attempting proxy server connection...');
-        const proxyResponse = await fetch('http://localhost:3001/api/instantly/campaigns');
-        
-        if (proxyResponse.ok) {
-          console.log('✅ Using proxy server for API calls');
-          return await this.fetchViaProxy();
-        } else {
-          console.warn('⚠️ Proxy server not responding, falling back to direct API');
-        }
-      } catch (proxyError) {
-        console.warn('⚠️ Proxy server unavailable, falling back to direct API:', proxyError.message);
+    try {
+      // Fetch campaigns using the new API client
+      const campaignResult = await apiClient.instantly('/campaigns');
+      
+      if (campaignResult.error) {
+        console.error('❌ Failed to fetch campaigns:', campaignResult.error);
+        throw new Error(`Failed to fetch campaigns: ${campaignResult.error}`);
       }
+
+      // Fetch analytics using the new API client
+      const analyticsResult = await apiClient.instantly('/analytics');
+      
+      const campaigns = campaignResult.data?.items || [];
+      const analytics = analyticsResult.data || {
+        emails_sent: 0,
+        emails_opened: 0,
+        emails_replied: 0,
+        meetings_booked: 0,
+        bounce_rate: 0
+      };
+
+      console.log(`✅ Fetched ${campaigns.length} campaigns and analytics from Instantly`);
+
+      return {
+        campaigns,
+        analytics
+      };
+
+    } catch (error) {
+      console.error('❌ Instantly API Error:', error);
+      throw error;
     }
-    
-    // Fallback to direct API calls
-    console.log('🔄 Using direct API calls...');
-    return await this.fetchDirectAPI();
   }
 
   private static async fetchViaProxy() {
@@ -189,36 +198,57 @@ export class IntegrationService {
     return [];
   }
 
-  // HeyReach API Integration
+  // HeyReach API Integration - Now using serverless API
   static async getHeyReachData() {
-    // Always try proxy server first in development, then fallback to direct API
-    const isDevelopment = import.meta.env.DEV;
-    console.log('🔍 HeyReach Environment check - isDevelopment:', isDevelopment);
-    console.log('🔍 HeyReach Environment check - NODE_ENV:', import.meta.env.NODE_ENV);
-    console.log('🔍 HeyReach Environment check - MODE:', import.meta.env.MODE);
+    console.log('🔄 Fetching HeyReach data via serverless API...');
     
-    // Try proxy server first in development
-    if (isDevelopment) {
-      try {
-        console.log('🔄 Attempting HeyReach proxy server connection...');
-        const proxyResponse = await fetch('http://localhost:3001/api/heyreach/auth/check', {
-          method: 'POST'
-        });
-        
-        if (proxyResponse.ok) {
-          console.log('✅ Using HeyReach proxy server for API calls');
-          return await this.fetchHeyReachViaProxy();
-        } else {
-          console.warn('⚠️ HeyReach proxy server not responding, falling back to direct API');
-        }
-      } catch (proxyError) {
-        console.warn('⚠️ HeyReach proxy server unavailable, falling back to direct API:', proxyError.message);
+    try {
+      // Test authentication first
+      const authResult = await apiClient.heyreach('/auth');
+      
+      if (authResult.error) {
+        console.error('❌ HeyReach authentication failed:', authResult.error);
+        throw new Error(`HeyReach authentication failed: ${authResult.error}`);
       }
+
+      console.log('✅ HeyReach authentication successful');
+
+      // Fetch LinkedIn accounts
+      const accountsResult = await apiClient.heyreach('/accounts');
+      const accounts = accountsResult.data?.items || [];
+
+      // Fetch campaigns
+      const campaignsResult = await apiClient.heyreach('/campaigns');
+      const campaigns = campaignsResult.data?.items || [];
+
+      // Fetch conversations
+      const conversationsResult = await apiClient.heyreach('/conversations');
+      const conversations = conversationsResult.data?.items || [];
+
+      console.log(`✅ HeyReach data: ${accounts.length} accounts, ${campaigns.length} campaigns, ${conversations.length} conversations`);
+
+      // Calculate analytics from the data we have
+      const analytics = {
+        linkedin_accounts: accounts.length,
+        active_accounts: accounts.filter((acc: any) => acc.isActive).length,
+        total_campaigns: campaigns.length,
+        active_campaigns: accounts.reduce((sum: number, acc: any) => sum + (acc.activeCampaigns || 0), 0),
+        total_conversations: conversations.length,
+        auth_valid_accounts: accounts.filter((acc: any) => acc.authIsValid).length
+      };
+
+      return {
+        accounts,
+        campaigns,
+        conversations,
+        messages: [],
+        analytics
+      };
+
+    } catch (error) {
+      console.error('❌ HeyReach API Error:', error);
+      throw error;
     }
-    
-    // Fallback to direct API calls
-    console.log('🔄 Using HeyReach direct API calls...');
-    return await this.fetchHeyReachDirectAPI();
   }
 
   private static async fetchHeyReachViaProxy() {
@@ -423,6 +453,8 @@ export class IntegrationService {
   }
 
   static async getHeyReachAnalytics() {
+    // This method is now integrated into getHeyReachData()
+    // Keeping for backward compatibility
     try {
       const data = await this.getHeyReachData();
       return data.analytics;

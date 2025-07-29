@@ -6,6 +6,7 @@ import CampaignsOverview from './components/CampaignsOverview';
 import IntegrationSetup from './components/IntegrationSetup';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
+import { DebugPanel } from './components/DebugPanel';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
 import { useChartData } from './hooks/useChartData';
@@ -319,6 +320,9 @@ function App() {
           Powered by Node AI
         </div>
       </div>
+
+      {/* Debug Panel - Only show in development or when needed */}
+      <DebugPanel />
     </div>
   );
 }

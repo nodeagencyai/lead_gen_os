@@ -1,0 +1,54 @@
+{
+  "functions": {
+    "api/heyreach/auth.js": {
+      "maxDuration": 30
+    },
+    "api/heyreach/accounts.js": {
+      "maxDuration": 30
+    },
+    "api/heyreach/campaigns.js": {
+      "maxDuration": 30
+    },
+    "api/heyreach/conversations.js": {
+      "maxDuration": 30
+    },
+    "api/instantly/campaigns.js": {
+      "maxDuration": 30
+    },
+    "api/instantly/analytics.js": {
+      "maxDuration": 30
+    },
+    "api/debug/env.js": {
+      "maxDuration": 10
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With"
+        },
+        {
+          "key": "Access-Control-Max-Age",
+          "value": "86400"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ]
+}
