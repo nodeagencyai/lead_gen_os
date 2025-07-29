@@ -25,6 +25,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
       // Store authentication in session storage
       sessionStorage.setItem('adminAuthenticated', 'true');
       sessionStorage.setItem('adminLoginTime', Date.now().toString());
+      console.log('Admin login successful');
       onAuthenticated();
     } else {
       setError('Invalid password. Access denied.');
