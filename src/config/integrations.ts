@@ -19,12 +19,14 @@ export const INTEGRATION_CONFIG = {
   },
 
   HEYREACH_API: {
-    BASE_URL: 'https://api.heyreach.io/api/v1',
+    BASE_URL: 'https://api.heyreach.io/api/public',
     ENDPOINTS: {
-      CAMPAIGNS: '/campaigns',
-      CONNECTIONS: '/connections',
-      MESSAGES: '/messages',
-      ANALYTICS: '/analytics'
+      AUTH_CHECK: '/auth/CheckApiKey',
+      LI_ACCOUNTS: '/li_account/GetAll',
+      CAMPAIGNS: '/campaign/GetAll',
+      CONVERSATIONS: '/conversation/GetAll',
+      MESSAGES: '/message/GetAll',
+      LEADS: '/lead/GetAll'
     }
   },
 

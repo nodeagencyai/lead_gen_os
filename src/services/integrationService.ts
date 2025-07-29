@@ -198,103 +198,127 @@ export class IntegrationService {
       throw new Error('HeyReach API key not configured - check environment variables in production deployment');
     }
 
-    console.log('🔑 Using HeyReach API key for LinkedIn data');
+    console.log('🔑 Testing HeyReach API key authentication...');
     
-    // Try different authentication methods for HeyReach
-    const authMethods = [
-      { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      { 'X-API-KEY': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      { 'apikey': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/json' }
-    ];
+    // First, test the API key using the CheckApiKey endpoint
+    const headers = {
+      'X-API-KEY': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
 
-    for (let i = 0; i < authMethods.length; i++) {
-      const headers = authMethods[i];
-      console.log(`🔄 Trying HeyReach authentication method ${i + 1}...`);
+    try {
+      // Test authentication first
+      console.log('🔄 Testing HeyReach API key validity...');
+      const authTestResponse = await fetch(
+        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.AUTH_CHECK}`,
+        { headers }
+      );
       
-      try {
-        const testResponse = await fetch(
-          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CAMPAIGNS}`,
-          { headers }
-        );
-        
-        if (testResponse.ok) {
-          console.log(`✅ HeyReach authentication method ${i + 1} successful`);
-          return await this.fetchHeyReachWithAuth(headers);
-        } else {
-          console.warn(`❌ Auth method ${i + 1} failed:`, testResponse.status, testResponse.statusText);
-          if (testResponse.status === 401) {
-            const errorText = await testResponse.text();
-            console.warn('Auth error details:', errorText);
-          }
-        }
-      } catch (error) {
-        console.warn(`❌ Auth method ${i + 1} error:`, error.message);
+      console.log(`🔍 Auth test response:`, authTestResponse.status, authTestResponse.statusText);
+      
+      if (!authTestResponse.ok) {
+        const errorText = await authTestResponse.text();
+        console.error('❌ HeyReach API key authentication failed:', errorText);
+        throw new Error(`HeyReach API key authentication failed: ${authTestResponse.status} - ${errorText}`);
       }
+      
+      console.log('✅ HeyReach API key is valid');
+      return await this.fetchHeyReachWithAuth(headers);
+      
+    } catch (error) {
+      console.error('❌ HeyReach API Error:', error.message);
+      throw new Error(`HeyReach API authentication failed: ${error.message}`);
     }
-    
-    throw new Error('All HeyReach authentication methods failed - check API key validity');
   }
 
   private static async fetchHeyReachWithAuth(headers: Record<string, string>) {
     try {
-      console.log('🔄 Fetching HeyReach data...');
+      console.log('🔄 Fetching HeyReach data with working endpoints...');
       
+      // Use the correct HeyReach API format (POST with empty body)
+      const requestOptions = {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({})
+      };
+
+      // Get LinkedIn accounts
+      let accounts = [];
+      try {
+        console.log('📡 Fetching LinkedIn accounts...');
+        const accountsResponse = await fetch(
+          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.LI_ACCOUNTS}`,
+          requestOptions
+        );
+        
+        if (accountsResponse.ok) {
+          const accountsData = await accountsResponse.json();
+          accounts = accountsData.items || [];
+          console.log(`✅ Found ${accounts.length} LinkedIn accounts`);
+        }
+      } catch (error) {
+        console.warn('⚠️ LinkedIn accounts fetch error:', error.message);
+      }
+
       // Get campaigns
-      const campaignResponse = await fetch(
-        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CAMPAIGNS}`,
-        { headers }
-      );
-      
-      if (!campaignResponse.ok) {
-        throw new Error(`HeyReach campaigns API failed: ${campaignResponse.status} ${campaignResponse.statusText}`);
-      }
-      
-      const campaigns = await campaignResponse.json();
-      console.log('📊 HeyReach campaigns fetched:', campaigns);
-
-      // Try to get connections and messages (may not be available in all plans)
-      let connections = { data: [] };
-      let messages = { data: [] };
-      
+      let campaigns = [];
       try {
-        const connectionsResponse = await fetch(
-          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CONNECTIONS}`,
-          { headers }
+        console.log('📡 Fetching campaigns...');
+        const campaignsResponse = await fetch(
+          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CAMPAIGNS}`,
+          requestOptions
         );
-        if (connectionsResponse.ok) {
-          connections = await connectionsResponse.json();
+        
+        if (campaignsResponse.ok) {
+          const campaignsData = await campaignsResponse.json();
+          campaigns = campaignsData.items || [];
+          console.log(`✅ Found ${campaigns.length} campaigns`);
         }
       } catch (error) {
-        console.warn('HeyReach connections endpoint not available:', error.message);
+        console.warn('⚠️ Campaigns fetch error:', error.message);
       }
 
+      // Try to get conversations/messages (optional)
+      let conversations = [];
+      let messages = [];
+      
       try {
-        const messagesResponse = await fetch(
-          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.MESSAGES}`,
-          { headers }
+        console.log('📡 Fetching conversations...');
+        const conversationsResponse = await fetch(
+          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CONVERSATIONS}`,
+          requestOptions
         );
-        if (messagesResponse.ok) {
-          messages = await messagesResponse.json();
+        
+        if (conversationsResponse.ok) {
+          const conversationsData = await conversationsResponse.json();
+          conversations = conversationsData.items || [];
+          console.log(`✅ Found ${conversations.length} conversations`);
         }
       } catch (error) {
-        console.warn('HeyReach messages endpoint not available:', error.message);
+        console.warn('⚠️ Conversations fetch error:', error.message);
       }
 
-      // Get analytics with the same headers
-      const analytics = await this.getHeyReachAnalyticsWithHeaders(headers);
+      // Calculate analytics from the data we have
+      const analytics = {
+        linkedin_accounts: accounts.length,
+        active_accounts: accounts.filter(acc => acc.isActive).length,
+        total_campaigns: campaigns.length,
+        active_campaigns: accounts.reduce((sum, acc) => sum + (acc.activeCampaigns || 0), 0),
+        total_conversations: conversations.length,
+        auth_valid_accounts: accounts.filter(acc => acc.authIsValid).length
+      };
+
+      console.log('📊 HeyReach analytics:', analytics);
 
       return {
-        campaigns: campaigns.data || campaigns.results || campaigns || [],
-        connections: connections.data || connections.results || connections || [],
-        messages: messages.data || messages.results || messages || [],
-        analytics: analytics || {
-          connection_requests_sent: 0,
-          connections_accepted: 0,
-          messages_sent: 0,
-          message_replies: 0,
-          meetings_booked: 0
-        }
+        accounts: accounts,
+        campaigns: campaigns,
+        conversations: conversations,
+        messages: messages,
+        analytics: analytics
       };
+      
     } catch (error) {
       console.error('❌ HeyReach API Error:', error);
       throw error;
@@ -318,24 +342,9 @@ export class IntegrationService {
   }
 
   static async getHeyReachAnalytics() {
-    const apiKey = import.meta.env.VITE_HEYREACH_API_KEY;
-    if (!apiKey) {
-      console.warn('HeyReach API key not configured');
-      return null;
-    }
-
-    const headers = {
-      'X-API-KEY': apiKey,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    };
-
     try {
-      const response = await fetch(
-        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.ANALYTICS}`,
-        { headers }
-      );
-      return await response.json();
+      const data = await this.getHeyReachData();
+      return data.analytics;
     } catch (error) {
       console.error('HeyReach Analytics Error:', error);
       return null;
