@@ -164,83 +164,84 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                     required
                     disabled={isLoading}
                   />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Premium Login Button */}
-            <button
-              type="submit"
-              disabled={!password.trim() || isLoading}
-              className="w-full px-8 py-5 rounded-2xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 relative group overflow-hidden"
-              style={{
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8))',
-                border: '1px solid rgba(59, 130, 246, 0.5)',
-                color: '#ffffff',
-                boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                fontSize: '1.1rem',
-                letterSpacing: '0.025em'
-              }}
-              onMouseEnter={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9))';
-                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.7)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!e.currentTarget.disabled) {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8))';
-                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
-                  e.currentTarget.style.transform = 'translateY(0px)';
-                  e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
-                }
-              }}
-            >
-              {/* Button background glow effect */}
-              <div 
-                className="absolute inset-0 rounded-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"
+              {/* Premium Login Button */}
+              <button
+                type="submit"
+                disabled={!password.trim() || isLoading}
+                className="w-full px-8 py-5 rounded-2xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 relative group overflow-hidden"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))',
-                  filter: 'blur(1px)'
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8))',
+                  border: '1px solid rgba(59, 130, 246, 0.5)',
+                  color: '#ffffff',
+                  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                  fontSize: '1.1rem',
+                  letterSpacing: '0.025em'
                 }}
-              ></div>
-              
-              <div className="relative z-10 flex items-center space-x-3">
-                {isLoading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Authenticating...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Access Dashboard</span>
-                    <div className="w-5 h-5 flex items-center justify-center">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="group-hover:translate-x-1 transition-transform duration-300">
-                        <path d="M1 8h14m-6-6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  </>
-                )}
-              </div>
-            </button>
-          </form>
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9))';
+                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.7)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8))';
+                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(0px)';
+                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+                  }
+                }}
+              >
+                {/* Button background glow effect */}
+                <div 
+                  className="absolute inset-0 rounded-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))',
+                    filter: 'blur(1px)'
+                  }}
+                ></div>
+                
+                <div className="relative z-10 flex items-center space-x-3">
+                  {isLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Access Dashboard</span>
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="group-hover:translate-x-1 transition-transform duration-300">
+                          <path d="M1 8h14m-6-6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </button>
+            </form>
 
-          {/* Premium Security Notice */}
-          <div className="mt-8 text-center">
-            <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#888888' }}>
-              <div className="w-3 h-3 rounded-full bg-green-500/60 shadow-sm shadow-green-500/30"></div>
-              <span className="font-medium">Secure Admin Access</span>
-              <div className="w-px h-4 bg-gray-600"></div>
-              <span>Session Auto-Expires</span>
+            {/* Premium Security Notice */}
+            <div className="mt-8 text-center">
+              <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#888888' }}>
+                <div className="w-3 h-3 rounded-full bg-green-500/60 shadow-sm shadow-green-500/30"></div>
+                <span className="font-medium">Secure Admin Access</span>
+                <div className="w-px h-4 bg-gray-600"></div>
+                <span>Session Auto-Expires</span>
+              </div>
             </div>
           </div>
         </div>
