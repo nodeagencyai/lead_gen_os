@@ -44,10 +44,10 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden">
       {/* Premium Background Effects */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-cyan-600/10 to-blue-600/10 rounded-full blur-2xl"></div>
+      <div className="absolute inset-0 opacity-20">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-gray-600/15 to-gray-700/15 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-gray-700/15 to-gray-800/15 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-gray-500/10 to-gray-600/10 rounded-full blur-2xl"></div>
       </div>
       
       {/* Subtle Grid Pattern */}
@@ -62,25 +62,28 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
       <div className="w-full max-w-lg mx-auto px-8 relative z-10">
         {/* Premium Logo and Title */}
         <div className="text-center mb-12">
-          {/* Elegant Logo/Icon */}
+          {/* Elegant Logo */}
           <div className="flex justify-center mb-8">
             <div className="relative">
               <div 
-                className="w-20 h-20 rounded-2xl flex items-center justify-center backdrop-blur-xl border-2 shadow-2xl"
+                className="w-20 h-20 rounded-2xl flex items-center justify-center backdrop-blur-xl border-2 shadow-2xl overflow-hidden"
                 style={{ 
                   background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
                   borderColor: 'rgba(255,255,255,0.2)',
                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
                 }}
               >
-                <div className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  LG
-                </div>
+                <img 
+                  src="/Node Logo-White.png" 
+                  alt="Node AI Logo" 
+                  className="w-12 h-12 object-contain"
+                  style={{ filter: 'brightness(1.1) contrast(1.1)' }}
+                />
               </div>
               {/* Glow effect */}
               <div 
-                className="absolute inset-0 w-20 h-20 rounded-2xl blur-xl opacity-50"
-                style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
+                className="absolute inset-0 w-20 h-20 rounded-2xl blur-xl opacity-30"
+                style={{ background: 'linear-gradient(135deg, #666666, #888888)' }}
               ></div>
             </div>
           </div>
@@ -95,7 +98,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
           <p className="text-lg font-light tracking-wide" style={{ color: '#a1a1aa' }}>
             Enter the admin password to access
           </p>
-          <p className="text-xl font-medium bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <p className="text-xl font-medium bg-gradient-to-r from-gray-300 to-gray-400 bg-clip-text text-transparent">
             LeadGenOS
           </p>
         </div>
@@ -111,9 +114,9 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
         >
           {/* Inner glow effect */}
           <div 
-            className="absolute inset-0 rounded-3xl opacity-20"
+            className="absolute inset-0 rounded-3xl opacity-10"
             style={{
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+              background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.1), rgba(160, 160, 160, 0.1))',
               filter: 'blur(1px)'
             }}
           ></div>
@@ -153,9 +156,9 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                       boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3)'
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                      e.target.style.borderColor = 'rgba(128, 128, 128, 0.5)';
                       e.target.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))';
-                      e.target.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.2), 0 8px 32px rgba(59, 130, 246, 0.1)';
+                      e.target.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(128, 128, 128, 0.2), 0 8px 32px rgba(128, 128, 128, 0.1)';
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = 'rgba(255,255,255,0.1)';
@@ -182,35 +185,35 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                 disabled={!password.trim() || isLoading}
                 className="w-full px-8 py-5 rounded-2xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 relative group overflow-hidden"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8))',
-                  border: '1px solid rgba(59, 130, 246, 0.5)',
+                  background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.3), rgba(160, 160, 160, 0.3))',
+                  border: '1px solid rgba(128, 128, 128, 0.5)',
                   color: '#ffffff',
-                  boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                   fontSize: '1.1rem',
                   letterSpacing: '0.025em'
                 }}
                 onMouseEnter={(e) => {
                   if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.9))';
-                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.7)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(128, 128, 128, 0.4), rgba(160, 160, 160, 0.4))';
+                    e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.7)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(139, 92, 246, 0.8))';
-                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.5)';
+                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(128, 128, 128, 0.3), rgba(160, 160, 160, 0.3))';
+                    e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.5)';
                     e.currentTarget.style.transform = 'translateY(0px)';
-                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
+                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
                   }
                 }}
               >
                 {/* Button background glow effect */}
                 <div 
-                  className="absolute inset-0 rounded-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-300"
+                  className="absolute inset-0 rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2))',
+                    background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.2), rgba(160, 160, 160, 0.2))',
                     filter: 'blur(1px)'
                   }}
                 ></div>
@@ -238,7 +241,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
             {/* Premium Security Notice */}
             <div className="mt-8 text-center">
               <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#888888' }}>
-                <div className="w-3 h-3 rounded-full bg-green-500/60 shadow-sm shadow-green-500/30"></div>
+                <div className="w-3 h-3 rounded-full bg-gray-400/60 shadow-sm shadow-gray-400/30"></div>
                 <span className="font-medium">Secure Admin Access</span>
                 <div className="w-px h-4 bg-gray-600"></div>
                 <span>Session Auto-Expires</span>
@@ -255,7 +258,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
             </p>
             <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#666666' }}>
               <span>Powered by</span>
-              <span className="font-semibold text-blue-400">Node AI</span>
+              <span className="font-semibold text-gray-300">Node AI</span>
             </div>
           </div>
         </div>
