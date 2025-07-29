@@ -1,4 +1,6 @@
 {
+  "buildCommand": "npm run build",
+  "nodeVersion": "18.x",
   "functions": {
     "api/heyreach/auth.js": {
       "maxDuration": 30
