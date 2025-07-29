@@ -57,3 +57,35 @@ Make sure to configure these environment variables in your hosting platform's en
 
 ### Environment Variable Debugging
 The app now logs available environment variables to help debug configuration issues.
+
+## Development Setup
+
+### Running the Proxy Server (Required for Development)
+
+For development, you need to run the proxy server to avoid CORS issues with both Instantly and HeyReach APIs:
+
+```bash
+# Start the proxy server (in a separate terminal)
+node server.cjs
+```
+
+The proxy server will run on `http://localhost:3001` and proxy requests to:
+- Instantly API: `https://api.instantly.ai/api/v2`
+- HeyReach API: `https://api.heyreach.io/api/public`
+
+### Development Workflow
+
+1. **Terminal 1**: Start the proxy server
+   ```bash
+   node server.cjs
+   ```
+
+2. **Terminal 2**: Start the development server
+   ```bash
+   npm run dev
+   ```
+
+3. **Access your app**: `http://localhost:5173`
+
+### Production Deployment
+In production, the app automatically falls back to direct API calls, so no proxy server is needed.
