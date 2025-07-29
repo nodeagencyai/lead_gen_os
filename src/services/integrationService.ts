@@ -191,6 +191,75 @@ export class IntegrationService {
 
   // HeyReach API Integration
   static async getHeyReachData() {
+    // Always try proxy server first in development, then fallback to direct API
+    const isDevelopment = import.meta.env.DEV;
+    console.log('🔍 HeyReach Environment check - isDevelopment:', isDevelopment);
+    console.log('🔍 HeyReach Environment check - NODE_ENV:', import.meta.env.NODE_ENV);
+    console.log('🔍 HeyReach Environment check - MODE:', import.meta.env.MODE);
+    
+    // Try proxy server first in development
+    if (isDevelopment) {
+      try {
+        console.log('🔄 Attempting HeyReach proxy server connection...');
+        const proxyResponse = await fetch('http://localhost:3001/api/heyreach/auth/check', {
+          method: 'POST'
+        });
+        
+        if (proxyResponse.ok) {
+          console.log('✅ Using HeyReach proxy server for API calls');
+          return await this.fetchHeyReachViaProxy();
+        } else {
+          console.warn('⚠️ HeyReach proxy server not responding, falling back to direct API');
+        }
+      } catch (proxyError) {
+        console.warn('⚠️ HeyReach proxy server unavailable, falling back to direct API:', proxyError.message);
+      }
+    }
+    
+    // Fallback to direct API calls
+    console.log('🔄 Using HeyReach direct API calls...');
+    return await this.fetchHeyReachDirectAPI();
+  }
+
+  private static async fetchHeyReachViaProxy() {
+    try {
+      console.log('🔄 Fetching HeyReach data via proxy...');
+      
+      // Get LinkedIn accounts via proxy
+      const accountsResponse = await fetch('http://localhost:3001/api/heyreach/accounts', { method: 'POST' });
+      const accounts = accountsResponse.ok ? (await accountsResponse.json()).items || [] : [];
+      
+      // Get campaigns via proxy
+      const campaignsResponse = await fetch('http://localhost:3001/api/heyreach/campaigns', { method: 'POST' });
+      const campaigns = campaignsResponse.ok ? (await campaignsResponse.json()).items || [] : [];
+      
+      // Get conversations via proxy
+      const conversationsResponse = await fetch('http://localhost:3001/api/heyreach/conversations', { method: 'POST' });
+      const conversations = conversationsResponse.ok ? (await conversationsResponse.json()).items || [] : [];
+
+      console.log(`✅ HeyReach proxy data: ${accounts.length} accounts, ${campaigns.length} campaigns, ${conversations.length} conversations`);
+
+      return {
+        accounts: accounts,
+        campaigns: campaigns,
+        conversations: conversations,
+        messages: [],
+        analytics: {
+          linkedin_accounts: accounts.length,
+          active_accounts: accounts.filter((acc: any) => acc.isActive).length,
+          total_campaigns: campaigns.length,
+          active_campaigns: accounts.reduce((sum: number, acc: any) => sum + (acc.activeCampaigns || 0), 0),
+          total_conversations: conversations.length,
+          auth_valid_accounts: accounts.filter((acc: any) => acc.authIsValid).length
+        }
+      };
+    } catch (error) {
+      console.error('❌ HeyReach Proxy API Error:', error);
+      throw error;
+    }
+  }
+
+  private static async fetchHeyReachDirectAPI() {
     const apiKey = import.meta.env.VITE_HEYREACH_API_KEY;
     if (!apiKey) {
       console.error('❌ HeyReach API key not found in environment variables');
@@ -198,9 +267,8 @@ export class IntegrationService {
       throw new Error('HeyReach API key not configured - check environment variables in production deployment');
     }
 
-    console.log('🔑 Testing HeyReach API key authentication...');
+    console.log('🔑 Using HeyReach API key for direct API calls');
     
-    // First, test the API key using the CheckApiKey endpoint
     const headers = {
       'X-API-KEY': apiKey,
       'Content-Type': 'application/json',
@@ -210,9 +278,14 @@ export class IntegrationService {
     try {
       // Test authentication first
       console.log('🔄 Testing HeyReach API key validity...');
+      
       const authTestResponse = await fetch(
         `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.AUTH_CHECK}`,
-        { headers }
+        { 
+          headers,
+          mode: 'cors',
+          credentials: 'omit'
+        }
       );
       
       console.log(`🔍 Auth test response:`, authTestResponse.status, authTestResponse.statusText);
@@ -227,7 +300,15 @@ export class IntegrationService {
       return await this.fetchHeyReachWithAuth(headers);
       
     } catch (error) {
-      console.error('❌ HeyReach API Error:', error.message);
+      console.error('❌ HeyReach API Error details:', error);
+      
+      // Check if it's a CORS error
+      if (error.message.includes('Failed to fetch') || error.name === 'TypeError') {
+        console.error('🚫 CORS Error: HeyReach API may not allow browser requests');
+        console.error('💡 This API might only work from server-side or with a proxy');
+        throw new Error(`HeyReach API CORS error: The API doesn't allow requests from browsers. This requires a server-side proxy or backend integration.`);
+      }
+      
       throw new Error(`HeyReach API authentication failed: ${error.message}`);
     }
   }
