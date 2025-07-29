@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
+import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
 
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  position: string;
-  source: string;
-  status: 'New' | 'Contacted' | 'Qualified' | 'Converted';
-  statusColor: string;
-  dateAdded: string;
+interface DisplayLead {
+  id: number;
+  full_name?: string;
+  title?: string;
+  company?: string;
+  city?: string;
+  email?: string;
+  phone?: string;
+  linkedin_url?: string;
+  website?: string;
+  industry?: string;
+  company_size?: string;
+  location?: string;
+  created_at?: string;
   selected: boolean;
+  [key: string]: any;
 }
 
 interface LeadsDatabaseProps {
@@ -27,165 +32,108 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [apolloLeads, setApolloLeads] = useState<DisplayLead[]>([]);
+  const [linkedinLeads, setLinkedinLeads] = useState<DisplayLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const emailLeads: Lead[] = [
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john.smith@techcorp.com',
-      phone: '+1 (555) 123-4567',
-      company: 'TechCorp Solutions',
-      position: 'Marketing Director',
-      source: 'Apollo',
-      status: 'New',
-      statusColor: '#3b82f6',
-      dateAdded: '2024-01-15',
-      selected: false
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      email: 'sarah.j@innovate.io',
-      phone: '+1 (555) 234-5678',
-      company: 'Innovate Digital',
-      position: 'CEO',
-      source: 'Website',
-      status: 'Contacted',
-      statusColor: '#f59e0b',
-      dateAdded: '2024-01-14',
-      selected: false
-    },
-    {
-      id: '3',
-      name: 'Michael Chen',
-      email: 'mchen@growthagency.com',
-      phone: '+1 (555) 345-6789',
-      company: 'Growth Agency Pro',
-      position: 'Head of Sales',
-      source: 'Apollo',
-      status: 'Qualified',
-      statusColor: '#8b5cf6',
-      dateAdded: '2024-01-13',
-      selected: false
-    },
-    {
-      id: '4',
-      name: 'Emily Rodriguez',
-      email: 'emily@marketplus.com',
-      phone: '+1 (555) 456-7890',
-      company: 'MarketPlus Inc',
-      position: 'VP Marketing',
-      source: 'Website',
-      status: 'Converted',
-      statusColor: '#10b981',
-      dateAdded: '2024-01-12',
-      selected: false
-    },
-    {
-      id: '5',
-      name: 'David Wilson',
-      email: 'dwilson@scalestartup.com',
-      phone: '+1 (555) 567-8901',
-      company: 'Scale Startup',
-      position: 'Founder',
-      source: 'Apollo',
-      status: 'New',
-      statusColor: '#3b82f6',
-      dateAdded: '2024-01-11',
-      selected: false
+  const formatFieldValue = (value: any): string => {
+    if (value === null || value === undefined || value === '') {
+      return 'N/A';
     }
-  ];
+    return String(value);
+  };
 
-  const linkedinLeads: Lead[] = [
-    {
-      id: '1',
-      name: 'Alex Thompson',
-      email: 'alex.thompson@techstartup.com',
-      phone: '+1 (555) 987-6543',
-      company: 'Tech Startup Inc',
-      position: 'CTO',
-      source: 'LinkedIn',
-      status: 'New',
-      statusColor: '#3b82f6',
-      dateAdded: '2024-01-15',
-      selected: false
-    },
-    {
-      id: '2',
-      name: 'Jessica Martinez',
-      email: 'j.martinez@saascompany.io',
-      phone: '+1 (555) 876-5432',
-      company: 'SaaS Company',
-      position: 'VP of Sales',
-      source: 'Sales Navigator',
-      status: 'Contacted',
-      statusColor: '#f59e0b',
-      dateAdded: '2024-01-14',
-      selected: false
-    },
-    {
-      id: '3',
-      name: 'Robert Kim',
-      email: 'robert@digitalagency.com',
-      phone: '+1 (555) 765-4321',
-      company: 'Digital Agency',
-      position: 'Creative Director',
-      source: 'LinkedIn',
-      status: 'Qualified',
-      statusColor: '#8b5cf6',
-      dateAdded: '2024-01-13',
-      selected: false
-    },
-    {
-      id: '4',
-      name: 'Lisa Chang',
-      email: 'lisa.chang@ecommerce.com',
-      phone: '+1 (555) 654-3210',
-      company: 'E-commerce Solutions',
-      position: 'Marketing Manager',
-      source: 'Sales Navigator',
-      status: 'Converted',
-      statusColor: '#10b981',
-      dateAdded: '2024-01-12',
-      selected: false
-    },
-    {
-      id: '5',
-      name: 'Mark Davis',
-      email: 'mark@consultingfirm.com',
-      phone: '+1 (555) 543-2109',
-      company: 'Consulting Firm',
-      position: 'Senior Partner',
-      source: 'LinkedIn',
-      status: 'New',
-      statusColor: '#3b82f6',
-      dateAdded: '2024-01-11',
-      selected: false
-    }
-  ];
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch both Apollo and LinkedIn leads
+        const [apolloData, linkedinData] = await Promise.all([
+          LeadsService.getApolloLeads(searchTerm || undefined),
+          LeadsService.getLinkedInLeads(searchTerm || undefined)
+        ]);
+        
+        const apolloDisplayLeads: DisplayLead[] = apolloData.map(lead => ({
+          ...lead,
+          id: lead.id || 0,
+          selected: false
+        }));
+        
+        const linkedinDisplayLeads: DisplayLead[] = linkedinData.map(lead => ({
+          ...lead,
+          id: lead.id || 0,
+          selected: false
+        }));
+        
+        setApolloLeads(apolloDisplayLeads);
+        setLinkedinLeads(linkedinDisplayLeads);
+      } catch (err) {
+        console.error('Failed to fetch leads:', err);
+        setError(`Database connection error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        setApolloLeads([]);
+        setLinkedinLeads([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const leads = mode === 'email' ? emailLeads : linkedinLeads;
+    fetchLeads();
+  }, [searchTerm]);
 
-  const filteredLeads = leads.filter(lead =>
-    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.position.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Real-time subscriptions for live updates
+  useEffect(() => {
+    const apolloSubscription = LeadsService.subscribeToApolloUpdates((updatedLead) => {
+      setApolloLeads(prev => {
+        const existingIndex = prev.findIndex(l => l.id === updatedLead.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updatedLead, id: updatedLead.id || 0, selected: false };
+          return updated;
+        } else {
+          return [{ ...updatedLead, id: updatedLead.id || 0, selected: false }, ...prev];
+        }
+      });
+    });
+
+    const linkedinSubscription = LeadsService.subscribeToLinkedInUpdates((updatedLead) => {
+      setLinkedinLeads(prev => {
+        const existingIndex = prev.findIndex(l => l.id === updatedLead.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = { ...updatedLead, id: updatedLead.id || 0, selected: false };
+          return updated;
+        } else {
+          return [{ ...updatedLead, id: updatedLead.id || 0, selected: false }, ...prev];
+        }
+      });
+    });
+
+    return () => {
+      apolloSubscription.unsubscribe();
+      linkedinSubscription.unsubscribe();
+    };
+  }, []);
+
+  const currentLeads = mode === 'email' ? apolloLeads : linkedinLeads;
+  const filteredLeads = currentLeads;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedLeads(filteredLeads.map(lead => lead.id));
+      setSelectedLeads(filteredLeads.map(lead => lead.id.toString()));
     } else {
       setSelectedLeads([]);
     }
   };
 
-  const handleSelectLead = (leadId: string, checked: boolean) => {
+  const handleSelectLead = (leadId: number, checked: boolean) => {
+    const leadIdStr = leadId.toString();
     if (checked) {
-      setSelectedLeads([...selectedLeads, leadId]);
+      setSelectedLeads([...selectedLeads, leadIdStr]);
     } else {
-      setSelectedLeads(selectedLeads.filter(id => id !== leadId));
+      setSelectedLeads(selectedLeads.filter(id => id !== leadIdStr));
     }
   };
 
@@ -253,10 +201,10 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2" style={{ color: '#ffffff' }}>
-              Leads Database
+              {mode === 'email' ? 'Apollo Leads' : 'LinkedIn Leads'} Database
             </h1>
             <div className="text-sm" style={{ color: '#888888' }}>
-              {filteredLeads.length} of {leads.length} leads • {selectedLeads.length} selected
+              {loading ? 'Loading...' : error ? 'Error loading leads' : `${filteredLeads.length} leads • ${selectedLeads.length} selected`}
             </div>
           </div>
         </div>
@@ -316,79 +264,83 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
         {/* Leads Table */}
         <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
-          <table className="w-full">
-            <thead style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
-              <tr>
-                <th className="text-left p-4 w-12">
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    ref={(el) => {
-                      if (el) el.indeterminate = isIndeterminate;
-                    }}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
-                  />
-                </th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Name</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Email</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Phone</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Company</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Position</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Source</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Status</th>
-                <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Date Added</th>
-                <th className="text-left p-4 w-12"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLeads.map((lead, index) => (
-                <tr 
-                  key={lead.id} 
-                  className="transition-colors"
-                  style={{ borderTop: index > 0 ? '1px solid #333333' : 'none' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2a2a2a';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <td className="p-4">
+          {loading ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader className="w-8 h-8 animate-spin" style={{ color: '#888888' }} />
+              <span className="ml-3" style={{ color: '#888888' }}>Loading leads...</span>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center p-12">
+              <span style={{ color: '#ef4444' }}>{error}</span>
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-12">
+              <span style={{ color: '#888888', fontSize: '18px', marginBottom: '8px' }}>
+                No {mode === 'email' ? 'Apollo' : 'LinkedIn'} leads found
+              </span>
+              <span style={{ color: '#666666', fontSize: '14px' }}>
+                Use the Generate tab to scrape leads into your {mode === 'email' ? 'Apollo' : 'LinkedIn'} table
+              </span>
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
+                <tr>
+                  <th className="text-left p-4 w-12">
                     <input
                       type="checkbox"
-                      checked={selectedLeads.includes(lead.id)}
-                      onChange={(e) => handleSelectLead(lead.id, e.target.checked)}
+                      checked={isAllSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = isIndeterminate;
+                      }}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
                       className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                     />
-                  </td>
-                  <td className="p-4 text-sm" style={{ color: '#ffffff' }}>{lead.name}</td>
-                  <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{lead.email}</td>
-                  <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{lead.phone}</td>
-                  <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{lead.company}</td>
-                  <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{lead.position}</td>
-                  <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{lead.source}</td>
-                  <td className="p-4">
-                    <span
-                      className="text-xs font-medium px-2 py-1 rounded-full"
-                      style={{ 
-                        backgroundColor: lead.statusColor + '20',
-                        color: lead.statusColor 
-                      }}
-                    >
-                      {lead.status}
-                    </span>
-                  </td>
-                  <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{lead.dateAdded}</td>
-                  <td className="p-4">
-                    <button className="p-1 rounded hover:bg-gray-700 transition-colors">
-                      <MoreHorizontal size={16} style={{ color: '#888888' }} />
-                    </button>
-                  </td>
+                  </th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Full Name</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Title</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Company</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>City</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Email</th>
+                  <th className="text-left p-4 w-12"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredLeads.map((lead, index) => (
+                  <tr 
+                    key={lead.id} 
+                    className="transition-colors"
+                    style={{ borderTop: index > 0 ? '1px solid #333333' : 'none' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#2a2a2a';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  >
+                    <td className="p-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedLeads.includes(lead.id.toString())}
+                        onChange={(e) => handleSelectLead(lead.id, e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="p-4 text-sm" style={{ color: '#ffffff' }}>{formatFieldValue(lead.full_name)}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.title)}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.company)}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.city)}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.email)}</td>
+                    <td className="p-4">
+                      <button className="p-1 rounded hover:bg-gray-700 transition-colors">
+                        <MoreHorizontal size={16} style={{ color: '#888888' }} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Footer Stats */}

@@ -10,11 +10,11 @@ export const INTEGRATION_CONFIG = {
 
   // API Endpoints
   INSTANTLY_API: {
-    BASE_URL: 'https://api.instantly.ai/api/v1',
+    BASE_URL: 'https://api.instantly.ai/api/v2',
     ENDPOINTS: {
-      CAMPAIGNS: '/campaign/list',
+      CAMPAIGNS: '/campaigns',
       LEADS: '/lead/list',
-      ANALYTICS: '/analytics/campaign'
+      ANALYTICS: '/campaigns/analytics'
     }
   },
 

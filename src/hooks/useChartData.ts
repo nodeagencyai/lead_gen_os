@@ -71,111 +71,104 @@ export const useChartData = () => {
       setChartData(prev => ({ ...prev, loading: true, error: null }));
 
       if (mode === 'email') {
-        // Try to get real data from Instantly API
+        // Use real data from Instantly API only
         try {
+          console.log('📊 Fetching Instantly chart data...');
           const instantlyData = await IntegrationService.getInstantlyData();
           
-          // If we have real data, use it
-          if (instantlyData && instantlyData.analytics) {
-            const emailsSentData = generateMockData(instantlyData.analytics.emails_sent || 2450);
-            const opensRepliesData = generateMockData(
-              (instantlyData.analytics.emails_opened || 1225) + 
-              (instantlyData.analytics.emails_replied || 367)
-            );
+          const emailsSent = instantlyData.analytics.emails_sent || 0;
+          const emailsOpened = instantlyData.analytics.emails_opened || 0;
+          const emailsReplied = instantlyData.analytics.emails_replied || 0;
+          
+          // Generate chart data based on real values (or empty if 0)
+          const emailsSentData = emailsSent > 0 ? generateMockData(emailsSent) : [];
+          const opensRepliesData = (emailsOpened + emailsReplied) > 0 ? generateMockData(emailsOpened + emailsReplied) : [];
 
-            setChartData({
-              chart1: {
-                title: 'Emails Sent Over Time',
-                data: emailsSentData,
-                totalValue: (instantlyData.analytics.emails_sent || 2450).toLocaleString(),
-                changePercent: '+18%'
-              },
-              chart2: {
-                title: 'Opens & Replies Over Time',
-                data: opensRepliesData,
-                totalValue: ((instantlyData.analytics.emails_opened || 1225) + 
-                           (instantlyData.analytics.emails_replied || 367)).toLocaleString(),
-                changePercent: '+19%'
-              },
-              loading: false,
-              error: null
-            });
-            return;
-          }
+          setChartData({
+            chart1: {
+              title: 'Emails Sent Over Time',
+              data: emailsSentData,
+              totalValue: emailsSent.toLocaleString(),
+              changePercent: emailsSent > 0 ? '+0%' : '0%'
+            },
+            chart2: {
+              title: 'Opens & Replies Over Time',
+              data: opensRepliesData,
+              totalValue: (emailsOpened + emailsReplied).toLocaleString(),
+              changePercent: (emailsOpened + emailsReplied) > 0 ? '+0%' : '0%'
+            },
+            loading: false,
+            error: null
+          });
         } catch (apiError) {
-          console.log('Using mock data - Instantly API not available');
+          console.error('Instantly API failed:', apiError);
+          // Use zeros when API fails
+          setChartData({
+            chart1: {
+              title: 'Emails Sent Over Time',
+              data: [],
+              totalValue: '0',
+              changePercent: '0%'
+            },
+            chart2: {
+              title: 'Opens & Replies Over Time',
+              data: [],
+              totalValue: '0',
+              changePercent: '0%'
+            },
+            loading: false,
+            error: apiError instanceof Error ? apiError.message : 'Failed to load chart data'
+          });
         }
 
-        // Fallback to mock data for email mode
-        setChartData({
-          chart1: {
-            title: 'Emails Sent Over Time',
-            data: generateMockData(2450),
-            totalValue: '2,450',
-            changePercent: '+18%'
-          },
-          chart2: {
-            title: 'Opens & Replies Over Time',
-            data: generateMockData(1592),
-            totalValue: '1,592',
-            changePercent: '+19%'
-          },
-          loading: false,
-          error: null
-        });
-
       } else {
-        // LinkedIn mode
+        // LinkedIn mode - use real data from HeyReach API only
         try {
           const heyReachData = await IntegrationService.getHeyReachData();
           
-          if (heyReachData && heyReachData.analytics) {
-            const connectionsData = generateMockData(heyReachData.analytics.connections_accepted || 1295);
-            const messagesRepliesData = generateMockData(
-              (heyReachData.analytics.messages_sent || 1100) + 
-              (heyReachData.analytics.message_replies || 275)
-            );
+          const connectionsAccepted = heyReachData?.analytics?.connections_accepted || 0;
+          const messagesSent = heyReachData?.analytics?.messages_sent || 0;
+          const messageReplies = heyReachData?.analytics?.message_replies || 0;
+          
+          const connectionsData = connectionsAccepted > 0 ? generateMockData(connectionsAccepted) : [];
+          const messagesRepliesData = (messagesSent + messageReplies) > 0 ? generateMockData(messagesSent + messageReplies) : [];
 
-            setChartData({
-              chart1: {
-                title: 'Connections Made Over Time',
-                data: connectionsData,
-                totalValue: (heyReachData.analytics.connections_accepted || 1295).toLocaleString(),
-                changePercent: '+16%'
-              },
-              chart2: {
-                title: 'Messages & Replies Over Time',
-                data: messagesRepliesData,
-                totalValue: ((heyReachData.analytics.messages_sent || 1100) + 
-                           (heyReachData.analytics.message_replies || 275)).toLocaleString(),
-                changePercent: '+19%'
-              },
-              loading: false,
-              error: null
-            });
-            return;
-          }
+          setChartData({
+            chart1: {
+              title: 'Connections Made Over Time',
+              data: connectionsData,
+              totalValue: connectionsAccepted.toLocaleString(),
+              changePercent: connectionsAccepted > 0 ? '+0%' : '0%'
+            },
+            chart2: {
+              title: 'Messages & Replies Over Time',
+              data: messagesRepliesData,
+              totalValue: (messagesSent + messageReplies).toLocaleString(),
+              changePercent: (messagesSent + messageReplies) > 0 ? '+0%' : '0%'
+            },
+            loading: false,
+            error: null
+          });
         } catch (apiError) {
-          console.log('Using mock data - HeyReach API not available');
+          console.error('HeyReach API failed:', apiError);
+          // Use zeros when API fails
+          setChartData({
+            chart1: {
+              title: 'Connections Made Over Time',
+              data: [],
+              totalValue: '0',
+              changePercent: '0%'
+            },
+            chart2: {
+              title: 'Messages & Replies Over Time',
+              data: [],
+              totalValue: '0',
+              changePercent: '0%'
+            },
+            loading: false,
+            error: null
+          });
         }
-
-        // Fallback to mock data for LinkedIn mode
-        setChartData({
-          chart1: {
-            title: 'Connections Made Over Time',
-            data: generateMockData(1295),
-            totalValue: '1,295',
-            changePercent: '+16%'
-          },
-          chart2: {
-            title: 'Messages & Replies Over Time',
-            data: generateMockData(1375),
-            totalValue: '1,375',
-            changePercent: '+19%'
-          },
-          loading: false,
-          error: null
-        });
       }
 
     } catch (error) {

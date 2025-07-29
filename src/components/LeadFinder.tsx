@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import CampaignToggle from './CampaignToggle';
 import { useCampaignStore } from '../store/campaignStore';
 
@@ -8,58 +8,116 @@ interface LeadFinderProps {
 }
 
 const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
-  const [targetAudience, setTargetAudience] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [targetUrl, setTargetUrl] = useState('');
   const [leadsLimit, setLeadsLimit] = useState(100);
   const [actionType, setActionType] = useState<'scrape' | 'process'>('scrape');
-  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
-  const [processLimit, setProcessLimit] = useState(50);
-  const [availableLeads, setAvailableLeads] = useState([
-    { id: '1', name: 'John Smith', company: 'TechCorp Solutions', status: 'new' },
-    { id: '2', name: 'Sarah Johnson', company: 'Innovate Digital', status: 'new' },
-    { id: '3', name: 'Michael Chen', company: 'Growth Agency Pro', status: 'new' },
-    { id: '4', name: 'Emily Rodriguez', company: 'MarketPlus Inc', status: 'new' },
-    { id: '5', name: 'David Wilson', company: 'Scale Startup', status: 'new' }
-  ]);
+  const [actionStatus, setActionStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  
   const { mode } = useCampaignStore();
 
-  const handleStartAction = () => {
-    if (actionType === 'scrape' && !targetAudience.trim()) return;
-    if (actionType === 'process' && selectedLeads.length === 0) return;
+  // Get the correct webhook URL based on mode and action type
+  const getWebhookUrl = () => {
+    const webhooks = {
+      apollo_scraping: import.meta.env.VITE_N8N_APOLLO_WEBHOOK,
+      linkedin_scraping: import.meta.env.VITE_N8N_LINKEDIN_WEBHOOK,
+      email_processing: import.meta.env.VITE_N8N_EMAIL_WEBHOOK,
+      linkedin_processing: import.meta.env.VITE_N8N_LINKEDIN_OUTREACH_WEBHOOK
+    };
+
+    if (actionType === 'scrape') {
+      return mode === 'email' ? webhooks.apollo_scraping : webhooks.linkedin_scraping;
+    } else {
+      return mode === 'email' ? webhooks.email_processing : webhooks.linkedin_processing;
+    }
+  };
+
+  const handleTriggerWebhook = async () => {
+    if (actionType === 'scrape' && !targetUrl.trim()) {
+      setStatusMessage(`Please enter a ${mode === 'email' ? 'Apollo' : 'Sales Navigator'} URL`);
+      setActionStatus('error');
+      return;
+    }
     
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      if (actionType === 'scrape') {
-        console.log('Scraping started for:', targetAudience);
-      } else {
-        console.log('Processing leads:', selectedLeads);
+    if (actionType === 'process' && !leadsLimit) {
+      setStatusMessage('Please specify number of leads to process');
+      setActionStatus('error');
+      return;
+    }
+    
+    setActionStatus('loading');
+    const actionText = actionType === 'scrape' ? 'scraping' : 'processing';
+    setStatusMessage(`Triggering N8N ${actionText} workflow...`);
+    
+    try {
+      const webhookUrl = getWebhookUrl();
+      
+      const payload = actionType === 'scrape' 
+        ? {
+            url: targetUrl,
+            limit: leadsLimit,
+            timestamp: new Date().toISOString(),
+            action: 'scrape',
+            source: mode === 'email' ? 'apollo' : 'sales_navigator'
+          }
+        : {
+            limit: leadsLimit,
+            timestamp: new Date().toISOString(),
+            action: 'process',
+            campaign_type: mode
+          };
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
       }
-    }, 2000);
+      
+      const result = await response.json();
+      
+      const successMessage = actionType === 'scrape' 
+        ? `N8N ${mode === 'email' ? 'Apollo' : 'LinkedIn'} scraping workflow triggered successfully!`
+        : `N8N ${mode === 'email' ? 'email' : 'LinkedIn'} processing workflow triggered successfully!`;
+      
+      setStatusMessage(successMessage);
+      setActionStatus('success');
+      
+      // Clear form on success for scraping
+      if (actionType === 'scrape') {
+        setTargetUrl('');
+      }
+      
+    } catch (error) {
+      console.error('Webhook trigger failed:', error);
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to trigger webhook');
+      setActionStatus('error');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.ctrlKey) {
-      handleStartAction();
+      handleTriggerWebhook();
     }
   };
 
-  const handleLeadSelection = (leadId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedLeads([...selectedLeads, leadId]);
-    } else {
-      setSelectedLeads(selectedLeads.filter(id => id !== leadId));
+  // Auto-clear status messages after 5 seconds
+  useEffect(() => {
+    if (actionStatus === 'success' || actionStatus === 'error') {
+      const timer = setTimeout(() => {
+        setActionStatus('idle');
+        setStatusMessage('');
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [actionStatus]);
 
-  const handleSelectAllLeads = (checked: boolean) => {
-    if (checked) {
-      setSelectedLeads(availableLeads.map(lead => lead.id));
-    } else {
-      setSelectedLeads([]);
-    }
-  };
+  const isLoading = actionStatus === 'loading';
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -121,12 +179,12 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
         {/* Page Title */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 text-white">
-            {mode === 'email' ? 'Email Campaign Manager' : 'LinkedIn Campaign Manager'}
+            {mode === 'email' ? 'Email Lead Generator' : 'LinkedIn Lead Generator'}
           </h1>
           <p className="text-base" style={{ color: '#ffffff' }}>
             {mode === 'email' 
-              ? 'Generate new leads or process existing ones for email campaigns' 
-              : 'Generate new leads or process existing ones for LinkedIn campaigns'
+              ? 'Scrape new leads from Apollo or process existing leads for email campaigns' 
+              : 'Scrape new leads from Sales Navigator or process existing leads for LinkedIn campaigns'
             }
           </p>
         </div>
@@ -174,27 +232,44 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
           }}
         >
+          {/* Status Message */}
+          {statusMessage && (
+            <div className={`mb-6 p-4 rounded-lg flex items-center space-x-3`} style={{
+              backgroundColor: actionStatus === 'error' ? '#1a0f0f' : actionStatus === 'success' ? '#0f1a0f' : '#1a1a1a',
+              border: `1px solid ${actionStatus === 'error' ? '#ef4444' : actionStatus === 'success' ? '#10b981' : '#333333'}`,
+              color: actionStatus === 'error' ? '#ef4444' : actionStatus === 'success' ? '#10b981' : '#ffffff'
+            }}>
+              {actionStatus === 'error' && <AlertCircle className="w-5 h-5" />}
+              {actionStatus === 'success' && <CheckCircle className="w-5 h-5" />}
+              {actionStatus === 'loading' && <Loader className="w-5 h-5 animate-spin" />}
+              <span>{statusMessage}</span>
+            </div>
+          )}
+
           {/* Campaign Mode Indicator */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333', color: '#888888' }}>
-              {actionType === 'scrape' ? (mode === 'email' ? 'Apollo Email Campaign' : 'LinkedIn Sales Navigator Campaign') : (mode === 'email' ? 'Email Campaign Processing' : 'LinkedIn Campaign Processing')}
+              {actionType === 'scrape' 
+                ? (mode === 'email' ? 'Apollo Lead Scraping' : 'LinkedIn Lead Scraping')
+                : (mode === 'email' ? 'Email Campaign Processing' : 'LinkedIn Campaign Processing')
+              }
             </div>
           </div>
 
           {actionType === 'scrape' ? (
             <>
-              {/* Scraping Input Section */}
+              {/* Scraping URL Input Section */}
               <div className="mb-6">
                 <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
                   {mode === 'email' ? 'Apollo Search URL' : 'Sales Navigator Search URL'}
                 </label>
                 <textarea
-                  value={targetAudience}
-                  onChange={(e) => setTargetAudience(e.target.value)}
+                  value={targetUrl}
+                  onChange={(e) => setTargetUrl(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder={mode === 'email' 
-                    ? "Paste the Apollo search URL to extract email leads from..."
-                    : "Paste the Sales Navigator search URL to extract LinkedIn profiles from..."
+                    ? "Paste the Apollo search URL to scrape leads from..."
+                    : "Paste the Sales Navigator search URL to scrape leads from..."
                   }
                   className="w-full h-24 p-4 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
                   style={{
@@ -216,10 +291,10 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                 />
               </div>
 
-              {/* Leads Limit Filter */}
+              {/* Leads Limit for Scraping */}
               <div className="mb-8">
                 <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
-                  {mode === 'email' ? 'Number of email leads to extract' : 'Number of LinkedIn profiles to extract'}
+                  Number of leads to scrape
                 </label>
                 <input
                   type="number"
@@ -227,7 +302,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   max="10000"
                   value={leadsLimit}
                   onChange={(e) => setLeadsLimit(Number(e.target.value))}
-                  placeholder="Enter number of leads"
+                  placeholder="Enter number of leads to scrape"
                   className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
                   style={{
                     backgroundColor: '#0f0f0f',
@@ -244,11 +319,16 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                     e.target.style.backgroundColor = '#0f0f0f';
                   }}
                 />
+                {mode === 'email' && (
+                  <div className="text-xs mt-2" style={{ color: '#888888' }}>
+                    Apollo requires a minimum of 500 leads per scraping session
+                  </div>
+                )}
               </div>
             </>
           ) : (
             <>
-              {/* Process Limit */}
+              {/* Processing Section */}
               <div className="mb-8">
                 <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
                   Number of leads to process
@@ -257,8 +337,8 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   type="number"
                   min="1"
                   max="10000"
-                  value={processLimit}
-                  onChange={(e) => setProcessLimit(Number(e.target.value))}
+                  value={leadsLimit}
+                  onChange={(e) => setLeadsLimit(Number(e.target.value))}
                   placeholder="Enter number of leads to process"
                   className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
                   style={{
@@ -277,7 +357,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   }}
                 />
                 <div className="text-xs mt-2" style={{ color: '#888888' }}>
-                  This will process the first {processLimit} leads from your database
+                  This will process {leadsLimit} leads from your database using the {mode === 'email' ? 'email campaign' : 'LinkedIn outreach'} workflow
                 </div>
               </div>
             </>
@@ -286,8 +366,8 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
           {/* Action Button */}
           <div className="text-center">
             <button
-              onClick={handleStartAction}
-              disabled={(actionType === 'scrape' && !targetAudience.trim()) || (actionType === 'process' && !processLimit) || isLoading}
+              onClick={handleTriggerWebhook}
+              disabled={(actionType === 'scrape' && !targetUrl.trim()) || !leadsLimit || isLoading}
               className="px-10 py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 mx-auto shadow-lg hover:shadow-xl"
               style={{
                 backgroundColor: '#333333',
@@ -311,28 +391,28 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
             >
               {isLoading ? (
                 <>
-                  <div 
-                    className="animate-spin rounded-full border-2 border-t-transparent w-5 h-5"
-                    style={{
-                      borderColor: '#ffffff',
-                      borderTopColor: 'transparent'
-                    }}
-                  />
-                  <span>{mode === 'email' ? 'Extracting Emails...' : 'Extracting Profiles...'}</span>
-                </>
-              ) : actionType === 'scrape' ? (
-                <>
-                  <Search size={20} />
-                  <span>{mode === 'email' ? 'Extract Email Leads' : 'Extract LinkedIn Leads'}</span>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span>
+                    {actionType === 'scrape' 
+                      ? `Triggering ${mode === 'email' ? 'Apollo' : 'LinkedIn'} Scraping...`
+                      : `Triggering ${mode === 'email' ? 'Email' : 'LinkedIn'} Processing...`
+                    }
+                  </span>
                 </>
               ) : (
                 <>
                   <Search size={20} />
-                  <span>Process {processLimit} Leads</span>
+                  <span>
+                    {actionType === 'scrape' 
+                      ? `Start ${mode === 'email' ? 'Apollo' : 'LinkedIn'} Scraping`
+                      : `Start ${mode === 'email' ? 'Email' : 'LinkedIn'} Processing`
+                    }
+                  </span>
                 </>
               )}
             </button>
           </div>
+
         </div>
       </div>
     </div>

@@ -17,22 +17,22 @@ function App() {
   const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
   const { chart1, chart2, loading: chartLoading, error: chartError, refetch: refetchCharts } = useChartData();
 
-  // Get chart labels and efficiency metrics based on current mode
-  const efficiencyMetrics = getEfficiencyMetrics(mode);
+  // Get chart labels and efficiency metrics based on current mode and real data
+  const efficiencyMetrics = getEfficiencyMetrics(mode, emailMetrics, linkedinMetrics);
 
   // Convert real-time data to display format
   const keyMetrics = mode === 'email' ? [
-    { title: 'Emails Sent', value: emailMetrics.sent.toLocaleString(), change: '+18%', positive: true },
-    { title: 'Emails Opened', value: emailMetrics.opened.toLocaleString(), change: '+12%', positive: true },
-    { title: 'Email Replies', value: emailMetrics.replied.toLocaleString(), change: '+25%', positive: true },
-    { title: 'Meetings Booked', value: emailMetrics.meetings.toLocaleString(), change: '+15%', positive: true },
-    { title: 'Bounce Rate', value: `${emailMetrics.bounceRate}%`, change: '-8%', positive: true }
+    { title: 'Emails Sent', value: emailMetrics.sent.toLocaleString(), change: '0%', positive: true },
+    { title: 'Emails Opened', value: emailMetrics.opened.toLocaleString(), change: '0%', positive: true },
+    { title: 'Email Replies', value: emailMetrics.replied.toLocaleString(), change: '0%', positive: true },
+    { title: 'Meetings Booked', value: emailMetrics.meetings.toLocaleString(), change: '0%', positive: true },
+    { title: 'Bounce Rate', value: `${emailMetrics.bounceRate}%`, change: '0%', positive: true }
   ] : [
-    { title: 'Connection Requests', value: linkedinMetrics.connectionRequests.toLocaleString(), change: '+22%', positive: true },
-    { title: 'Connections Accepted', value: linkedinMetrics.connectionsAccepted.toLocaleString(), change: '+16%', positive: true },
-    { title: 'Messages Sent', value: linkedinMetrics.messagesSent.toLocaleString(), change: '+20%', positive: true },
-    { title: 'Message Replies', value: linkedinMetrics.messageReplies.toLocaleString(), change: '+18%', positive: true },
-    { title: 'Meetings Booked', value: linkedinMetrics.meetings.toLocaleString(), change: '+12%', positive: true }
+    { title: 'Connection Requests', value: linkedinMetrics.connectionRequests.toLocaleString(), change: '0%', positive: true },
+    { title: 'Connections Accepted', value: linkedinMetrics.connectionsAccepted.toLocaleString(), change: '0%', positive: true },
+    { title: 'Messages Sent', value: linkedinMetrics.messagesSent.toLocaleString(), change: '0%', positive: true },
+    { title: 'Message Replies', value: linkedinMetrics.messageReplies.toLocaleString(), change: '0%', positive: true },
+    { title: 'Meetings Booked', value: linkedinMetrics.meetings.toLocaleString(), change: '0%', positive: true }
   ];
 
   const ChartSVG = ({ className }: { className?: string }) => (

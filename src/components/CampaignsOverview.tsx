@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Download, Eye, Settings, MoreHorizontal } from 'lucide-react';
+import { Plus, Download, Eye, Settings, MoreHorizontal, RefreshCw } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
+import { useCampaignData } from '../hooks/useCampaignData';
 import CampaignToggle from './CampaignToggle';
 
 interface Campaign {
@@ -25,95 +26,15 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
   const { mode } = useCampaignStore();
   const [activeTab, setActiveTab] = useState('Campaigns');
   const [statusFilter, setStatusFilter] = useState('All');
+  
+  // Use real campaign data
+  const { campaigns, loading, error, refetch } = useCampaignData(mode);
+  
+  const filteredCampaigns = statusFilter === 'All' 
+    ? campaigns 
+    : campaigns.filter(c => c.status === statusFilter);
 
-  const emailCampaigns: Campaign[] = [
-    {
-      id: '1',
-      name: 'Digital Marketing Agencies',
-      status: 'In progress',
-      statusColor: '#3b82f6',
-      preparation: 90,
-      leadsReady: 500,
-      emailsSent: 450,
-      replies: 45,
-      meetings: 12,
-      template: 'Marketing Agency Outreach',
-      platform: 'Instantly'
-    },
-    {
-      id: '2',
-      name: 'Creative Agencies',
-      status: 'Completed',
-      statusColor: '#8b5cf6',
-      preparation: 100,
-      leadsReady: 200,
-      emailsSent: 200,
-      replies: 24,
-      meetings: 8,
-      template: 'Creative Agency Outreach',
-      platform: 'Apollo'
-    },
-    {
-      id: '3',
-      name: 'Recruitment Agencies',
-      status: 'Ready',
-      statusColor: '#10b981',
-      preparation: 100,
-      leadsReady: 300,
-      emailsSent: 0,
-      replies: 0,
-      meetings: 0,
-      template: 'Recruitment Agency Outreach',
-      platform: 'Lemlist'
-    }
-  ];
-
-  const linkedinCampaigns: Campaign[] = [
-    {
-      id: '1',
-      name: 'Tech Startup Founders',
-      status: 'In progress',
-      statusColor: '#3b82f6',
-      preparation: 85,
-      leadsReady: 400,
-      emailsSent: 320,
-      replies: 64,
-      meetings: 18,
-      template: 'Startup Founder Outreach',
-      platform: 'HeyReach'
-    },
-    {
-      id: '2',
-      name: 'SaaS Decision Makers',
-      status: 'Completed',
-      statusColor: '#8b5cf6',
-      preparation: 100,
-      leadsReady: 250,
-      emailsSent: 250,
-      replies: 38,
-      meetings: 12,
-      template: 'SaaS Executive Outreach',
-      platform: 'Sales Navigator'
-    },
-    {
-      id: '3',
-      name: 'E-commerce Owners',
-      status: 'Ready',
-      statusColor: '#10b981',
-      preparation: 100,
-      leadsReady: 180,
-      emailsSent: 0,
-      replies: 0,
-      meetings: 0,
-      template: 'E-commerce Owner Outreach',
-      platform: 'LinkedIn Helper'
-    }
-  ];
-
-  const campaigns = mode === 'email' ? emailCampaigns : linkedinCampaigns;
-  const filteredCampaigns = statusFilter === 'All' ? campaigns : campaigns.filter(c => c.status === statusFilter);
-
-  const statusOptions = ['All', 'Ready', 'Active', 'Completed', 'Draft'];
+  const statusOptions = ['All', 'Ready', 'In progress', 'Completed', 'Draft'];
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -187,6 +108,15 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
           </div>
           <div className="flex items-center space-x-4">
             <button 
+              onClick={refetch}
+              disabled={loading}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
+              style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+            <button 
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
               style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
             >
@@ -245,8 +175,52 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
           ))}
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #ef4444', color: '#ef4444' }}>
+            Error loading campaigns: {error}
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && !error && (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center space-x-3">
+              <RefreshCw size={20} className="animate-spin" style={{ color: '#888888' }} />
+              <span style={{ color: '#888888' }}>Loading campaigns...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && campaigns.length === 0 && (
+          <div className="text-center py-12">
+            <div className="mb-4">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" 
+                   style={{ backgroundColor: '#333333' }}>
+                <Plus size={24} style={{ color: '#888888' }} />
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">No Campaigns Found</h3>
+            <p className="text-gray-400 mb-6">
+              {mode === 'email' 
+                ? 'Create your first email campaign to get started'
+                : 'Create your first LinkedIn campaign to get started'
+              }
+            </p>
+            <button 
+              className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-80 mx-auto"
+              style={{ backgroundColor: '#3b82f6', color: 'white' }}
+            >
+              <Plus size={16} />
+              <span>Create Campaign</span>
+            </button>
+          </div>
+        )}
+
         {/* Campaign Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!loading && !error && campaigns.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCampaigns.map((campaign) => (
             <div 
               key={campaign.id}
@@ -337,13 +311,13 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
                 </div>
               </div>
 
-              {/* Template & Platform */}
+              {/* Sequences & Platform */}
               <div className="space-y-3">
                 <div 
                   className="flex items-center space-x-2 p-3 rounded-lg"
                   style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}
                 >
-                  <span className="text-sm" style={{ color: '#888888' }}>Template</span>
+                  <span className="text-sm" style={{ color: '#888888' }}>Sequences</span>
                   <span className="text-sm text-white font-medium">{campaign.template}</span>
                 </div>
                 <div 
@@ -356,7 +330,8 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

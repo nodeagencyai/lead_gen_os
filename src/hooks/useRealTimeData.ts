@@ -53,57 +53,96 @@ export const useRealTimeData = () => {
       setMetrics(prev => ({ ...prev, loading: true, error: null }));
 
       if (mode === 'email') {
-        // Fetch Instantly + Apollo data
-        const [instantlyData, apolloData] = await Promise.all([
-          IntegrationService.getInstantlyData().catch(() => null),
-          IntegrationService.getApolloData().catch(() => null)
-        ]);
+        // Fetch Instantly data - use real data only
+        console.log('🔄 Fetching email metrics...');
+        try {
+          const instantlyData = await IntegrationService.getInstantlyData();
+          console.log('✅ Using real Instantly data');
+          
+          const emailMetrics = {
+            sent: instantlyData.analytics.emails_sent || 0,
+            opened: instantlyData.analytics.emails_opened || 0,
+            replied: instantlyData.analytics.emails_replied || 0,
+            meetings: instantlyData.analytics.meetings_booked || 0,
+            bounceRate: Number(instantlyData.analytics.bounce_rate) || 0
+          };
 
-        const emailMetrics = {
-          sent: (instantlyData?.analytics?.emails_sent || 0) + (apolloData?.analytics?.total_contacts || 0),
-          opened: instantlyData?.analytics?.emails_opened || 0,
-          replied: instantlyData?.analytics?.emails_replied || 0,
-          meetings: instantlyData?.analytics?.meetings_booked || 0,
-          bounceRate: instantlyData?.analytics?.bounce_rate || 0
-        };
+          const campaigns = instantlyData.campaigns.map((camp: any, index: number) => ({
+            name: camp.name || `Campaign ${index + 1}`,
+            sent: 0, // No performance data available until campaign is active and sending
+            replies: 0,
+            meetings: 0,
+            rate: '0%'
+          }));
 
-        const campaigns = [
-          ...(instantlyData?.campaigns || []),
-          ...(apolloData?.campaigns || [])
-        ];
+          setMetrics(prev => ({
+            ...prev,
+            emailMetrics,
+            campaigns,
+            leads: [],
+            loading: false
+          }));
+        } catch (error) {
+          console.error('Instantly API failed:', error);
+          // Use zeros when API fails
+          const emailMetrics = {
+            sent: 0,
+            opened: 0,
+            replied: 0,
+            meetings: 0,
+            bounceRate: 0
+          };
 
-        const leads = [
-          ...(instantlyData?.leads || []),
-          ...(apolloData?.leads || [])
-        ];
-
-        setMetrics(prev => ({
-          ...prev,
-          emailMetrics,
-          campaigns,
-          leads,
-          loading: false
-        }));
+          setMetrics(prev => ({
+            ...prev,
+            emailMetrics,
+            campaigns: [],
+            leads: [],
+            loading: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch Instantly data'
+          }));
+        }
 
       } else {
-        // Fetch HeyReach data
-        const heyReachData = await IntegrationService.getHeyReachData().catch(() => null);
+        // Fetch HeyReach data - use real data only
+        try {
+          const heyReachData = await IntegrationService.getHeyReachData();
+          
+          const linkedinMetrics = {
+            connectionRequests: heyReachData?.analytics?.connection_requests_sent || 0,
+            connectionsAccepted: heyReachData?.analytics?.connections_accepted || 0,
+            messagesSent: heyReachData?.analytics?.messages_sent || 0,
+            messageReplies: heyReachData?.analytics?.message_replies || 0,
+            meetings: heyReachData?.analytics?.meetings_booked || 0
+          };
 
-        const linkedinMetrics = {
-          connectionRequests: heyReachData?.analytics?.connection_requests_sent || 0,
-          connectionsAccepted: heyReachData?.analytics?.connections_accepted || 0,
-          messagesSent: heyReachData?.analytics?.messages_sent || 0,
-          messageReplies: heyReachData?.analytics?.message_replies || 0,
-          meetings: heyReachData?.analytics?.meetings_booked || 0
-        };
+          setMetrics(prev => ({
+            ...prev,
+            linkedinMetrics,
+            campaigns: heyReachData?.campaigns || [],
+            leads: heyReachData?.connections || [],
+            loading: false
+          }));
+        } catch (error) {
+          console.error('HeyReach API failed:', error);
+          // Use zeros when API fails
+          const linkedinMetrics = {
+            connectionRequests: 0,
+            connectionsAccepted: 0,
+            messagesSent: 0,
+            messageReplies: 0,
+            meetings: 0
+          };
 
-        setMetrics(prev => ({
-          ...prev,
-          linkedinMetrics,
-          campaigns: heyReachData?.campaigns || [],
-          leads: heyReachData?.connections || [],
-          loading: false
-        }));
+          setMetrics(prev => ({
+            ...prev,
+            linkedinMetrics,
+            campaigns: [],
+            leads: [],
+            loading: false,
+            error: error instanceof Error ? error.message : 'Failed to fetch HeyReach data'
+          }));
+        }
       }
 
     } catch (error) {

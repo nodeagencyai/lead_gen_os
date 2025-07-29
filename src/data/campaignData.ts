@@ -92,58 +92,74 @@ export const getKeyMetrics = (mode: CampaignMode): MetricData[] => {
   }
 };
 
-export const getEfficiencyMetrics = (mode: CampaignMode): EfficiencyMetricData[] => {
+export const getEfficiencyMetrics = (mode: CampaignMode, emailMetrics?: any, linkedinMetrics?: any): EfficiencyMetricData[] => {
   if (mode === 'email') {
+    const sent = emailMetrics?.sent || 0;
+    const opened = emailMetrics?.opened || 0;
+    const replied = emailMetrics?.replied || 0;
+    const meetings = emailMetrics?.meetings || 0;
+    
+    const openRate = sent > 0 ? ((opened / sent) * 100).toFixed(1) : '0';
+    const replyRate = sent > 0 ? ((replied / sent) * 100).toFixed(1) : '0';
+    
     return [
       {
         title: 'Open Rate',
-        value: '50%',
-        change: '+5%',
+        value: `${openRate}%`,
+        change: '0%',
         positive: true
       },
       {
         title: 'Reply Rate',
-        value: '15%',
-        change: '+3%',
+        value: `${replyRate}%`,
+        change: '0%',
         positive: true
       },
       {
         title: 'Cost per Email',
-        value: '$0.12',
-        change: '-15%',
+        value: '$0.00',
+        change: '0%',
         positive: true
       },
       {
         title: 'Cost per Meeting',
-        value: '$8.50',
-        change: '-12%',
+        value: '$0.00',
+        change: '0%',
         positive: true
       }
     ];
   } else {
+    const connectionRequests = linkedinMetrics?.connectionRequests || 0;
+    const connectionsAccepted = linkedinMetrics?.connectionsAccepted || 0;
+    const messagesSent = linkedinMetrics?.messagesSent || 0;
+    const messageReplies = linkedinMetrics?.messageReplies || 0;
+    
+    const acceptanceRate = connectionRequests > 0 ? ((connectionsAccepted / connectionRequests) * 100).toFixed(1) : '0';
+    const responseRate = messagesSent > 0 ? ((messageReplies / messagesSent) * 100).toFixed(1) : '0';
+    
     return [
       {
         title: 'Acceptance Rate',
-        value: '70%',
-        change: '+8%',
+        value: `${acceptanceRate}%`,
+        change: '0%',
         positive: true
       },
       {
         title: 'Response Rate',
-        value: '25%',
-        change: '+6%',
+        value: `${responseRate}%`,
+        change: '0%',
         positive: true
       },
       {
         title: 'Cost per Connection',
-        value: '$1.25',
-        change: '-10%',
+        value: '$0.00',
+        change: '0%',
         positive: true
       },
       {
         title: 'Cost per Meeting',
-        value: '$18.50',
-        change: '-8%',
+        value: '$0.00',
+        change: '0%',
         positive: true
       }
     ];
