@@ -252,14 +252,9 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
 
         {/* Premium Footer */}
         <div className="text-center mt-12">
-          <div className="space-y-2">
-            <p className="text-lg font-medium bg-gradient-to-r from-gray-400 to-gray-300 bg-clip-text text-transparent">
-              Lead Generation OS
-            </p>
-            <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#666666' }}>
-              <span>Powered by</span>
-              <span className="font-semibold text-gray-300">Node AI</span>
-            </div>
+          <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#666666' }}>
+            <span>Powered by</span>
+            <span className="font-semibold text-gray-300">Node AI</span>
           </div>
         </div>
       </div>
