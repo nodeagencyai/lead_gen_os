@@ -7,18 +7,20 @@
 Make sure these environment variables are configured in your production deployment:
 
 ```bash
+# ⚠️ SECURITY WARNING: Replace these example values with your actual credentials
 # Required for Email Dashboard (Instantly.ai)
-VITE_INSTANTLY_API_KEY=Mjc3MGQxMjEtZTk3ZS00NGEzLTgzODQtOGRkMTQ0NDBhOTBiOklVUnBQT2dVTmlJQQ==
+VITE_INSTANTLY_API_KEY=your_instantly_api_key_here
 
-# Required for LinkedIn Dashboard (HeyReach)
-VITE_HEYREACH_API_KEY=DFU2rNfHwzKC67Z92PXB8LIrKcIgIivA4swxi1madHs=
+# Required for LinkedIn Dashboard (HeyReach)  
+VITE_HEYREACH_API_KEY=your_heyreach_api_key_here
 
 # Supabase Configuration
-VITE_SUPABASE_URL=https://efpwtvlgnftlabmliguf.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmcHd0dmxnbmZ0bGFibWxpZ3VmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2Nzc2MzgsImV4cCI6MjA2OTI1MzYzOH0.q-lhFq9zt2hZz9bHSvXcWzub3_5BAYY0powHHQWomEo
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+VITE_SUPABASE_SERVICE_KEY=your_supabase_service_key_here
 
 # N8N Integration
-VITE_N8N_AUTH_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxZTA2MjM2Ny1lMzgyLTRmY2QtYThkYy0wOTBhNDVkYWZkZmMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzUzNjg0MzY3LCJleHAiOjE3NTYyNDU2MDB9.zfHDTjhFB2jUi6Gv85chA019wGvfFDoBBXUCubOUpeg
+VITE_N8N_AUTH_TOKEN=your_n8n_auth_token_here
 
 # Webhook URLs
 VITE_N8N_APOLLO_WEBHOOK=https://n8n.srv890126.hstgr.cloud/webhook/958e6877-ef71-4fbf-8033-181dc823ba20

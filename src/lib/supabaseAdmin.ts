@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmcHd0dmxnbmZ0bGFibWxpZ3VmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzY3NzYzOCwiZXhwIjoyMDY5MjUzNjM4fQ.2jlXp3PUe8lkjsvw6DTOuBkSOAmzRjkEGOVXHZTv0MU';
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl) {
-  throw new Error('Missing Supabase URL');
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing Supabase configuration - ensure VITE_SUPABASE_URL and VITE_SUPABASE_SERVICE_KEY are set');
 }
 
 // This client bypasses RLS policies - use carefully

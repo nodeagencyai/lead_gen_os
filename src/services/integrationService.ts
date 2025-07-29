@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { INTEGRATION_CONFIG } from '../config/integrations';
 import { apiClient } from '../utils/apiClient';
+import { getRequiredEnvVar } from '../utils/envValidator';
 
 export class IntegrationService {
   // Get encrypted API keys from Supabase

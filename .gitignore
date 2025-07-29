@@ -25,13 +25,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Environment variables
+# Environment variables - CRITICAL SECURITY
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example
 *.local
+
+# API Keys and Secrets - NEVER COMMIT THESE
+**/api-keys.json
+**/secrets.json
+**/*secret*
+**/*key*
+**/*credential*
+**/config/production.*
+**/config/staging.*
 
 # Testing
 /coverage

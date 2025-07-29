@@ -25,7 +25,8 @@ export default async function handler(req, res) {
         instantly: process.env.INSTANTLY_API_KEY ? '✅ Present' : '❌ Missing',
         heyreach: process.env.HEYREACH_API_KEY ? '✅ Present' : '❌ Missing',
         supabase_url: process.env.VITE_SUPABASE_URL ? '✅ Present' : '❌ Missing',
-        supabase_key: process.env.VITE_SUPABASE_ANON_KEY ? '✅ Present' : '❌ Missing',
+        supabase_anon_key: process.env.VITE_SUPABASE_ANON_KEY ? '✅ Present' : '❌ Missing',
+        supabase_service_key: process.env.VITE_SUPABASE_SERVICE_KEY ? '✅ Present' : '❌ Missing',
         n8n_token: process.env.VITE_N8N_AUTH_TOKEN ? '✅ Present' : '❌ Missing'
       },
       api_key_lengths: {
