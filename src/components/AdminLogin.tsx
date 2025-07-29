@@ -11,7 +11,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const ADMIN_PASSWORD = 'Kankermissfish69';
+  const ADMIN_PASSWORD = 'Kankermissfish69!';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
