@@ -85,12 +85,16 @@ export class IntegrationService {
   private static async fetchDirectAPI() {
     const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
     if (!apiKey) {
-      throw new Error('Instantly API key not configured');
+      console.error('❌ Instantly API key not found in environment variables');
+      console.error('Available env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
+      throw new Error('Instantly API key not configured - check environment variables in production deployment');
     }
 
+    console.log('🔑 Using Instantly API key for direct API calls');
     const headers = {
       'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     };
 
     try {
@@ -187,52 +191,143 @@ export class IntegrationService {
 
   // HeyReach API Integration
   static async getHeyReachData() {
-    const apiKey = await this.getApiKey('heyreach');
-    if (!apiKey) throw new Error('HeyReach API key not configured');
+    const apiKey = import.meta.env.VITE_HEYREACH_API_KEY;
+    if (!apiKey) {
+      console.error('❌ HeyReach API key not found in environment variables');
+      console.error('Available env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
+      throw new Error('HeyReach API key not configured - check environment variables in production deployment');
+    }
 
-    const headers = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    };
+    console.log('🔑 Using HeyReach API key for LinkedIn data');
+    
+    // Try different authentication methods for HeyReach
+    const authMethods = [
+      { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      { 'X-API-KEY': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      { 'apikey': apiKey, 'Content-Type': 'application/json', 'Accept': 'application/json' }
+    ];
 
+    for (let i = 0; i < authMethods.length; i++) {
+      const headers = authMethods[i];
+      console.log(`🔄 Trying HeyReach authentication method ${i + 1}...`);
+      
+      try {
+        const testResponse = await fetch(
+          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CAMPAIGNS}`,
+          { headers }
+        );
+        
+        if (testResponse.ok) {
+          console.log(`✅ HeyReach authentication method ${i + 1} successful`);
+          return await this.fetchHeyReachWithAuth(headers);
+        } else {
+          console.warn(`❌ Auth method ${i + 1} failed:`, testResponse.status, testResponse.statusText);
+          if (testResponse.status === 401) {
+            const errorText = await testResponse.text();
+            console.warn('Auth error details:', errorText);
+          }
+        }
+      } catch (error) {
+        console.warn(`❌ Auth method ${i + 1} error:`, error.message);
+      }
+    }
+    
+    throw new Error('All HeyReach authentication methods failed - check API key validity');
+  }
+
+  private static async fetchHeyReachWithAuth(headers: Record<string, string>) {
     try {
+      console.log('🔄 Fetching HeyReach data...');
+      
       // Get campaigns
       const campaignResponse = await fetch(
         `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CAMPAIGNS}`,
         { headers }
       );
+      
+      if (!campaignResponse.ok) {
+        throw new Error(`HeyReach campaigns API failed: ${campaignResponse.status} ${campaignResponse.statusText}`);
+      }
+      
       const campaigns = await campaignResponse.json();
+      console.log('📊 HeyReach campaigns fetched:', campaigns);
 
-      // Get connections
-      const connectionsResponse = await fetch(
-        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CONNECTIONS}`,
-        { headers }
-      );
-      const connections = await connectionsResponse.json();
+      // Try to get connections and messages (may not be available in all plans)
+      let connections = { data: [] };
+      let messages = { data: [] };
+      
+      try {
+        const connectionsResponse = await fetch(
+          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.CONNECTIONS}`,
+          { headers }
+        );
+        if (connectionsResponse.ok) {
+          connections = await connectionsResponse.json();
+        }
+      } catch (error) {
+        console.warn('HeyReach connections endpoint not available:', error.message);
+      }
 
-      // Get messages
-      const messagesResponse = await fetch(
-        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.MESSAGES}`,
-        { headers }
-      );
-      const messages = await messagesResponse.json();
+      try {
+        const messagesResponse = await fetch(
+          `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.MESSAGES}`,
+          { headers }
+        );
+        if (messagesResponse.ok) {
+          messages = await messagesResponse.json();
+        }
+      } catch (error) {
+        console.warn('HeyReach messages endpoint not available:', error.message);
+      }
+
+      // Get analytics with the same headers
+      const analytics = await this.getHeyReachAnalyticsWithHeaders(headers);
 
       return {
-        campaigns: campaigns.data || [],
-        connections: connections.data || [],
-        messages: messages.data || [],
-        analytics: await this.getHeyReachAnalytics(apiKey)
+        campaigns: campaigns.data || campaigns.results || campaigns || [],
+        connections: connections.data || connections.results || connections || [],
+        messages: messages.data || messages.results || messages || [],
+        analytics: analytics || {
+          connection_requests_sent: 0,
+          connections_accepted: 0,
+          messages_sent: 0,
+          message_replies: 0,
+          meetings_booked: 0
+        }
       };
     } catch (error) {
-      console.error('HeyReach API Error:', error);
+      console.error('❌ HeyReach API Error:', error);
       throw error;
     }
   }
 
-  static async getHeyReachAnalytics(apiKey: string) {
+  private static async getHeyReachAnalyticsWithHeaders(headers: Record<string, string>) {
+    try {
+      const response = await fetch(
+        `${INTEGRATION_CONFIG.HEYREACH_API.BASE_URL}${INTEGRATION_CONFIG.HEYREACH_API.ENDPOINTS.ANALYTICS}`,
+        { headers }
+      );
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error('HeyReach Analytics Error:', error);
+      return null;
+    }
+  }
+
+  static async getHeyReachAnalytics() {
+    const apiKey = import.meta.env.VITE_HEYREACH_API_KEY;
+    if (!apiKey) {
+      console.warn('HeyReach API key not configured');
+      return null;
+    }
+
     const headers = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
+      'X-API-KEY': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     };
 
     try {

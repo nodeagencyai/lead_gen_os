@@ -129,6 +129,35 @@ src/
 - `src/hooks/useRealTimeData.ts` - Real-time data management
 - `src/components/CampaignsOverview.tsx` - Campaign management UI
 
+## 🔧 Troubleshooting
+
+### "Failed to fetch" Error in Dashboard
+
+If you see "Error loading real-time data: Failed to fetch" in the dashboard:
+
+1. **Development Mode**: Ensure the proxy server is running:
+   ```bash
+   node server.cjs
+   ```
+   The proxy server should be running on `http://localhost:3001`
+
+2. **Check Environment Variables**: Verify your `.env` file has:
+   ```
+   VITE_INSTANTLY_API_KEY=your_instantly_api_key
+   ```
+
+3. **Check Browser Console**: Open browser DevTools → Console for detailed error logs
+
+4. **Proxy Server Issues**: If proxy server fails, the app will automatically fallback to direct API calls
+
+5. **CORS Issues**: In production, direct API calls are used with proper CORS headers
+
+### Development Server Issues
+
+- **Port Conflicts**: If port 5173 is in use, Vite will automatically use the next available port
+- **Environment Variables**: Restart the dev server after changing `.env` files
+- **Proxy Server**: Run `node server.cjs` in a separate terminal for API proxy functionality
+
 ## 📝 License
 
 Private - Node Agency AI
