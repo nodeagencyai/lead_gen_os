@@ -127,13 +127,13 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
               <div 
                 className="mb-8 p-5 rounded-2xl flex items-center space-x-3 backdrop-blur-sm border"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05))',
-                  borderColor: 'rgba(239, 68, 68, 0.3)',
-                  color: '#fecaca',
-                  boxShadow: '0 8px 32px rgba(239, 68, 68, 0.1)'
+                  background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.1), rgba(160, 160, 160, 0.05))',
+                  borderColor: 'rgba(128, 128, 128, 0.3)',
+                  color: '#cccccc',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
                 }}
               >
-                <AlertCircle className="w-5 h-5 text-red-400" />
+                <AlertCircle className="w-5 h-5 text-gray-400" />
                 <span className="font-medium">{error}</span>
               </div>
             )}
