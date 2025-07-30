@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Clock, TrendingUp, Eye } from 'lucide-react';
-import { IntegrationService } from '../services/integrationService';
+import { InstantlyCampaignService } from '../services/instantlyCampaignService';
 
 interface SequenceStep {
   id: string;
@@ -29,6 +29,8 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
   campaignName
 }) => {
   const [sequences, setSequences] = useState<SequenceStep[]>([]);
+  const [campaignInfo, setCampaignInfo] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,55 +41,38 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
   }, [isOpen, campaignId]);
 
   const fetchSequences = async () => {
+    if (!campaignId) {
+      console.warn('⚠️ No campaign ID provided to sequence viewer');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
     try {
-      const sequenceData = await IntegrationService.getCampaignSequences(campaignId);
+      console.log(`🔍 Sequence viewer fetching data for campaign: ${campaignId} (${campaignName})`);
       
-      // Mock data structure for demonstration - replace with actual API data
-      const mockSequences: SequenceStep[] = [
-        {
-          id: '1',
-          step_number: 1,
-          subject: 'Quick question about [Company]',
-          content: 'Hi [First Name],\n\nI noticed that [Company] is doing amazing work in [Industry]. I was wondering if you might be interested in...',
-          delay_days: 0,
-          delay_hours: 0,
-          opened: 45,
-          replied: 8,
-          sent: 100,
-          type: 'email'
-        },
-        {
-          id: '2',
-          step_number: 2,
-          subject: 'Following up on my previous email',
-          content: 'Hi [First Name],\n\nI wanted to follow up on my previous email about [Topic]. I know you\'re probably busy, but...',
-          delay_days: 3,
-          delay_hours: 0,
-          opened: 32,
-          replied: 5,
-          sent: 72,
-          type: 'follow_up'
-        },
-        {
-          id: '3',
-          step_number: 3,
-          subject: 'Last attempt - [Company] opportunity',
-          content: 'Hi [First Name],\n\nThis will be my last email about this opportunity. I understand if you\'re not interested...',
-          delay_days: 7,
-          delay_hours: 0,
-          opened: 18,
-          replied: 2,
-          sent: 45,
-          type: 'follow_up'
-        }
-      ];
-
-      setSequences(sequenceData.length > 0 ? sequenceData : mockSequences);
+      // Fetch enhanced sequence data with campaign context
+      const enhancedData = await InstantlyCampaignService.getEnhancedSequenceData(campaignId);
+      
+      if (enhancedData.sequences && enhancedData.sequences.length > 0) {
+        console.log(`✅ Sequence viewer loaded ${enhancedData.sequences.length} sequences for ${campaignName}`);
+        setSequences(enhancedData.sequences);
+        setCampaignInfo(enhancedData.campaignInfo);
+        setAnalytics(enhancedData.analytics);
+      } else {
+        console.warn(`⚠️ No sequences found for campaign ${campaignId} (${campaignName})`);
+        setSequences([]);
+        setCampaignInfo(enhancedData.campaignInfo);
+        setAnalytics(enhancedData.analytics);
+      }
+      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch sequences');
+      console.error(`❌ Failed to fetch sequences for campaign ${campaignId}:`, err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch sequence data');
+      setSequences([]);
+      setCampaignInfo(null);
+      setAnalytics(null);
     } finally {
       setLoading(false);
     }
@@ -121,6 +106,13 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
           <div>
             <h2 className="text-xl font-semibold text-white">Sequence Viewer</h2>
             <p className="text-sm text-gray-400 mt-1">{campaignName}</p>
+            {campaignInfo && (
+              <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                <span>ID: {campaignId.substring(0, 8)}...</span>
+                <span>Status: {campaignInfo.status || 'Draft'}</span>
+                {campaignInfo.leads_count && <span>Leads: {campaignInfo.leads_count}</span>}
+              </div>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -151,13 +143,22 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
             <div className="text-center py-12">
               <Mail size={48} className="mx-auto mb-4" style={{ color: '#888888' }} />
               <h3 className="text-lg font-semibold text-white mb-2">No Sequences Found</h3>
-              <p className="text-gray-400">This campaign doesn't have any sequences configured yet.</p>
+              <p className="text-gray-400 mb-4">
+                This campaign doesn't have any sequences configured yet.
+              </p>
+              {campaignInfo && (
+                <div className="text-sm text-gray-500 max-w-md mx-auto">
+                  <p>Campaign: <span className="text-gray-400">{campaignName}</span></p>
+                  <p>Status: <span className="text-gray-400">{campaignInfo.status || 'Draft'}</span></p>
+                  <p className="mt-2">Sequences may be available once the campaign is configured in Instantly.</p>
+                </div>
+              )}
             </div>
           )}
 
           {!loading && !error && sequences.length > 0 && (
             <div className="space-y-6">
-              {sequences.map((sequence, index) => (
+              {sequences.map((sequence) => (
                 <div
                   key={sequence.id}
                   className="rounded-xl p-6 transition-all duration-200"
