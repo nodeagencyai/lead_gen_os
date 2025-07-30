@@ -57,14 +57,20 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
       // Fetch enhanced sequence data with campaign context
       const enhancedData = await InstantlyCampaignService.getEnhancedSequenceData(campaignId);
       
-      if (enhancedData.sequences && enhancedData.sequences.length > 0) {
-        console.log(`✅ Sequence viewer loaded ${enhancedData.sequences.length} sequences for ${campaignName}`);
-        setSequences(enhancedData.sequences);
+      if (enhancedData.sequences.isEmpty) {
+        console.warn(`⚠️ No sequences found for campaign ${campaignId} (${campaignName})`);
+        setSequences([]);
         setCampaignInfo(enhancedData.campaignInfo);
         setAnalytics(enhancedData.analytics);
       } else {
-        console.warn(`⚠️ No sequences found for campaign ${campaignId} (${campaignName})`);
-        setSequences([]);
+        // Combine main and follow-up sequences for display
+        const allSequences = [...enhancedData.sequences.main, ...enhancedData.sequences.followUps];
+        console.log(`✅ Sequence viewer loaded ${allSequences.length} sequences for ${campaignName}:`, {
+          main: enhancedData.sequences.main.length,
+          followUps: enhancedData.sequences.followUps.length,
+          total: enhancedData.sequences.total
+        });
+        setSequences(allSequences);
         setCampaignInfo(enhancedData.campaignInfo);
         setAnalytics(enhancedData.analytics);
       }

@@ -334,9 +334,15 @@ export class InstantlyCampaignService {
   /**
    * Fetch complete sequence data including primary sequences and subsequences
    * Uses the correct API v2 structure with sequences[].steps[].variants[]
+   * Returns organized structure: {sequences: {main, followUps, total, isEmpty}}
    */
   static async getEnhancedSequenceData(campaignId: string): Promise<{
-    sequences: any[];
+    sequences: {
+      main: any[];
+      followUps: any[];
+      total: number;
+      isEmpty: boolean;
+    };
     campaignInfo: any;
     analytics: any;
     stepAnalytics?: any[];
@@ -388,22 +394,29 @@ export class InstantlyCampaignService {
         console.log(`ℹ️ No subsequences found for campaign ${campaignId}`);
       }
       
-      // 3. Combine all parsed sequences
-      const allParsedSequences = [...mainSequences, ...followUpSequences];
+      // Note: allParsedSequences variable removed - we now return organized structure
+      
+      // Create organized sequence structure
+      const sequencesResult = {
+        main: mainSequences,
+        followUps: followUpSequences,
+        total: mainSequences.length + followUpSequences.length,
+        isEmpty: mainSequences.length === 0 && followUpSequences.length === 0
+      };
       
       console.log(`✅ Complete sequence data for campaign ${campaignId}:`, {
-        mainSequences: mainSequences.length,
-        followUpSequences: followUpSequences.length,
-        totalParsedSteps: allParsedSequences.length,
+        mainSequences: sequencesResult.main.length,
+        followUpSequences: sequencesResult.followUps.length,
+        totalParsedSteps: sequencesResult.total,
         subsequenceCount: subsequences.length,
-        isEmpty: allParsedSequences.length === 0,
+        isEmpty: sequencesResult.isEmpty,
         hasCampaignInfo: !!campaignDetails,
         hasAnalytics: !!analytics,
         hasStepAnalytics: !!stepAnalytics
       });
       
       return {
-        sequences: allParsedSequences, // Return all parsed sequence steps ready for UI
+        sequences: sequencesResult,
         campaignInfo: campaignDetails,
         analytics,
         stepAnalytics: stepAnalytics || undefined
@@ -412,7 +425,12 @@ export class InstantlyCampaignService {
     } catch (error) {
       console.error(`❌ Error fetching complete sequence data for campaign ${campaignId}:`, error);
       return {
-        sequences: [],
+        sequences: {
+          main: [],
+          followUps: [],
+          total: 0,
+          isEmpty: true
+        },
         campaignInfo: null,
         analytics: null,
         stepAnalytics: undefined
@@ -422,11 +440,15 @@ export class InstantlyCampaignService {
   
 
   /**
-   * Legacy method for backward compatibility
+   * Legacy method for backward compatibility - returns combined sequences array
    */
   static async getCampaignSequences(campaignId: string): Promise<any[] | null> {
     const enhancedData = await this.getEnhancedSequenceData(campaignId);
-    return enhancedData.sequences;
+    if (enhancedData.sequences.isEmpty) {
+      return [];
+    }
+    // Return combined array for backward compatibility
+    return [...enhancedData.sequences.main, ...enhancedData.sequences.followUps];
   }
 
   /**
