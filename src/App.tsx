@@ -186,42 +186,6 @@ function App() {
           </div>
         )}
 
-
-
-        {/* Key Metrics */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
-            {mode === 'email' ? 'Email Campaign Metrics' : 'LinkedIn Campaign Metrics'}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {keyMetrics.map((metric, index) => (
-              <div 
-                key={index} 
-                className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
-                style={{ 
-                  backgroundColor: '#1a1a1a', 
-                  border: '1px solid #444444' 
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2a2a2a';
-                  e.currentTarget.style.borderColor = '#666666';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1a1a1a';
-                  e.currentTarget.style.borderColor = '#444444';
-                }}
-              >
-                <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{metric.title}</div>
-                <div className="text-2xl font-bold mb-2 text-white">{metric.value}</div>
-                <div className={`text-sm flex items-center`} style={{ color: metric.positive ? '#10b981' : '#ef4444' }}>
-                  {metric.positive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {metric.change}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Lead Analytics */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
@@ -343,6 +307,41 @@ function App() {
             )}
           </div>
         </div>
+
+        {/* Key Metrics */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
+            {mode === 'email' ? 'Email Campaign Metrics' : 'LinkedIn Campaign Metrics'}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {keyMetrics.map((metric, index) => (
+              <div 
+                key={index} 
+                className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+                style={{ 
+                  backgroundColor: '#1a1a1a', 
+                  border: '1px solid #444444' 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2a2a2a';
+                  e.currentTarget.style.borderColor = '#666666';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1a1a1a';
+                  e.currentTarget.style.borderColor = '#444444';
+                }}
+              >
+                <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{metric.title}</div>
+                <div className="text-2xl font-bold mb-2 text-white">{metric.value}</div>
+                <div className={`text-sm flex items-center`} style={{ color: metric.positive ? '#10b981' : '#ef4444' }}>
+                  {metric.positive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
+                  {metric.change}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
 
         {/* Performance Trends */}
         <div className="mb-8">
