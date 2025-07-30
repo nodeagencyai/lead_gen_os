@@ -27,6 +27,7 @@ export const useLeadAnalytics = (mode: CampaignMode) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [currentMode, setCurrentMode] = useState<CampaignMode>(mode);
   
   // Determine which table to query based on campaign mode
   const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
@@ -68,9 +69,24 @@ export const useLeadAnalytics = (mode: CampaignMode) => {
 
       // Fetch all leads to calculate profile coverage and personalization
       console.log(`📋 Querying detailed data from ${tableName} table...`);
-      const { data: leads, error: leadsError } = await supabase
-        .from(tableName)
-        .select(`
+      
+      // Different field names for different tables
+      const selectFields = tableName === 'Apollo' 
+        ? `
+          id,
+          full_name,
+          email,
+          company,
+          title,
+          linkedin_url,
+          icebreaker,
+          personalization_hooks,
+          personalization_hook1,
+          personalization_hook2,
+          personalization_hook3,
+          personalization_hook4
+        `
+        : `
           id,
           name,
           email,
@@ -80,17 +96,28 @@ export const useLeadAnalytics = (mode: CampaignMode) => {
           linkedin_url,
           raw_data,
           status
-        `);
+        `;
+      
+      const { data: leads, error: leadsError } = await supabase
+        .from(tableName)
+        .select(selectFields);
 
       console.log(`📊 Detailed query result:`, { 
         tableName, 
         leadsCount: leads?.length, 
         leadsError: leadsError?.message,
-        firstLead: leads?.[0] ? {
+        firstLead: leads?.[0] ? (tableName === 'Apollo' ? {
+          id: leads[0].id,
+          full_name: leads[0].full_name,
+          email: leads[0].email,
+          company: leads[0].company,
+          title: leads[0].title,
+          hasPersonalization: !!(leads[0].icebreaker || leads[0].personalization_hooks)
+        } : {
           id: leads[0].id,
           name: leads[0].name,
           hasRawData: !!leads[0].raw_data
-        } : null
+        }) : null
       });
 
       if (leadsError) {
@@ -103,13 +130,21 @@ export const useLeadAnalytics = (mode: CampaignMode) => {
 
       console.log(`🧮 Processing ${totalCount} leads from ${tableName} table...`);
 
-      // Calculate profile coverage based on campaign mode
+      // Calculate profile coverage based on campaign mode and table structure
       const completeProfiles = leadsData.filter(lead => {
-        const isComplete = mode === 'email' 
-          ? (lead.name && lead.email && lead.company && lead.position)
-          : (lead.name && lead.linkedin_url && lead.company && lead.position);
-        
-        return isComplete;
+        if (tableName === 'Apollo') {
+          // Apollo table uses different field names
+          const isComplete = mode === 'email' 
+            ? (lead.full_name && lead.email && lead.company && lead.title)
+            : (lead.full_name && lead.linkedin_url && lead.company && lead.title);
+          return isComplete;
+        } else {
+          // LinkedIn table uses standard field names
+          const isComplete = mode === 'email' 
+            ? (lead.name && lead.email && lead.company && lead.position)
+            : (lead.name && lead.linkedin_url && lead.company && lead.position);
+          return isComplete;
+        }
       }).length;
 
       console.log(`✅ Profile coverage calculation:`, {
@@ -123,17 +158,28 @@ export const useLeadAnalytics = (mode: CampaignMode) => {
         ? Math.round((completeProfiles / totalCount) * 100) 
         : 0;
 
-      // Calculate personalization rate (leads with hooks/icebreakers in raw_data)
+      // Calculate personalization rate (leads with hooks/icebreakers)
       const personalizedLeads = leadsData.filter(lead => {
-        const hasPersonalization = lead.raw_data && 
-          (lead.raw_data.hook || 
-           lead.raw_data.icebreaker || 
-           lead.raw_data.personalization ||
-           lead.raw_data.custom_message ||
-           lead.raw_data.personal_note ||
-           lead.raw_data.opening_line);
-        
-        return hasPersonalization;
+        if (tableName === 'Apollo') {
+          // Apollo table has specific personalization fields
+          const hasPersonalization = lead.icebreaker || 
+            lead.personalization_hooks ||
+            lead.personalization_hook1 || 
+            lead.personalization_hook2 || 
+            lead.personalization_hook3 || 
+            lead.personalization_hook4;
+          return hasPersonalization;
+        } else {
+          // LinkedIn table uses raw_data field
+          const hasPersonalization = lead.raw_data && 
+            (lead.raw_data.hook || 
+             lead.raw_data.icebreaker || 
+             lead.raw_data.personalization ||
+             lead.raw_data.custom_message ||
+             lead.raw_data.personal_note ||
+             lead.raw_data.opening_line);
+          return hasPersonalization;
+        }
       }).length;
 
       const personalizationPercentage = totalCount > 0 
@@ -211,31 +257,38 @@ export const useLeadAnalytics = (mode: CampaignMode) => {
   };
 
   useEffect(() => {
-    // Initial load (not background refresh)
-    fetchLeadAnalytics(false);
+    // Only fetch if mode has actually changed or it's the initial load
+    if (mode !== currentMode || !analytics) {
+      setCurrentMode(mode);
+      setAnalytics(null); // Clear existing data when mode changes
+      setError(null);
+      setRetryCount(0);
+      fetchLeadAnalytics(false);
+    }
 
+    // TEMPORARILY DISABLED: Real-time subscription to debug flickering
     // Set up real-time subscription for the specific table changes
-    const subscription = supabase
-      .channel(`lead-analytics-changes-${tableName.toLowerCase()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: tableName
-        },
-        () => {
-          // Background refresh when the table changes
-          console.log(`🔄 ${tableName} table changed, background refreshing analytics...`);
-          fetchLeadAnalytics(true);
-        }
-      )
-      .subscribe();
+    // const subscription = supabase
+    //   .channel(`lead-analytics-changes-${tableName.toLowerCase()}`)
+    //   .on(
+    //     'postgres_changes',
+    //     {
+    //       event: '*',
+    //       schema: 'public',
+    //       table: tableName
+    //     },
+    //     () => {
+    //       // Background refresh when the table changes
+    //       console.log(`🔄 ${tableName} table changed, background refreshing analytics...`);
+    //       fetchLeadAnalytics(true);
+    //     }
+    //   )
+    //   .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [mode, tableName]); // Re-run when mode or table changes
+    // return () => {
+    //   subscription.unsubscribe();
+    // };
+  }, [mode]); // Only depend on mode, not tableName
 
   return {
     analytics,

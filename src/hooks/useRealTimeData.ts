@@ -47,10 +47,16 @@ export const useRealTimeData = () => {
   });
 
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchRealTimeData = async () => {
+  const fetchRealTimeData = async (isBackgroundRefresh = false) => {
     try {
-      setMetrics(prev => ({ ...prev, loading: true, error: null }));
+      // Only show loading on initial load or manual refresh, not on background refresh
+      if (!isBackgroundRefresh) {
+        setMetrics(prev => ({ ...prev, loading: true, error: null }));
+      } else {
+        setMetrics(prev => ({ ...prev, error: null }));
+      }
 
       if (mode === 'email') {
         // Fetch Instantly data - use real data only
@@ -80,8 +86,9 @@ export const useRealTimeData = () => {
             emailMetrics,
             campaigns,
             leads: [],
-            loading: false
+            loading: isInitialLoad ? false : prev.loading
           }));
+          if (isInitialLoad) setIsInitialLoad(false);
         } catch (error) {
           console.error('Instantly API failed:', error);
           // Use zeros when API fails
@@ -98,9 +105,10 @@ export const useRealTimeData = () => {
             emailMetrics,
             campaigns: [],
             leads: [],
-            loading: false,
+            loading: isInitialLoad ? false : prev.loading,
             error: error instanceof Error ? error.message : 'Failed to fetch Instantly data'
           }));
+          if (isInitialLoad) setIsInitialLoad(false);
         }
 
       } else {
@@ -121,8 +129,9 @@ export const useRealTimeData = () => {
             linkedinMetrics,
             campaigns: heyReachData?.campaigns || [],
             leads: heyReachData?.connections || [],
-            loading: false
+            loading: isInitialLoad ? false : prev.loading
           }));
+          if (isInitialLoad) setIsInitialLoad(false);
         } catch (error) {
           console.error('HeyReach API failed:', error);
           // Use zeros when API fails
@@ -139,9 +148,10 @@ export const useRealTimeData = () => {
             linkedinMetrics,
             campaigns: [],
             leads: [],
-            loading: false,
+            loading: isInitialLoad ? false : prev.loading,
             error: error instanceof Error ? error.message : 'Failed to fetch HeyReach data'
           }));
+          if (isInitialLoad) setIsInitialLoad(false);
         }
       }
 
@@ -149,18 +159,22 @@ export const useRealTimeData = () => {
       console.error('Real-time data fetch error:', error);
       setMetrics(prev => ({
         ...prev,
-        loading: false,
+        loading: isInitialLoad ? false : prev.loading,
         error: error instanceof Error ? error.message : 'Failed to fetch real-time data'
       }));
+      if (isInitialLoad) setIsInitialLoad(false);
     }
   };
 
   useEffect(() => {
+    // Reset initial load state when mode changes
+    setIsInitialLoad(true);
+    
     // Initial fetch
-    fetchRealTimeData();
+    fetchRealTimeData(false);
 
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(fetchRealTimeData, 30000);
+    // Set up auto-refresh every 30 seconds (background refresh)
+    const interval = setInterval(() => fetchRealTimeData(true), 30000);
     setRefreshInterval(interval);
 
     return () => {
@@ -169,7 +183,7 @@ export const useRealTimeData = () => {
   }, [mode]);
 
   const forceRefresh = () => {
-    fetchRealTimeData();
+    fetchRealTimeData(false); // Manual refresh shows loading
   };
 
   return {

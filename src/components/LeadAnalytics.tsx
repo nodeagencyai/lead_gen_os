@@ -80,7 +80,8 @@ const LeadAnalytics: React.FC = () => {
   const { mode } = useCampaignStore();
   const { analytics, loading, isRefreshing, error, refetch } = useLeadAnalytics(mode);
 
-  if (error) {
+  // Only show error if we don't have any data AND we're not loading initially
+  if (error && !analytics && !loading) {
     return (
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
@@ -149,7 +150,7 @@ const LeadAnalytics: React.FC = () => {
           subtitle="All time"
           change={`+${analytics?.growth.totalLeadsChange || 0}% this month`}
           icon={<Users className="w-5 h-5" />}
-          loading={loading} // Only show loading on initial load
+          loading={loading && !analytics} // Only show loading if we have no data
         />
 
         {/* Profile Coverage Card */}
@@ -159,7 +160,7 @@ const LeadAnalytics: React.FC = () => {
           subtitle={`${analytics?.profileCoverage.completed || 0} of ${analytics?.profileCoverage.total || 0} leads`}
           change={`+${analytics?.growth.profileCoverageChange || 0}% this month`}
           icon={<CheckCircle className="w-5 h-5" />}
-          loading={loading} // Only show loading on initial load
+          loading={loading && !analytics} // Only show loading if we have no data
         />
 
         {/* Personalization Rate Card */}
@@ -169,7 +170,7 @@ const LeadAnalytics: React.FC = () => {
           subtitle={`${analytics?.personalizationRate.personalized || 0} with hooks/icebreakers`}
           change={`+${analytics?.growth.personalizationChange || 0}% this month`}
           icon={<Target className="w-5 h-5" />}
-          loading={loading} // Only show loading on initial load
+          loading={loading && !analytics} // Only show loading if we have no data
         />
       </div>
     </div>
