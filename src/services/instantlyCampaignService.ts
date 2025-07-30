@@ -1,0 +1,348 @@
+/**
+ * Instantly Campaign Service - Real Data Integration
+ * Fetches actual data from specific Instantly campaigns via API v2
+ */
+
+import { apiClient } from '../utils/apiClient';
+
+// Specific Campaign IDs extracted from share URLs
+export const INSTANTLY_CAMPAIGNS = {
+  DIGITAL_MARKETING: '4bde0574-609a-409d-86cc-52b233699a2b',
+  SALES_DEVELOPMENT: '2e3519c8-ac6f-4961-b803-e28c7423d080',
+  BETA: 'afe7fbea-9d4e-491f-88e4-8f75985b9c07'
+} as const;
+
+// Campaign name mapping
+export const CAMPAIGN_NAMES = {
+  [INSTANTLY_CAMPAIGNS.DIGITAL_MARKETING]: 'Digital Marketing Agencies',
+  [INSTANTLY_CAMPAIGNS.SALES_DEVELOPMENT]: 'Sales Development Representative', 
+  [INSTANTLY_CAMPAIGNS.BETA]: 'Beta'
+} as const;
+
+interface InstantlyCampaignDetails {
+  id: string;
+  name: string;
+  status: number; // 0=Draft, 1=Running, 2=Paused, 3=Stopped, 4=Completed
+  created_at: string;
+  updated_at: string;
+  campaign_schedule?: any;
+  sequences?: any[];
+  leads_count?: number;
+  stats?: {
+    total_leads: number;
+    emails_sent: number;
+    emails_opened: number;
+    emails_replied: number;
+    meetings_booked: number;
+    bounce_rate: number;
+  };
+}
+
+interface CampaignAnalytics {
+  campaign_id: string;
+  total_leads: number;
+  leads_contacted: number;
+  emails_sent: number;
+  emails_opened: number;
+  emails_replied: number;
+  meetings_booked: number;
+  bounce_rate: number;
+  open_rate: number;
+  reply_rate: number;
+}
+
+interface EnrichedCampaignData {
+  id: string;
+  name: string;
+  status: 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed';
+  statusColor: string;
+  preparation: number;
+  leadsReady: number;
+  emailsSent: number;
+  replies: number;
+  meetings: number;
+  template: string;
+  platform: string;
+  sequences?: any[];
+  analytics?: CampaignAnalytics;
+  rawData?: InstantlyCampaignDetails;
+}
+
+export class InstantlyCampaignService {
+  
+  /**
+   * Fetch specific campaign details from Instantly API v2
+   */
+  static async getCampaignDetails(campaignId: string): Promise<InstantlyCampaignDetails | null> {
+    try {
+      console.log(`🔄 Fetching campaign details for ${campaignId}...`);
+      
+      // Use API v2 endpoint for campaign details
+      const result = await apiClient.get(`/api/instantly/v2/campaigns/${campaignId}`);
+      
+      if (result.error) {
+        console.error(`❌ Failed to fetch campaign ${campaignId}:`, result.error);
+        return null;
+      }
+      
+      console.log(`✅ Campaign ${campaignId} details fetched successfully`);
+      return result.data;
+      
+    } catch (error) {
+      console.error(`❌ Error fetching campaign ${campaignId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch campaign analytics from Instantly API v2
+   */
+  static async getCampaignAnalytics(campaignId: string): Promise<CampaignAnalytics | null> {
+    try {
+      console.log(`📊 Fetching analytics for campaign ${campaignId}...`);
+      
+      // Use API v2 endpoint for campaign analytics
+      const result = await apiClient.get(`/api/instantly/v2/campaigns/${campaignId}/analytics`);
+      
+      if (result.error) {
+        console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
+        return null;
+      }
+      
+      console.log(`✅ Analytics for campaign ${campaignId} fetched successfully`);
+      return result.data;
+      
+    } catch (error) {
+      console.error(`❌ Error fetching analytics for campaign ${campaignId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch campaign sequences from Instantly API v2
+   */
+  static async getCampaignSequences(campaignId: string): Promise<any[] | null> {
+    try {
+      console.log(`📝 Fetching sequences for campaign ${campaignId}...`);
+      
+      // First try to get sequences from campaign details
+      const campaignDetails = await this.getCampaignDetails(campaignId);
+      
+      if (campaignDetails?.sequences && campaignDetails.sequences.length > 0) {
+        console.log(`✅ Found ${campaignDetails.sequences.length} sequences in campaign details`);
+        return campaignDetails.sequences;
+      }
+      
+      // Fallback: Try direct sequences endpoint
+      const result = await apiClient.get(`/api/instantly/v2/campaigns/${campaignId}/sequences`);
+      
+      if (result.error) {
+        console.warn(`⚠️ Sequences not available for campaign ${campaignId}:`, result.error);
+        return [];
+      }
+      
+      console.log(`✅ Sequences for campaign ${campaignId} fetched via direct endpoint`);
+      return result.data || [];
+      
+    } catch (error) {
+      console.error(`❌ Error fetching sequences for campaign ${campaignId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch all 3 specific campaigns with complete data
+   */
+  static async fetchAllCampaigns(): Promise<EnrichedCampaignData[]> {
+    console.log('🚀 Fetching all 3 specific Instantly campaigns...');
+    
+    const campaignIds = Object.values(INSTANTLY_CAMPAIGNS);
+    const enrichedCampaigns: EnrichedCampaignData[] = [];
+    
+    // Fetch all campaigns in parallel for better performance
+    const campaignPromises = campaignIds.map(async (campaignId) => {
+      try {
+        // Fetch campaign details and analytics in parallel
+        const [details, analytics] = await Promise.all([
+          this.getCampaignDetails(campaignId),
+          this.getCampaignAnalytics(campaignId)
+        ]);
+        
+        if (!details) {
+          console.warn(`⚠️ Skipping campaign ${campaignId} - no details available`);
+          return null;
+        }
+        
+        // Map to enriched format
+        const enriched = this.mapToEnrichedFormat(details, analytics);
+        console.log(`✅ Campaign "${enriched.name}" processed successfully`);
+        return enriched;
+        
+      } catch (error) {
+        console.error(`❌ Failed to process campaign ${campaignId}:`, error);
+        return null;
+      }
+    });
+    
+    // Wait for all campaigns to be processed
+    const results = await Promise.all(campaignPromises);
+    
+    // Filter out null results and add to array
+    results.forEach(campaign => {
+      if (campaign) {
+        enrichedCampaigns.push(campaign);
+      }
+    });
+    
+    console.log(`✅ Successfully fetched ${enrichedCampaigns.length}/3 campaigns from Instantly`);
+    return enrichedCampaigns;
+  }
+
+  /**
+   * Map raw Instantly data to dashboard format
+   */
+  private static mapToEnrichedFormat(
+    details: InstantlyCampaignDetails, 
+    analytics?: CampaignAnalytics | null
+  ): EnrichedCampaignData {
+    
+    // Get campaign name from mapping or use API name as fallback
+    const campaignName = CAMPAIGN_NAMES[details.id as keyof typeof CAMPAIGN_NAMES] || details.name;
+    
+    // Map status from numeric to string
+    const status = this.mapInstantlyStatus(details.status);
+    const statusColor = this.getStatusColor(status);
+    
+    // Calculate preparation based on campaign completeness
+    const preparation = this.calculatePreparation(details);
+    
+    // Use analytics if available, otherwise use stats from details
+    const stats = analytics || details.stats || {
+      total_leads: 0,
+      emails_sent: 0,
+      emails_opened: 0,
+      emails_replied: 0,
+      meetings_booked: 0,
+      bounce_rate: 0
+    };
+    
+    return {
+      id: details.id,
+      name: campaignName,
+      status,
+      statusColor,
+      preparation,
+      leadsReady: stats.total_leads || details.leads_count || 0,
+      emailsSent: stats.emails_sent || 0,
+      replies: stats.emails_replied || 0,
+      meetings: stats.meetings_booked || 0,
+      template: this.inferTemplate(campaignName),
+      platform: 'Instantly',
+      sequences: details.sequences || [],
+      analytics,
+      rawData: details
+    };
+  }
+
+  /**
+   * Map Instantly numeric status to string format
+   */
+  private static mapInstantlyStatus(status: number): 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed' {
+    switch(status) {
+      case 0: return 'Draft';
+      case 1: return 'Running';
+      case 2: return 'Paused';
+      case 3: return 'Stopped';
+      case 4: return 'Completed';
+      default: return 'Draft';
+    }
+  }
+
+  /**
+   * Get status color for UI display
+   */
+  private static getStatusColor(status: string): string {
+    switch(status) {
+      case 'Draft': return '#3b82f6';      // Blue
+      case 'Running': return '#10b981';    // Green  
+      case 'Paused': return '#f59e0b';     // Yellow
+      case 'Stopped': return '#ef4444';   // Red
+      case 'Completed': return '#6b7280'; // Gray
+      default: return '#3b82f6';
+    }
+  }
+
+  /**
+   * Calculate campaign preparation percentage
+   */
+  private static calculatePreparation(campaign: InstantlyCampaignDetails): number {
+    let completionScore = 0;
+    
+    // Base score for campaign creation
+    completionScore += 20;
+    
+    // Schedule configuration
+    if (campaign.campaign_schedule && Object.keys(campaign.campaign_schedule).length > 0) {
+      completionScore += 25;
+    }
+    
+    // Has sequences
+    if (campaign.sequences && campaign.sequences.length > 0) {
+      completionScore += 30;
+    }
+    
+    // Has leads
+    if (campaign.leads_count && campaign.leads_count > 0) {
+      completionScore += 15;
+    }
+    
+    // Campaign status
+    if (campaign.status === 1) { // Running
+      completionScore += 10;
+    } else if (campaign.status === 4) { // Completed
+      completionScore = 100;
+    }
+    
+    return Math.min(completionScore, 100);
+  }
+
+  /**
+   * Infer template type from campaign name
+   */
+  private static inferTemplate(campaignName: string): string {
+    const name = campaignName.toLowerCase();
+    
+    if (name.includes('digital') || name.includes('marketing')) return 'Digital Marketing Outreach';
+    if (name.includes('sales') || name.includes('development')) return 'Sales Development Outreach';
+    if (name.includes('beta')) return 'Beta Testing Outreach';
+    if (name.includes('agency') || name.includes('agencies')) return 'Agency Outreach';
+    if (name.includes('saas')) return 'SaaS Outreach';
+    if (name.includes('startup')) return 'Startup Outreach';
+    
+    return 'General Outreach';
+  }
+
+  /**
+   * Get single campaign by ID (for sequence viewer)
+   */
+  static async getSingleCampaign(campaignId: string): Promise<EnrichedCampaignData | null> {
+    try {
+      const [details, analytics] = await Promise.all([
+        this.getCampaignDetails(campaignId),
+        this.getCampaignAnalytics(campaignId)
+      ]);
+      
+      if (!details) {
+        return null;
+      }
+      
+      return this.mapToEnrichedFormat(details, analytics);
+      
+    } catch (error) {
+      console.error(`❌ Failed to fetch single campaign ${campaignId}:`, error);
+      return null;
+    }
+  }
+}
+
+export default InstantlyCampaignService;
