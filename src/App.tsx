@@ -224,10 +224,6 @@ function App() {
               </div>
               <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.totalLeads.toLocaleString()}</div>
               <div className="text-sm mb-3" style={{ color: '#999999' }}>All time</div>
-              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
-                <TrendingUp className="w-4 h-4 mr-1" />
-                +0% this month
-              </div>
             </div>
 
             {/* Profile Coverage Card */}
@@ -252,10 +248,6 @@ function App() {
               </div>
               <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.profileCoverage.percentage}%</div>
               <div className="text-sm mb-3" style={{ color: '#999999' }}>{leadAnalytics.profileCoverage.completed} of {leadAnalytics.profileCoverage.total} leads</div>
-              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
-                <TrendingUp className="w-4 h-4 mr-1" />
-                +0% this month
-              </div>
             </div>
 
             {/* Personalization Rate Card */}
@@ -280,10 +272,6 @@ function App() {
               </div>
               <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.personalizationRate.percentage}%</div>
               <div className="text-sm mb-3" style={{ color: '#999999' }}>{leadAnalytics.personalizationRate.personalized} with hooks/icebreakers</div>
-              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
-                <TrendingUp className="w-4 h-4 mr-1" />
-                +0% this month
-              </div>
             </div>
           </div>
         </div>
