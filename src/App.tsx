@@ -7,6 +7,7 @@ import IntegrationSetup from './components/IntegrationSetup';
 import AdminLogin from './components/AdminLogin';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
+import LeadAnalytics from './components/LeadAnalytics';
 import { DebugPanel } from './components/DebugPanel';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
@@ -185,6 +186,9 @@ function App() {
             Error loading real-time data: {error}
           </div>
         )}
+
+        {/* Lead Analytics */}
+        <LeadAnalytics />
 
         {/* Key Metrics */}
         <div className="mb-8">
