@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, ApolloLead, LinkedInLead } from '../lib/supabase';
+import { CampaignMode } from '../store/campaignStore';
 
 export interface LeadAnalytics {
   totalLeads: number;
@@ -20,26 +21,34 @@ export interface LeadAnalytics {
   };
 }
 
-export const useLeadAnalytics = () => {
+export const useLeadAnalytics = (mode: CampaignMode) => {
   const [analytics, setAnalytics] = useState<LeadAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  
+  // Determine which table to query based on campaign mode
+  const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
+  const maxRetries = 3;
 
   const fetchLeadAnalytics = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch total leads count
+      // Fetch total leads count from the appropriate table
       const { count: totalLeads, error: countError } = await supabase
-        .from('leads')
+        .from(tableName)
         .select('*', { count: 'exact', head: true });
 
-      if (countError) throw countError;
+      if (countError) {
+        console.error(`Error fetching count from ${tableName} table:`, countError);
+        throw new Error(`Failed to fetch lead count from ${tableName} table: ${countError.message}`);
+      }
 
       // Fetch all leads to calculate profile coverage and personalization
       const { data: leads, error: leadsError } = await supabase
-        .from('leads')
+        .from(tableName)
         .select(`
           id,
           name,
@@ -48,21 +57,28 @@ export const useLeadAnalytics = () => {
           company,
           position,
           linkedin_url,
-          raw_data
+          raw_data,
+          status
         `);
 
-      if (leadsError) throw leadsError;
+      if (leadsError) {
+        console.error(`Error fetching data from ${tableName} table:`, leadsError);
+        throw new Error(`Failed to fetch lead data from ${tableName} table: ${leadsError.message}`);
+      }
 
       const totalCount = totalLeads || 0;
       const leadsData = leads || [];
 
-      // Calculate profile coverage (leads with complete basic info)
-      const completeProfiles = leadsData.filter(lead => 
-        lead.name && 
-        lead.email && 
-        lead.company && 
-        lead.position
-      ).length;
+      // Calculate profile coverage based on campaign mode
+      const completeProfiles = leadsData.filter(lead => {
+        if (mode === 'email') {
+          // For Apollo/email campaigns, require name, email, company, position
+          return lead.name && lead.email && lead.company && lead.position;
+        } else {
+          // For LinkedIn campaigns, require name, linkedin_url, company, position
+          return lead.name && lead.linkedin_url && lead.company && lead.position;
+        }
+      }).length;
 
       const profileCoveragePercentage = totalCount > 0 
         ? Math.round((completeProfiles / totalCount) * 100) 
@@ -74,7 +90,9 @@ export const useLeadAnalytics = () => {
         (lead.raw_data.hook || 
          lead.raw_data.icebreaker || 
          lead.raw_data.personalization ||
-         lead.raw_data.custom_message)
+         lead.raw_data.custom_message ||
+         lead.raw_data.personal_note ||
+         lead.raw_data.opening_line)
       ).length;
 
       const personalizationPercentage = totalCount > 0 
@@ -105,29 +123,50 @@ export const useLeadAnalytics = () => {
       };
 
       setAnalytics(analyticsData);
+      setRetryCount(0); // Reset retry count on success
     } catch (err) {
-      console.error('Error fetching lead analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch lead analytics');
+      console.error(`Error fetching lead analytics from ${tableName}:`, err);
+      const errorMessage = err instanceof Error ? err.message : `Failed to fetch lead analytics from ${tableName} table`;
+      
+      // Automatic retry logic
+      if (retryCount < maxRetries) {
+        console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
+        setRetryCount(prev => prev + 1);
+        // Retry after a delay
+        setTimeout(() => {
+          fetchLeadAnalytics();
+        }, 2000 * (retryCount + 1)); // Progressive delay: 2s, 4s, 6s
+        return;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const manualRefetch = () => {
+    setRetryCount(0);
+    setError(null);
+    fetchLeadAnalytics();
+  };
+
   useEffect(() => {
     fetchLeadAnalytics();
 
-    // Set up real-time subscription for leads table changes
+    // Set up real-time subscription for the specific table changes
     const subscription = supabase
-      .channel('lead-analytics-changes')
+      .channel(`lead-analytics-changes-${tableName.toLowerCase()}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'leads'
+          table: tableName
         },
         () => {
-          // Refetch analytics when leads table changes
+          // Refetch analytics when the table changes
+          console.log(`${tableName} table changed, refetching analytics...`);
           fetchLeadAnalytics();
         }
       )
@@ -136,12 +175,14 @@ export const useLeadAnalytics = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [mode, tableName]); // Re-run when mode or table changes
 
   return {
     analytics,
     loading,
     error,
-    refetch: fetchLeadAnalytics,
+    refetch: manualRefetch,
+    tableName,
+    retryCount,
   };
 };

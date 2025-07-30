@@ -1,6 +1,7 @@
 import React from 'react';
-import { TrendingUp, Users, CheckCircle, Target } from 'lucide-react';
+import { TrendingUp, Users, CheckCircle, Target, RefreshCw } from 'lucide-react';
 import { useLeadAnalytics } from '../hooks/useLeadAnalytics';
+import { useCampaignStore } from '../store/campaignStore';
 
 interface AnalyticsCardProps {
   title: string;
@@ -76,14 +77,29 @@ const AnalyticsCard: React.FC<AnalyticsCardProps> = ({
 };
 
 const LeadAnalytics: React.FC = () => {
-  const { analytics, loading, error } = useLeadAnalytics();
+  const { mode } = useCampaignStore();
+  const { analytics, loading, error, refetch } = useLeadAnalytics(mode);
 
   if (error) {
     return (
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
-          Lead Analytics
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+            Lead Analytics ({mode === 'email' ? 'Apollo' : 'LinkedIn'})
+          </h2>
+          <button
+            onClick={refetch}
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+            style={{ 
+              backgroundColor: '#333333', 
+              border: '1px solid #555555', 
+              color: '#ffffff' 
+            }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="text-sm">Retry</span>
+          </button>
+        </div>
         <div 
           className="rounded-lg p-6 text-center"
           style={{ 
@@ -92,8 +108,11 @@ const LeadAnalytics: React.FC = () => {
             color: '#ef4444' 
           }}
         >
-          <p className="text-sm">Failed to load lead analytics</p>
-          <p className="text-xs mt-1" style={{ color: '#999999' }}>{error}</p>
+          <p className="text-sm font-medium">Failed to load {mode === 'email' ? 'Apollo' : 'LinkedIn'} lead analytics</p>
+          <p className="text-xs mt-2" style={{ color: '#999999' }}>{error}</p>
+          <p className="text-xs mt-2" style={{ color: '#777777' }}>
+            Make sure the {mode === 'email' ? 'Apollo' : 'LinkedIn'} table exists in your Supabase database
+          </p>
         </div>
       </div>
     );
@@ -101,9 +120,25 @@ const LeadAnalytics: React.FC = () => {
 
   return (
     <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
-        Lead Analytics
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+          Lead Analytics ({mode === 'email' ? 'Apollo' : 'LinkedIn'})
+        </h2>
+        {!loading && (
+          <button
+            onClick={refetch}
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+            style={{ 
+              backgroundColor: '#333333', 
+              border: '1px solid #555555', 
+              color: '#ffffff' 
+            }}
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span className="text-sm">Refresh</span>
+          </button>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Total Leads Card */}

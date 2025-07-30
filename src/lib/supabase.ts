@@ -112,3 +112,34 @@ export interface Integration {
   created_at: string;
   updated_at: string;
 }
+
+// Apollo table structure for email campaigns
+export interface ApolloLead {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  position?: string;
+  linkedin_url?: string;
+  raw_data?: Record<string, any>;
+  status: 'new' | 'contacted' | 'replied' | 'qualified' | 'converted' | 'unqualified';
+  created_at: string;
+  updated_at: string;
+}
+
+// LinkedIn table structure for LinkedIn campaigns
+export interface LinkedInLead {
+  id: string;
+  name: string;
+  linkedin_url?: string;
+  company?: string;
+  position?: string;
+  email?: string;
+  raw_data?: Record<string, any>;
+  status: 'new' | 'contacted' | 'replied' | 'qualified' | 'converted' | 'unqualified';
+  created_at: string;
+  updated_at: string;
+}
+
+export type CampaignLead = ApolloLead | LinkedInLead;
