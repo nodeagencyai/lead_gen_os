@@ -256,41 +256,79 @@ export class InstantlyCampaignService {
   }
 
   /**
-   * Parse sequence steps and variants to extract email content
-   * Expected structure: sequences[].steps[].variants[]{subject, body}
+   * Parse sequences from campaign or subsequence data (improved logic)
+   * Based on user's research of actual API v2 structure
    */
-  static parseSequenceSteps(sequences: any[]): any[] {
-    const parsedSteps: any[] = [];
+  static parseSequencesFromCampaign(campaignData: any): any[] {
+    const sequences: any[] = [];
     
-    sequences.forEach((sequence, seqIndex) => {
-      if (sequence.steps && Array.isArray(sequence.steps)) {
-        sequence.steps.forEach((step: any, stepIndex: number) => {
-          if (step.variants && Array.isArray(step.variants)) {
-            step.variants.forEach((variant: any, variantIndex: number) => {
-              if (!variant.disabled && variant.subject && variant.body) {
-                parsedSteps.push({
-                  id: `seq-${seqIndex}-step-${stepIndex}-var-${variantIndex}`,
-                  step_number: stepIndex + 1,
-                  sequence_index: seqIndex,
-                  variant_index: variantIndex,
-                  subject: variant.subject,
-                  content: variant.body,
-                  delay_days: step.delay || 0,
-                  delay_hours: 0, // API v2 uses days only
-                  type: step.type === 'email' ? 'email' : 'follow_up',
-                  sent: 0, // Will be populated from analytics
-                  opened: 0,
-                  replied: 0
-                });
-              }
+    // Check if campaign has sequences
+    if (!campaignData.sequences || !Array.isArray(campaignData.sequences)) {
+      return sequences; // Return empty array
+    }
+    
+    // Parse each sequence
+    campaignData.sequences.forEach((sequence: any, sequenceIndex: number) => {
+      if (!sequence.steps || !Array.isArray(sequence.steps)) {
+        return; // Skip invalid sequence
+      }
+      
+      // Parse each step in the sequence
+      sequence.steps.forEach((step: any, stepIndex: number) => {
+        if (!step.variants || !Array.isArray(step.variants)) {
+          return; // Skip invalid step
+        }
+        
+        // Parse each variant in the step
+        step.variants.forEach((variant: any, variantIndex: number) => {
+          // Only include non-disabled variants with content
+          if (!variant.disabled && (variant.subject || variant.body)) {
+            sequences.push({
+              id: `seq-${sequenceIndex}-step-${stepIndex}-var-${variantIndex}`,
+              sequenceIndex,
+              stepIndex,
+              variantIndex,
+              step_number: stepIndex + 1, // Human-readable step number
+              sequence_index: sequenceIndex,
+              variant_index: variantIndex,
+              delay_days: step.delay || 0,
+              delay_hours: 0, // API v2 uses days only
+              type: step.type || 'email',
+              subject: variant.subject || '',
+              content: variant.body || '',
+              body: variant.body || '', // Keep both for compatibility
+              isEmpty: !variant.subject && !variant.body,
+              sent: 0, // Will be populated from analytics
+              opened: 0,
+              replied: 0
             });
           }
         });
-      }
+      });
     });
     
-    console.log(`📝 Parsed ${parsedSteps.length} sequence steps from ${sequences.length} sequences`);
-    return parsedSteps;
+    return sequences;
+  }
+
+  /**
+   * Check if campaign/subsequence has sequences without fetching full data
+   */
+  static hasSequences(campaignData: any): boolean {
+    if (!campaignData.sequences || !Array.isArray(campaignData.sequences)) {
+      return false;
+    }
+    
+    return campaignData.sequences.some((sequence: any) => 
+      sequence.steps && 
+      sequence.steps.length > 0 &&
+      sequence.steps.some((step: any) => 
+        step.variants && 
+        step.variants.length > 0 &&
+        step.variants.some((variant: any) => 
+          !variant.disabled && (variant.subject || variant.body)
+        )
+      )
+    );
   }
 
   /**
@@ -317,53 +355,55 @@ export class InstantlyCampaignService {
         this.getCampaignStepAnalytics(campaignId)
       ]);
       
-      let allSequences: any[] = [];
+      // 1. Parse primary sequences from main campaign using improved logic
+      const mainSequences = this.parseSequencesFromCampaign(campaignDetails || {});
+      console.log(`✅ Parsed ${mainSequences.length} primary sequence steps from main campaign`);
       
-      // 1. Extract primary sequences from main campaign
-      if (campaignDetails?.sequences && Array.isArray(campaignDetails.sequences)) {
-        console.log(`✅ Found ${campaignDetails.sequences.length} primary sequences in main campaign`);
-        allSequences.push(...campaignDetails.sequences);
-        
-        // Log structure of first primary sequence
-        if (campaignDetails.sequences.length > 0) {
-          console.log(`📧 Primary sequence structure:`, {
-            keys: Object.keys(campaignDetails.sequences[0]),
-            hasSteps: !!campaignDetails.sequences[0].steps,
-            stepsCount: campaignDetails.sequences[0].steps?.length || 0
+      if (campaignDetails && this.hasSequences(campaignDetails)) {
+        console.log(`📧 Main campaign has valid sequences with content`);
+        if (campaignDetails.sequences?.[0]?.steps?.[0]) {
+          console.log(`📝 First step structure:`, {
+            hasVariants: !!campaignDetails.sequences[0].steps[0].variants,
+            variantCount: campaignDetails.sequences[0].steps[0].variants?.length || 0,
+            type: campaignDetails.sequences[0].steps[0].type,
+            delay: campaignDetails.sequences[0].steps[0].delay
           });
         }
       } else {
-        console.warn(`⚠️ No primary sequences found in main campaign ${campaignId}`);
+        console.warn(`⚠️ No valid primary sequences found in main campaign ${campaignId}`);
       }
       
-      // 2. Extract sequences from subsequences (follow-up sequences)
+      // 2. Parse sequences from subsequences (follow-up sequences)
+      let followUpSequences: any[] = [];
       if (subsequences && subsequences.length > 0) {
-        console.log(`✅ Found ${subsequences.length} subsequences`);
+        console.log(`✅ Processing ${subsequences.length} subsequences`);
         subsequences.forEach((subseq: any, index: number) => {
-          if (subseq.sequences && Array.isArray(subseq.sequences)) {
-            console.log(`📧 Subsequence ${index + 1} has ${subseq.sequences.length} sequences`);
-            allSequences.push(...subseq.sequences);
+          const subSeqs = this.parseSequencesFromCampaign(subseq);
+          if (subSeqs.length > 0) {
+            console.log(`📧 Subsequence ${index + 1} yielded ${subSeqs.length} sequence steps`);
+            followUpSequences.push(...subSeqs);
           }
         });
       } else {
         console.log(`ℹ️ No subsequences found for campaign ${campaignId}`);
       }
       
-      // 3. Parse all sequences to extract individual email steps with variants
-      const parsedSteps = this.parseSequenceSteps(allSequences);
+      // 3. Combine all parsed sequences
+      const allParsedSequences = [...mainSequences, ...followUpSequences];
       
       console.log(`✅ Complete sequence data for campaign ${campaignId}:`, {
-        primarySequences: campaignDetails?.sequences?.length || 0,
+        mainSequences: mainSequences.length,
+        followUpSequences: followUpSequences.length,
+        totalParsedSteps: allParsedSequences.length,
         subsequenceCount: subsequences.length,
-        totalSequences: allSequences.length,
-        parsedSteps: parsedSteps.length,
+        isEmpty: allParsedSequences.length === 0,
         hasCampaignInfo: !!campaignDetails,
         hasAnalytics: !!analytics,
         hasStepAnalytics: !!stepAnalytics
       });
       
       return {
-        sequences: parsedSteps, // Return parsed steps ready for UI
+        sequences: allParsedSequences, // Return all parsed sequence steps ready for UI
         campaignInfo: campaignDetails,
         analytics,
         stepAnalytics: stepAnalytics || undefined
