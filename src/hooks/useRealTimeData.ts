@@ -311,6 +311,25 @@ export const useRealTimeData = () => {
     // Reset initial load state when mode changes
     setIsInitialLoad(true);
     
+    // Immediately clear old leadAnalytics data when mode changes
+    setMetrics(prev => ({
+      ...prev,
+      leadAnalytics: {
+        totalLeads: 0,
+        profileCoverage: {
+          percentage: 0,
+          completed: 0,
+          total: 0
+        },
+        personalizationRate: {
+          percentage: 0,
+          personalized: 0,
+          total: 0
+        }
+      },
+      loading: true
+    }));
+    
     // Initial fetch
     fetchRealTimeData(false);
 
