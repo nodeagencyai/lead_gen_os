@@ -75,82 +75,101 @@ export const useRealTimeData = () => {
 
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // Add caching for Lead Analytics with 2-minute cache duration
+  const [leadAnalyticsCache, setLeadAnalyticsCache] = useState<{
+    [key: string]: { data: any; timestamp: number; }
+  }>({});
+  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 
-  // Fetch lead analytics from the appropriate Supabase table
+  // Optimized Lead Analytics with caching and database aggregation
   const fetchLeadAnalytics = async () => {
     const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
     
+    // Check cache first
+    const cached = leadAnalyticsCache[tableName];
+    if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+      console.log(`⚡ Using cached lead analytics for ${tableName}`);
+      return cached.data;
+    }
+    
     try {
-      console.log(`📊 Fetching lead analytics from ${tableName} table...`);
+      console.log(`📊 Fetching optimized lead analytics from ${tableName} table...`);
       
-      // Get total count
-      const { count: totalLeads, error: countError } = await supabase
-        .from(tableName)
-        .select('*', { count: 'exact', head: true });
+      // Use Promise.all for parallel queries instead of sequential
+      const [countResult, profileResult, personalizationResult] = await Promise.all([
+        // Total count
+        supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true }),
+        
+        // Profile completion count using database filtering
+        tableName === 'Apollo' 
+          ? supabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: true })
+              .not('full_name', 'is', null)
+              .not('email', 'is', null)
+              .not('company', 'is', null)
+              .not('title', 'is', null)
+          : supabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: true })
+              .not('name', 'is', null)
+              .not('email', 'is', null)
+              .not('company', 'is', null)
+              .not('position', 'is', null),
+        
+        // Personalization count using database filtering
+        tableName === 'Apollo'
+          ? supabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: true })
+              .or('icebreaker.not.is.null,personalization_hooks.not.is.null')
+          : supabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: true })
+              .not('icebreaker', 'is', null)
+      ]);
 
-      if (countError) {
-        console.error(`Error fetching count from ${tableName}:`, countError);
-        throw countError;
+      // Handle errors
+      if (countResult.error) {
+        console.error(`Error fetching count from ${tableName}:`, countResult.error);
+        throw countResult.error;
+      }
+      if (profileResult.error) {
+        console.error(`Error fetching profile count from ${tableName}:`, profileResult.error);
+        throw profileResult.error;
+      }
+      if (personalizationResult.error) {
+        console.error(`Error fetching personalization count from ${tableName}:`, personalizationResult.error);
+        throw personalizationResult.error;
       }
 
-      const total = totalLeads || 0;
+      const total = countResult.count || 0;
+      const completeProfiles = profileResult.count || 0;
+      const personalizedLeads = personalizationResult.count || 0;
 
       if (total === 0) {
-        return {
+        const emptyResult = {
           totalLeads: 0,
           profileCoverage: { percentage: 0, completed: 0, total: 0 },
           personalizationRate: { percentage: 0, personalized: 0, total: 0 }
         };
+        
+        // Cache empty result to avoid repeated queries
+        setLeadAnalyticsCache(prev => ({
+          ...prev,
+          [tableName]: { data: emptyResult, timestamp: Date.now() }
+        }));
+        
+        return emptyResult;
       }
-
-      // Fetch data for calculations based on table structure
-      let selectFields = '';
-      if (tableName === 'Apollo') {
-        selectFields = 'id, full_name, email, company, title, linkedin_url, icebreaker, personalization_hooks';
-      } else {
-        selectFields = 'id, name, email, company, position, linkedin_url, icebreaker';
-      }
-
-      const { data: leads, error: leadsError } = await supabase
-        .from(tableName)
-        .select(selectFields);
-
-      if (leadsError) {
-        console.error(`Error fetching leads from ${tableName}:`, leadsError);
-        throw leadsError;
-      }
-
-      const leadsData = leads || [];
-
-      // Calculate profile coverage (leads with complete profiles)
-      const completeProfiles = leadsData.filter(lead => {
-        if (tableName === 'Apollo') {
-          return lead.full_name && lead.email && lead.company && lead.title;
-        } else {
-          return lead.name && lead.email && lead.company && lead.position;
-        }
-      }).length;
 
       const profileCoveragePercentage = Math.round((completeProfiles / total) * 100);
-
-      // Calculate personalization rate (leads with icebreakers)
-      const personalizedLeads = leadsData.filter(lead => {
-        if (tableName === 'Apollo') {
-          return lead.icebreaker || lead.personalization_hooks;
-        } else {
-          return lead.icebreaker;
-        }
-      }).length;
-
       const personalizationPercentage = Math.round((personalizedLeads / total) * 100);
 
-      console.log(`✅ Lead analytics from ${tableName}:`, {
-        totalLeads: total,
-        profileCoverage: { percentage: profileCoveragePercentage, completed: completeProfiles, total },
-        personalizationRate: { percentage: personalizationPercentage, personalized: personalizedLeads, total }
-      });
-
-      return {
+      const result = {
         totalLeads: total,
         profileCoverage: {
           percentage: profileCoveragePercentage,
@@ -164,13 +183,30 @@ export const useRealTimeData = () => {
         }
       };
 
+      // Cache the result
+      setLeadAnalyticsCache(prev => ({
+        ...prev,
+        [tableName]: { data: result, timestamp: Date.now() }
+      }));
+
+      console.log(`✅ Optimized lead analytics from ${tableName}:`, result);
+      return result;
+
     } catch (error) {
       console.error(`Failed to fetch lead analytics from ${tableName}:`, error);
-      return {
+      const errorResult = {
         totalLeads: 0,
         profileCoverage: { percentage: 0, completed: 0, total: 0 },
         personalizationRate: { percentage: 0, personalized: 0, total: 0 }
       };
+      
+      // Cache error result briefly to avoid repeated failed requests
+      setLeadAnalyticsCache(prev => ({
+        ...prev,
+        [tableName]: { data: errorResult, timestamp: Date.now() }
+      }));
+      
+      return errorResult;
     }
   };
 
@@ -311,26 +347,42 @@ export const useRealTimeData = () => {
     // Reset initial load state when mode changes
     setIsInitialLoad(true);
     
-    // Immediately clear old leadAnalytics data when mode changes
-    setMetrics(prev => ({
-      ...prev,
-      leadAnalytics: {
-        totalLeads: 0,
-        profileCoverage: {
-          percentage: 0,
-          completed: 0,
-          total: 0
-        },
-        personalizationRate: {
-          percentage: 0,
-          personalized: 0,
-          total: 0
-        }
-      },
-      loading: true
-    }));
+    // Check if we have cached Lead Analytics for the new mode
+    const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
+    const cached = leadAnalyticsCache[tableName];
+    const hasCachedAnalytics = cached && (Date.now() - cached.timestamp < CACHE_DURATION);
     
-    // Initial fetch
+    if (hasCachedAnalytics) {
+      // Use cached data immediately for instant switching
+      console.log(`⚡ Instant mode switch using cached data for ${tableName}`);
+      setMetrics(prev => ({
+        ...prev,
+        leadAnalytics: cached.data,
+        loading: false
+      }));
+      setIsInitialLoad(false);
+    } else {
+      // Show loading state only when no cache available
+      setMetrics(prev => ({
+        ...prev,
+        leadAnalytics: {
+          totalLeads: 0,
+          profileCoverage: {
+            percentage: 0,
+            completed: 0,
+            total: 0
+          },
+          personalizationRate: {
+            percentage: 0,
+            personalized: 0,
+            total: 0
+          }
+        },
+        loading: true
+      }));
+    }
+    
+    // Always fetch fresh data (will use cache if available)
     fetchRealTimeData(false);
 
     // Set up auto-refresh every 30 seconds (background refresh)
@@ -340,9 +392,16 @@ export const useRealTimeData = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mode]);
+  }, [mode, leadAnalyticsCache]);
 
   const forceRefresh = () => {
+    // Clear cache for current mode to force fresh data
+    const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
+    setLeadAnalyticsCache(prev => {
+      const newCache = { ...prev };
+      delete newCache[tableName];
+      return newCache;
+    });
     fetchRealTimeData(false); // Manual refresh shows loading
   };
 
