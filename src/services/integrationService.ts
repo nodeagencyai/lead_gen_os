@@ -105,6 +105,33 @@ export class IntegrationService {
     return [];
   }
 
+  static async getCampaignSequences(campaignId: string) {
+    console.log(`🔄 Fetching sequences for campaign ${campaignId}...`);
+    
+    try {
+      // Get campaign details which should include sequence information
+      const campaignDetails = await this.getCampaignDetails(campaignId);
+      
+      if (campaignDetails && campaignDetails.sequences) {
+        return campaignDetails.sequences;
+      }
+      
+      // If sequences are not in campaign details, try direct sequence endpoint
+      const result = await apiClient.get(`/api/instantly/campaigns/${campaignId}/sequences`);
+      
+      if (result.error) {
+        console.warn(`Sequences not available for campaign ${campaignId}:`, result.error);
+        return [];
+      }
+      
+      return result.data || [];
+      
+    } catch (error) {
+      console.error(`Error fetching sequences for campaign ${campaignId}:`, error);
+      return [];
+    }
+  }
+
   // HeyReach API Integration - Now using serverless API
   static async getHeyReachData() {
     console.log('🔄 Fetching HeyReach data via serverless API...');

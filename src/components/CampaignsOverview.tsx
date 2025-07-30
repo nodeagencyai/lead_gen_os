@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Download, Eye, Settings, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { Plus, Download, Eye, Settings, MoreHorizontal, RefreshCw, List } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import { useCampaignData } from '../hooks/useCampaignData';
 import CampaignToggle from './CampaignToggle';
+import SequenceViewerModal from './SequenceViewerModal';
 
 interface Campaign {
   id: string;
@@ -27,6 +28,17 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
   const [activeTab, setActiveTab] = useState('Campaigns');
   const [statusFilter, setStatusFilter] = useState('All');
   
+  // Sequence viewer modal state
+  const [sequenceModal, setSequenceModal] = useState<{
+    isOpen: boolean;
+    campaignId: string;
+    campaignName: string;
+  }>({
+    isOpen: false,
+    campaignId: '',
+    campaignName: ''
+  });
+  
   // Use real campaign data
   const { campaigns, loading, error, refetch } = useCampaignData(mode);
   
@@ -35,6 +47,23 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     : campaigns.filter(c => c.status.toLowerCase() === statusFilter.toLowerCase());
 
   const statusOptions = ['All', 'Draft', 'Running', 'Paused', 'Stopped', 'Completed'];
+
+  // Handle sequence modal
+  const openSequenceModal = (campaignId: string, campaignName: string) => {
+    setSequenceModal({
+      isOpen: true,
+      campaignId,
+      campaignName
+    });
+  };
+
+  const closeSequenceModal = () => {
+    setSequenceModal({
+      isOpen: false,
+      campaignId: '',
+      campaignName: ''
+    });
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -311,15 +340,27 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
                 </div>
               </div>
 
-              {/* Sequences & Platform */}
+              {/* View Sequences & Platform */}
               <div className="space-y-3">
-                <div 
-                  className="flex items-center space-x-2 p-3 rounded-lg"
+                <button
+                  onClick={() => openSequenceModal(campaign.id, campaign.name)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg transition-all duration-200 hover:border-opacity-80"
                   style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#555555';
+                    e.currentTarget.style.backgroundColor = '#1a1a1a';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#333333';
+                    e.currentTarget.style.backgroundColor = '#0f0f0f';
+                  }}
                 >
-                  <span className="text-sm" style={{ color: '#888888' }}>Sequences</span>
+                  <div className="flex items-center space-x-2">
+                    <List size={16} style={{ color: '#888888' }} />
+                    <span className="text-sm" style={{ color: '#888888' }}>View Sequences</span>
+                  </div>
                   <span className="text-sm text-white font-medium">{campaign.template}</span>
-                </div>
+                </button>
                 <div 
                   className="flex items-center space-x-2 p-3 rounded-lg"
                   style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}
@@ -333,6 +374,14 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
           </div>
         )}
       </div>
+      
+      {/* Sequence Viewer Modal */}
+      <SequenceViewerModal
+        isOpen={sequenceModal.isOpen}
+        onClose={closeSequenceModal}
+        campaignId={sequenceModal.campaignId}
+        campaignName={sequenceModal.campaignName}
+      />
     </div>
   );
 };
