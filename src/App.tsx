@@ -83,6 +83,23 @@ function App() {
     return <IntegrationSetup onNavigate={setCurrentView} />;
   }
 
+  // FULL-PAGE LOADING SPINNER - Wait for ALL data before showing dashboard
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-3 border-white border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: '#ffffff' }}>
+            Loading {mode === 'email' ? 'Email' : 'LinkedIn'} Dashboard
+          </h2>
+          <p className="text-sm" style={{ color: '#888888' }}>
+            Fetching all data for complete experience...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
@@ -186,125 +203,96 @@ function App() {
           </div>
         )}
 
-        {/* Lead Analytics */}
+        {/* Lead Analytics - NO SKELETON LOADING, shows complete data */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
             Lead Analytics
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {loading ? (
-              // Loading skeleton cards
-              <>
-                {[1, 2, 3].map((index) => (
-                  <div 
-                    key={index}
-                    className="rounded-lg p-6 transition-all duration-200"
-                    style={{ 
-                      backgroundColor: '#1a1a1a', 
-                      border: '1px solid #444444' 
-                    }}
-                  >
-                    <div className="animate-pulse">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="h-4 bg-gray-600 rounded w-24"></div>
-                        <div className="h-5 w-5 bg-gray-600 rounded"></div>
-                      </div>
-                      <div className="h-8 bg-gray-600 rounded w-16 mb-2"></div>
-                      <div className="h-4 bg-gray-600 rounded w-32 mb-2"></div>
-                      <div className="h-4 bg-gray-600 rounded w-20"></div>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : (
-              // Actual data cards
-              <>
-                {/* Total Leads Card */}
-                <div 
-                  className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
-                  style={{ 
-                    backgroundColor: '#1a1a1a', 
-                    border: '1px solid #444444' 
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2a2a2a';
-                    e.currentTarget.style.borderColor = '#666666';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1a1a1a';
-                    e.currentTarget.style.borderColor = '#444444';
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Total Leads</div>
-                    <div style={{ color: '#888888' }}><Users className="w-5 h-5" /></div>
-                  </div>
-                  <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.totalLeads.toLocaleString()}</div>
-                  <div className="text-sm mb-3" style={{ color: '#999999' }}>All time</div>
-                  <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    +0% this month
-                  </div>
-                </div>
+            {/* Total Leads Card */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Total Leads</div>
+                <div style={{ color: '#888888' }}><Users className="w-5 h-5" /></div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.totalLeads.toLocaleString()}</div>
+              <div className="text-sm mb-3" style={{ color: '#999999' }}>All time</div>
+              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +0% this month
+              </div>
+            </div>
 
-                {/* Profile Coverage Card */}
-                <div 
-                  className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
-                  style={{ 
-                    backgroundColor: '#1a1a1a', 
-                    border: '1px solid #444444' 
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2a2a2a';
-                    e.currentTarget.style.borderColor = '#666666';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1a1a1a';
-                    e.currentTarget.style.borderColor = '#444444';
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Profile Coverage</div>
-                    <div style={{ color: '#888888' }}><CheckCircle className="w-5 h-5" /></div>
-                  </div>
-                  <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.profileCoverage.percentage}%</div>
-                  <div className="text-sm mb-3" style={{ color: '#999999' }}>{leadAnalytics.profileCoverage.completed} of {leadAnalytics.profileCoverage.total} leads</div>
-                  <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    +0% this month
-                  </div>
-                </div>
+            {/* Profile Coverage Card */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Profile Coverage</div>
+                <div style={{ color: '#888888' }}><CheckCircle className="w-5 h-5" /></div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.profileCoverage.percentage}%</div>
+              <div className="text-sm mb-3" style={{ color: '#999999' }}>{leadAnalytics.profileCoverage.completed} of {leadAnalytics.profileCoverage.total} leads</div>
+              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +0% this month
+              </div>
+            </div>
 
-                {/* Personalization Rate Card */}
-                <div 
-                  className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
-                  style={{ 
-                    backgroundColor: '#1a1a1a', 
-                    border: '1px solid #444444' 
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2a2a2a';
-                    e.currentTarget.style.borderColor = '#666666';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1a1a1a';
-                    e.currentTarget.style.borderColor = '#444444';
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Personalization Rate</div>
-                    <div style={{ color: '#888888' }}><Target className="w-5 h-5" /></div>
-                  </div>
-                  <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.personalizationRate.percentage}%</div>
-                  <div className="text-sm mb-3" style={{ color: '#999999' }}>{leadAnalytics.personalizationRate.personalized} with hooks/icebreakers</div>
-                  <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    +0% this month
-                  </div>
-                </div>
-              </>
-            )}
+            {/* Personalization Rate Card */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Personalization Rate</div>
+                <div style={{ color: '#888888' }}><Target className="w-5 h-5" /></div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.personalizationRate.percentage}%</div>
+              <div className="text-sm mb-3" style={{ color: '#999999' }}>{leadAnalytics.personalizationRate.personalized} with hooks/icebreakers</div>
+              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +0% this month
+              </div>
+            </div>
           </div>
         </div>
 
@@ -455,7 +443,7 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.slice(0, 5).map((campaign, index) => (
+                {campaigns.slice(0, 5).map((campaign: any, index: number) => (
                   <tr 
                     key={index} 
                     className="transition-colors"
