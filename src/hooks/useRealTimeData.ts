@@ -46,9 +46,10 @@ interface UnifiedDashboardData {
 export const useRealTimeData = () => {
   const { mode } = useCampaignStore();
   
-  // COPY FROM OTHER SOFTWARE: Clean loading pattern
+  // MINIMALISTIC SPINNER LOGIC: Separate initial load from background refresh
   const [allData, setAllData] = useState<UnifiedDashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Background refresh interval
@@ -109,10 +110,16 @@ export const useRealTimeData = () => {
     }
   };
 
-  // COPY FROM OTHER SOFTWARE: Clean unified data fetching
-  const fetchAllData = async () => {
-    console.log(`🔄 Loading ${mode} dashboard with clean loading pattern...`);
-    setLoading(true);
+  // MINIMALISTIC SPINNER: Clean unified data fetching with background refresh support
+  const fetchAllData = async (isInitialLoad = false) => {
+    console.log(`🔄 Loading ${mode} dashboard...`);
+    
+    if (isInitialLoad) {
+      setInitialLoading(true);
+    } else {
+      setIsBackgroundRefresh(true);
+    }
+    
     setError(null);
 
     try {
@@ -138,24 +145,34 @@ export const useRealTimeData = () => {
       }
 
       // Clean finish - all data ready
-      setLoading(false);
+      if (isInitialLoad) {
+        setInitialLoading(false);
+      } else {
+        setIsBackgroundRefresh(false);
+      }
 
     } catch (error) {
       console.error(`${mode} dashboard loading failed:`, error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
-      setLoading(false);
+      
+      if (isInitialLoad) {
+        setInitialLoading(false);
+      } else {
+        setIsBackgroundRefresh(false);
+      }
     }
   };
 
-  // COPY FROM OTHER SOFTWARE: Mode change triggers clean reload
+  // MINIMALISTIC SPINNER: Initial load + background refresh logic
   useEffect(() => {
-    console.log(`🔄 Mode changed to ${mode} - triggering clean reload`);
-    fetchAllData();
+    console.log(`🔄 Mode changed to ${mode} - initial load`);
+    // Initial load - shows spinner
+    fetchAllData(true);
 
-    // Set up background refresh every 30 seconds
+    // Set up background refresh every 30 seconds - NO spinner
     const interval = setInterval(() => {
-      console.log('🔄 Background refresh...');
-      fetchAllData();
+      console.log('🔄 Background refresh (silent)...');
+      fetchAllData(false); // Background refresh without spinner
     }, 30000);
     setRefreshInterval(interval);
 
@@ -164,13 +181,13 @@ export const useRealTimeData = () => {
     };
   }, [mode]);
 
-  // Manual refresh function
+  // Manual refresh function - shows spinner
   const forceRefresh = () => {
     console.log('🔄 Manual refresh triggered');
-    fetchAllData();
+    fetchAllData(true); // Manual refresh shows spinner
   };
 
-  // COPY FROM OTHER SOFTWARE: Transform unified data to legacy format
+  // MINIMALISTIC SPINNER: Transform unified data to legacy format
   const metrics = useMemo(() => {
     if (!allData) {
       // Return loading state - matches legacy interface
@@ -180,7 +197,7 @@ export const useRealTimeData = () => {
         leadAnalytics: { totalLeads: 0, profileCoverage: { percentage: 0, completed: 0, total: 0 }, personalizationRate: { percentage: 0, personalized: 0, total: 0 } },
         campaigns: [],
         leads: [],
-        loading,
+        loading: initialLoading, // Use initialLoading instead of loading
         error
       };
     }
@@ -209,7 +226,7 @@ export const useRealTimeData = () => {
         leadAnalytics: allData.leadData,
         campaigns,
         leads: [],
-        loading,
+        loading: initialLoading, // Use initialLoading instead of loading
         error
       };
     } else {
@@ -227,11 +244,11 @@ export const useRealTimeData = () => {
         leadAnalytics: allData.leadData,
         campaigns: allData.apiData?.campaigns || [],
         leads: allData.apiData?.connections || [],
-        loading,
+        loading: initialLoading, // Use initialLoading instead of loading
         error
       };
     }
-  }, [allData, loading, error, mode]);
+  }, [allData, initialLoading, error, mode]);
 
   return {
     ...metrics,

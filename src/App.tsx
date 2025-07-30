@@ -83,19 +83,11 @@ function App() {
     return <IntegrationSetup onNavigate={setCurrentView} />;
   }
 
-  // FULL-PAGE LOADING SPINNER - Wait for ALL data before showing dashboard
+  // MINIMALISTIC SPINNER - Clean UI without text
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-3 border-white border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-semibold mb-2" style={{ color: '#ffffff' }}>
-            Loading {mode === 'email' ? 'Email' : 'LinkedIn'} Dashboard
-          </h2>
-          <p className="text-sm" style={{ color: '#888888' }}>
-            Fetching all data for complete experience...
-          </p>
-        </div>
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gray-600 border-t-white rounded-full animate-spin"></div>
       </div>
     );
   }
