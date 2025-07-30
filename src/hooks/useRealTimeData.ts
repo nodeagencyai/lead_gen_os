@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IntegrationService } from '../services/integrationService';
 import { useCampaignStore } from '../store/campaignStore';
+import { supabase } from '../lib/supabase';
 
 interface RealTimeMetrics {
   emailMetrics: {
@@ -16,6 +17,19 @@ interface RealTimeMetrics {
     messagesSent: number;
     messageReplies: number;
     meetings: number;
+  };
+  leadAnalytics: {
+    totalLeads: number;
+    profileCoverage: {
+      percentage: number;
+      completed: number;
+      total: number;
+    };
+    personalizationRate: {
+      percentage: number;
+      personalized: number;
+      total: number;
+    };
   };
   campaigns: any[];
   leads: any[];
@@ -40,6 +54,19 @@ export const useRealTimeData = () => {
       messageReplies: 0,
       meetings: 0
     },
+    leadAnalytics: {
+      totalLeads: 0,
+      profileCoverage: {
+        percentage: 0,
+        completed: 0,
+        total: 0
+      },
+      personalizationRate: {
+        percentage: 0,
+        personalized: 0,
+        total: 0
+      }
+    },
     campaigns: [],
     leads: [],
     loading: true,
@@ -48,6 +75,104 @@ export const useRealTimeData = () => {
 
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Fetch lead analytics from the appropriate Supabase table
+  const fetchLeadAnalytics = async () => {
+    const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
+    
+    try {
+      console.log(`📊 Fetching lead analytics from ${tableName} table...`);
+      
+      // Get total count
+      const { count: totalLeads, error: countError } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) {
+        console.error(`Error fetching count from ${tableName}:`, countError);
+        throw countError;
+      }
+
+      const total = totalLeads || 0;
+
+      if (total === 0) {
+        return {
+          totalLeads: 0,
+          profileCoverage: { percentage: 0, completed: 0, total: 0 },
+          personalizationRate: { percentage: 0, personalized: 0, total: 0 }
+        };
+      }
+
+      // Fetch data for calculations based on table structure
+      let selectFields = '';
+      if (tableName === 'Apollo') {
+        selectFields = 'id, full_name, email, company, title, linkedin_url, icebreaker, personalization_hooks';
+      } else {
+        selectFields = 'id, name, email, company, position, linkedin_url, icebreaker';
+      }
+
+      const { data: leads, error: leadsError } = await supabase
+        .from(tableName)
+        .select(selectFields);
+
+      if (leadsError) {
+        console.error(`Error fetching leads from ${tableName}:`, leadsError);
+        throw leadsError;
+      }
+
+      const leadsData = leads || [];
+
+      // Calculate profile coverage (leads with complete profiles)
+      const completeProfiles = leadsData.filter(lead => {
+        if (tableName === 'Apollo') {
+          return lead.full_name && lead.email && lead.company && lead.title;
+        } else {
+          return lead.name && lead.email && lead.company && lead.position;
+        }
+      }).length;
+
+      const profileCoveragePercentage = Math.round((completeProfiles / total) * 100);
+
+      // Calculate personalization rate (leads with icebreakers)
+      const personalizedLeads = leadsData.filter(lead => {
+        if (tableName === 'Apollo') {
+          return lead.icebreaker || lead.personalization_hooks;
+        } else {
+          return lead.icebreaker;
+        }
+      }).length;
+
+      const personalizationPercentage = Math.round((personalizedLeads / total) * 100);
+
+      console.log(`✅ Lead analytics from ${tableName}:`, {
+        totalLeads: total,
+        profileCoverage: { percentage: profileCoveragePercentage, completed: completeProfiles, total },
+        personalizationRate: { percentage: personalizationPercentage, personalized: personalizedLeads, total }
+      });
+
+      return {
+        totalLeads: total,
+        profileCoverage: {
+          percentage: profileCoveragePercentage,
+          completed: completeProfiles,
+          total: total
+        },
+        personalizationRate: {
+          percentage: personalizationPercentage,
+          personalized: personalizedLeads,
+          total: total
+        }
+      };
+
+    } catch (error) {
+      console.error(`Failed to fetch lead analytics from ${tableName}:`, error);
+      return {
+        totalLeads: 0,
+        profileCoverage: { percentage: 0, completed: 0, total: 0 },
+        personalizationRate: { percentage: 0, personalized: 0, total: 0 }
+      };
+    }
+  };
 
   const fetchRealTimeData = async (isBackgroundRefresh = false) => {
     try {
@@ -81,9 +206,13 @@ export const useRealTimeData = () => {
             rate: '0%'
           }));
 
+          // Fetch lead analytics from Apollo table
+          const leadAnalytics = await fetchLeadAnalytics();
+
           setMetrics(prev => ({
             ...prev,
             emailMetrics,
+            leadAnalytics,
             campaigns,
             leads: [],
             loading: isInitialLoad ? false : prev.loading
@@ -100,9 +229,13 @@ export const useRealTimeData = () => {
             bounceRate: 0
           };
 
+          // Still try to fetch lead analytics even if API fails
+          const leadAnalytics = await fetchLeadAnalytics();
+
           setMetrics(prev => ({
             ...prev,
             emailMetrics,
+            leadAnalytics,
             campaigns: [],
             leads: [],
             loading: isInitialLoad ? false : prev.loading,
@@ -124,9 +257,13 @@ export const useRealTimeData = () => {
             meetings: heyReachData?.analytics?.meetings_booked || 0
           };
 
+          // Fetch lead analytics from LinkedIn table
+          const leadAnalytics = await fetchLeadAnalytics();
+
           setMetrics(prev => ({
             ...prev,
             linkedinMetrics,
+            leadAnalytics,
             campaigns: heyReachData?.campaigns || [],
             leads: heyReachData?.connections || [],
             loading: isInitialLoad ? false : prev.loading
@@ -143,9 +280,13 @@ export const useRealTimeData = () => {
             meetings: 0
           };
 
+          // Still try to fetch lead analytics even if API fails
+          const leadAnalytics = await fetchLeadAnalytics();
+
           setMetrics(prev => ({
             ...prev,
             linkedinMetrics,
+            leadAnalytics,
             campaigns: [],
             leads: [],
             loading: isInitialLoad ? false : prev.loading,
