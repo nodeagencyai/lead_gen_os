@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { IntegrationService } from '../services/integrationService';
 import { useCampaignStore } from '../store/campaignStore';
 import { supabase } from '../lib/supabase';
@@ -37,373 +37,201 @@ interface RealTimeMetrics {
   error: string | null;
 }
 
+// COPY FROM OTHER SOFTWARE: Unified data structure
+interface UnifiedDashboardData {
+  apiData: any;
+  leadData: any;
+}
+
 export const useRealTimeData = () => {
   const { mode } = useCampaignStore();
-  const [metrics, setMetrics] = useState<RealTimeMetrics>({
-    emailMetrics: {
-      sent: 0,
-      opened: 0,
-      replied: 0,
-      meetings: 0,
-      bounceRate: 0
-    },
-    linkedinMetrics: {
-      connectionRequests: 0,
-      connectionsAccepted: 0,
-      messagesSent: 0,
-      messageReplies: 0,
-      meetings: 0
-    },
-    leadAnalytics: {
-      totalLeads: 0,
-      profileCoverage: {
-        percentage: 0,
-        completed: 0,
-        total: 0
-      },
-      personalizationRate: {
-        percentage: 0,
-        personalized: 0,
-        total: 0
-      }
-    },
-    campaigns: [],
-    leads: [],
-    loading: true,
-    error: null
-  });
-
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
-  // Add caching for Lead Analytics with 2-minute cache duration
-  const [leadAnalyticsCache, setLeadAnalyticsCache] = useState<{
-    [key: string]: { data: any; timestamp: number; }
-  }>({});
-  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
+  // COPY FROM OTHER SOFTWARE: Clean loading pattern
+  const [allData, setAllData] = useState<UnifiedDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Background refresh interval
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Optimized Lead Analytics with caching and database aggregation
-  const fetchLeadAnalytics = async () => {
-    const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
-    
-    // Check cache first
-    const cached = leadAnalyticsCache[tableName];
-    if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
-      console.log(`⚡ Using cached lead analytics for ${tableName}`);
-      return cached.data;
-    }
-    
+  // Clean Lead Analytics fetch function (optimized)
+  const fetchLeadAnalytics = async (tableName: string) => {
     try {
-      console.log(`📊 Fetching optimized lead analytics from ${tableName} table...`);
+      console.log(`📊 Fetching lead analytics from ${tableName} table...`);
       
-      // Use Promise.all for parallel queries instead of sequential
+      // Parallel database queries for speed
       const [countResult, profileResult, personalizationResult] = await Promise.all([
         // Total count
-        supabase
-          .from(tableName)
-          .select('*', { count: 'exact', head: true }),
+        supabase.from(tableName).select('*', { count: 'exact', head: true }),
         
-        // Profile completion count using database filtering
+        // Profile completion count
         tableName === 'Apollo' 
-          ? supabase
-              .from(tableName)
-              .select('*', { count: 'exact', head: true })
-              .not('full_name', 'is', null)
-              .not('email', 'is', null)
-              .not('company', 'is', null)
-              .not('title', 'is', null)
-          : supabase
-              .from(tableName)
-              .select('*', { count: 'exact', head: true })
-              .not('name', 'is', null)
-              .not('email', 'is', null)
-              .not('company', 'is', null)
-              .not('position', 'is', null),
+          ? supabase.from(tableName).select('*', { count: 'exact', head: true })
+              .not('full_name', 'is', null).not('email', 'is', null)
+              .not('company', 'is', null).not('title', 'is', null)
+          : supabase.from(tableName).select('*', { count: 'exact', head: true })
+              .not('name', 'is', null).not('email', 'is', null)
+              .not('company', 'is', null).not('position', 'is', null),
         
-        // Personalization count using database filtering
+        // Personalization count
         tableName === 'Apollo'
-          ? supabase
-              .from(tableName)
-              .select('*', { count: 'exact', head: true })
+          ? supabase.from(tableName).select('*', { count: 'exact', head: true })
               .or('icebreaker.not.is.null,personalization_hooks.not.is.null')
-          : supabase
-              .from(tableName)
-              .select('*', { count: 'exact', head: true })
+          : supabase.from(tableName).select('*', { count: 'exact', head: true })
               .not('icebreaker', 'is', null)
       ]);
-
-      // Handle errors
-      if (countResult.error) {
-        console.error(`Error fetching count from ${tableName}:`, countResult.error);
-        throw countResult.error;
-      }
-      if (profileResult.error) {
-        console.error(`Error fetching profile count from ${tableName}:`, profileResult.error);
-        throw profileResult.error;
-      }
-      if (personalizationResult.error) {
-        console.error(`Error fetching personalization count from ${tableName}:`, personalizationResult.error);
-        throw personalizationResult.error;
-      }
 
       const total = countResult.count || 0;
       const completeProfiles = profileResult.count || 0;
       const personalizedLeads = personalizationResult.count || 0;
 
-      if (total === 0) {
-        const emptyResult = {
-          totalLeads: 0,
-          profileCoverage: { percentage: 0, completed: 0, total: 0 },
-          personalizationRate: { percentage: 0, personalized: 0, total: 0 }
-        };
-        
-        // Cache empty result to avoid repeated queries
-        setLeadAnalyticsCache(prev => ({
-          ...prev,
-          [tableName]: { data: emptyResult, timestamp: Date.now() }
-        }));
-        
-        return emptyResult;
-      }
-
-      const profileCoveragePercentage = Math.round((completeProfiles / total) * 100);
-      const personalizationPercentage = Math.round((personalizedLeads / total) * 100);
-
-      const result = {
+      return {
         totalLeads: total,
         profileCoverage: {
-          percentage: profileCoveragePercentage,
+          percentage: total > 0 ? Math.round((completeProfiles / total) * 100) : 0,
           completed: completeProfiles,
           total: total
         },
         personalizationRate: {
-          percentage: personalizationPercentage,
+          percentage: total > 0 ? Math.round((personalizedLeads / total) * 100) : 0,
           personalized: personalizedLeads,
           total: total
         }
       };
 
-      // Cache the result
-      setLeadAnalyticsCache(prev => ({
-        ...prev,
-        [tableName]: { data: result, timestamp: Date.now() }
-      }));
-
-      console.log(`✅ Optimized lead analytics from ${tableName}:`, result);
-      return result;
-
     } catch (error) {
       console.error(`Failed to fetch lead analytics from ${tableName}:`, error);
-      const errorResult = {
+      return {
         totalLeads: 0,
         profileCoverage: { percentage: 0, completed: 0, total: 0 },
         personalizationRate: { percentage: 0, personalized: 0, total: 0 }
       };
-      
-      // Cache error result briefly to avoid repeated failed requests
-      setLeadAnalyticsCache(prev => ({
-        ...prev,
-        [tableName]: { data: errorResult, timestamp: Date.now() }
-      }));
-      
-      return errorResult;
     }
   };
 
-  const fetchRealTimeData = async (isBackgroundRefresh = false) => {
+  // COPY FROM OTHER SOFTWARE: Clean unified data fetching
+  const fetchAllData = async () => {
+    console.log(`🔄 Loading ${mode} dashboard with clean loading pattern...`);
+    setLoading(true);
+    setError(null);
+
     try {
-      // Only show loading on initial load or manual refresh, not on background refresh
-      if (!isBackgroundRefresh) {
-        setMetrics(prev => ({ ...prev, loading: true, error: null }));
-      } else {
-        setMetrics(prev => ({ ...prev, error: null }));
-      }
-
       if (mode === 'email') {
-        // Fetch Instantly data - use real data only
-        console.log('🔄 Fetching email metrics...');
-        try {
-          const instantlyData = await IntegrationService.getInstantlyData();
-          console.log('✅ Using real Instantly data');
-          
-          const emailMetrics = {
-            sent: instantlyData.analytics.emails_sent || 0,
-            opened: instantlyData.analytics.emails_opened || 0,
-            replied: instantlyData.analytics.emails_replied || 0,
-            meetings: instantlyData.analytics.meetings_booked || 0,
-            bounceRate: Number(instantlyData.analytics.bounce_rate) || 0
-          };
+        // EMAIL DASHBOARD: Promise.all for simultaneous fetching
+        const [apiData, leadData] = await Promise.all([
+          IntegrationService.getInstantlyData(),
+          fetchLeadAnalytics('Apollo')
+        ]);
 
-          const campaigns = instantlyData.campaigns.map((camp: any, index: number) => ({
-            name: camp.name || `Campaign ${index + 1}`,
-            sent: 0, // No performance data available until campaign is active and sending
-            replies: 0,
-            meetings: 0,
-            rate: '0%'
-          }));
-
-          // Fetch lead analytics from Apollo table
-          const leadAnalytics = await fetchLeadAnalytics();
-
-          setMetrics(prev => ({
-            ...prev,
-            emailMetrics,
-            leadAnalytics,
-            campaigns,
-            leads: [],
-            loading: isInitialLoad ? false : prev.loading
-          }));
-          if (isInitialLoad) setIsInitialLoad(false);
-        } catch (error) {
-          console.error('Instantly API failed:', error);
-          // Use zeros when API fails
-          const emailMetrics = {
-            sent: 0,
-            opened: 0,
-            replied: 0,
-            meetings: 0,
-            bounceRate: 0
-          };
-
-          // Still try to fetch lead analytics even if API fails
-          const leadAnalytics = await fetchLeadAnalytics();
-
-          setMetrics(prev => ({
-            ...prev,
-            emailMetrics,
-            leadAnalytics,
-            campaigns: [],
-            leads: [],
-            loading: isInitialLoad ? false : prev.loading,
-            error: error instanceof Error ? error.message : 'Failed to fetch Instantly data'
-          }));
-          if (isInitialLoad) setIsInitialLoad(false);
-        }
-
+        console.log('✅ Email dashboard data loaded completely');
+        setAllData({ apiData, leadData });
+        
       } else {
-        // Fetch HeyReach data - use real data only
-        try {
-          const heyReachData = await IntegrationService.getHeyReachData();
-          
-          const linkedinMetrics = {
-            connectionRequests: heyReachData?.analytics?.connection_requests_sent || 0,
-            connectionsAccepted: heyReachData?.analytics?.connections_accepted || 0,
-            messagesSent: heyReachData?.analytics?.messages_sent || 0,
-            messageReplies: heyReachData?.analytics?.message_replies || 0,
-            meetings: heyReachData?.analytics?.meetings_booked || 0
-          };
+        // LINKEDIN DASHBOARD: Promise.all for simultaneous fetching  
+        const [apiData, leadData] = await Promise.all([
+          IntegrationService.getHeyReachData(),
+          fetchLeadAnalytics('LinkedIn')
+        ]);
 
-          // Fetch lead analytics from LinkedIn table
-          const leadAnalytics = await fetchLeadAnalytics();
-
-          setMetrics(prev => ({
-            ...prev,
-            linkedinMetrics,
-            leadAnalytics,
-            campaigns: heyReachData?.campaigns || [],
-            leads: heyReachData?.connections || [],
-            loading: isInitialLoad ? false : prev.loading
-          }));
-          if (isInitialLoad) setIsInitialLoad(false);
-        } catch (error) {
-          console.error('HeyReach API failed:', error);
-          // Use zeros when API fails
-          const linkedinMetrics = {
-            connectionRequests: 0,
-            connectionsAccepted: 0,
-            messagesSent: 0,
-            messageReplies: 0,
-            meetings: 0
-          };
-
-          // Still try to fetch lead analytics even if API fails
-          const leadAnalytics = await fetchLeadAnalytics();
-
-          setMetrics(prev => ({
-            ...prev,
-            linkedinMetrics,
-            leadAnalytics,
-            campaigns: [],
-            leads: [],
-            loading: isInitialLoad ? false : prev.loading,
-            error: error instanceof Error ? error.message : 'Failed to fetch HeyReach data'
-          }));
-          if (isInitialLoad) setIsInitialLoad(false);
-        }
+        console.log('✅ LinkedIn dashboard data loaded completely');
+        setAllData({ apiData, leadData });
       }
+
+      // Clean finish - all data ready
+      setLoading(false);
 
     } catch (error) {
-      console.error('Real-time data fetch error:', error);
-      setMetrics(prev => ({
-        ...prev,
-        loading: isInitialLoad ? false : prev.loading,
-        error: error instanceof Error ? error.message : 'Failed to fetch real-time data'
-      }));
-      if (isInitialLoad) setIsInitialLoad(false);
+      console.error(`${mode} dashboard loading failed:`, error);
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+      setLoading(false);
     }
   };
 
+  // COPY FROM OTHER SOFTWARE: Mode change triggers clean reload
   useEffect(() => {
-    // Reset initial load state when mode changes
-    setIsInitialLoad(true);
-    
-    // Check if we have cached Lead Analytics for the new mode
-    const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
-    const cached = leadAnalyticsCache[tableName];
-    const hasCachedAnalytics = cached && (Date.now() - cached.timestamp < CACHE_DURATION);
-    
-    if (hasCachedAnalytics) {
-      // Use cached data immediately for instant switching
-      console.log(`⚡ Instant mode switch using cached data for ${tableName}`);
-      setMetrics(prev => ({
-        ...prev,
-        leadAnalytics: cached.data,
-        loading: false
-      }));
-      setIsInitialLoad(false);
-    } else {
-      // Show loading state only when no cache available
-      setMetrics(prev => ({
-        ...prev,
-        leadAnalytics: {
-          totalLeads: 0,
-          profileCoverage: {
-            percentage: 0,
-            completed: 0,
-            total: 0
-          },
-          personalizationRate: {
-            percentage: 0,
-            personalized: 0,
-            total: 0
-          }
-        },
-        loading: true
-      }));
-    }
-    
-    // Always fetch fresh data (will use cache if available)
-    fetchRealTimeData(false);
+    console.log(`🔄 Mode changed to ${mode} - triggering clean reload`);
+    fetchAllData();
 
-    // Set up auto-refresh every 30 seconds (background refresh)
-    const interval = setInterval(() => fetchRealTimeData(true), 30000);
+    // Set up background refresh every 30 seconds
+    const interval = setInterval(() => {
+      console.log('🔄 Background refresh...');
+      fetchAllData();
+    }, 30000);
     setRefreshInterval(interval);
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [mode, leadAnalyticsCache]);
+  }, [mode]);
 
+  // Manual refresh function
   const forceRefresh = () => {
-    // Clear cache for current mode to force fresh data
-    const tableName = mode === 'email' ? 'Apollo' : 'LinkedIn';
-    setLeadAnalyticsCache(prev => {
-      const newCache = { ...prev };
-      delete newCache[tableName];
-      return newCache;
-    });
-    fetchRealTimeData(false); // Manual refresh shows loading
+    console.log('🔄 Manual refresh triggered');
+    fetchAllData();
   };
+
+  // COPY FROM OTHER SOFTWARE: Transform unified data to legacy format
+  const metrics = useMemo(() => {
+    if (!allData) {
+      // Return loading state - matches legacy interface
+      return {
+        emailMetrics: { sent: 0, opened: 0, replied: 0, meetings: 0, bounceRate: 0 },
+        linkedinMetrics: { connectionRequests: 0, connectionsAccepted: 0, messagesSent: 0, messageReplies: 0, meetings: 0 },
+        leadAnalytics: { totalLeads: 0, profileCoverage: { percentage: 0, completed: 0, total: 0 }, personalizationRate: { percentage: 0, personalized: 0, total: 0 } },
+        campaigns: [],
+        leads: [],
+        loading,
+        error
+      };
+    }
+
+    // Transform loaded data to legacy format
+    if (mode === 'email') {
+      const emailMetrics = {
+        sent: allData.apiData?.analytics?.emails_sent || 0,
+        opened: allData.apiData?.analytics?.emails_opened || 0,
+        replied: allData.apiData?.analytics?.emails_replied || 0,
+        meetings: allData.apiData?.analytics?.meetings_booked || 0,
+        bounceRate: Number(allData.apiData?.analytics?.bounce_rate) || 0
+      };
+
+      const campaigns = allData.apiData?.campaigns?.map((camp: any, index: number) => ({
+        name: camp.name || `Campaign ${index + 1}`,
+        sent: 0,
+        replies: 0,
+        meetings: 0,
+        rate: '0%'
+      })) || [];
+
+      return {
+        emailMetrics,
+        linkedinMetrics: { connectionRequests: 0, connectionsAccepted: 0, messagesSent: 0, messageReplies: 0, meetings: 0 },
+        leadAnalytics: allData.leadData,
+        campaigns,
+        leads: [],
+        loading,
+        error
+      };
+    } else {
+      const linkedinMetrics = {
+        connectionRequests: allData.apiData?.analytics?.connection_requests_sent || 0,
+        connectionsAccepted: allData.apiData?.analytics?.connections_accepted || 0,
+        messagesSent: allData.apiData?.analytics?.messages_sent || 0,
+        messageReplies: allData.apiData?.analytics?.message_replies || 0,
+        meetings: allData.apiData?.analytics?.meetings_booked || 0
+      };
+
+      return {
+        emailMetrics: { sent: 0, opened: 0, replied: 0, meetings: 0, bounceRate: 0 },
+        linkedinMetrics,
+        leadAnalytics: allData.leadData,
+        campaigns: allData.apiData?.campaigns || [],
+        leads: allData.apiData?.connections || [],
+        loading,
+        error
+      };
+    }
+  }, [allData, loading, error, mode]);
 
   return {
     ...metrics,
