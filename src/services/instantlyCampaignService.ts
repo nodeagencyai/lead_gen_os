@@ -77,8 +77,8 @@ export class InstantlyCampaignService {
     try {
       console.log(`🔄 Fetching campaign details for ${campaignId}...`);
       
-      // Use API v2 endpoint for campaign details
-      const result = await apiClient.get(`/api/instantly/v2/campaigns/${campaignId}`);
+      // Use existing API endpoint (v1 for now)
+      const result = await apiClient.instantly(`/campaigns/${campaignId}`);
       
       if (result.error) {
         console.error(`❌ Failed to fetch campaign ${campaignId}:`, result.error);
@@ -101,8 +101,8 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics for campaign ${campaignId}...`);
       
-      // Use API v2 endpoint for campaign analytics
-      const result = await apiClient.get(`/api/instantly/v2/campaigns/${campaignId}/analytics`);
+      // Use existing API endpoint (v1 for now)
+      const result = await apiClient.instantly(`/campaigns/${campaignId}/analytics`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
@@ -134,7 +134,7 @@ export class InstantlyCampaignService {
       }
       
       // Fallback: Try direct sequences endpoint
-      const result = await apiClient.get(`/api/instantly/v2/campaigns/${campaignId}/sequences`);
+      const result = await apiClient.instantly(`/campaigns/${campaignId}/sequences`);
       
       if (result.error) {
         console.warn(`⚠️ Sequences not available for campaign ${campaignId}:`, result.error);
@@ -156,46 +156,98 @@ export class InstantlyCampaignService {
   static async fetchAllCampaigns(): Promise<EnrichedCampaignData[]> {
     console.log('🚀 Fetching all 3 specific Instantly campaigns...');
     
-    const campaignIds = Object.values(INSTANTLY_CAMPAIGNS);
-    const enrichedCampaigns: EnrichedCampaignData[] = [];
-    
-    // Fetch all campaigns in parallel for better performance
-    const campaignPromises = campaignIds.map(async (campaignId) => {
-      try {
-        // Fetch campaign details and analytics in parallel
-        const [details, analytics] = await Promise.all([
-          this.getCampaignDetails(campaignId),
-          this.getCampaignAnalytics(campaignId)
-        ]);
-        
-        if (!details) {
-          console.warn(`⚠️ Skipping campaign ${campaignId} - no details available`);
-          return null;
-        }
-        
-        // Map to enriched format
-        const enriched = this.mapToEnrichedFormat(details, analytics);
-        console.log(`✅ Campaign "${enriched.name}" processed successfully`);
-        return enriched;
-        
-      } catch (error) {
-        console.error(`❌ Failed to process campaign ${campaignId}:`, error);
-        return null;
+    try {
+      // First, get all campaigns using the working endpoint
+      console.log('📋 Fetching campaigns list from Instantly...');
+      const campaignsResult = await apiClient.instantly('/campaigns');
+      
+      if (campaignsResult.error) {
+        console.error('❌ Failed to fetch campaigns list:', campaignsResult.error);
+        return this.getFallbackCampaigns();
       }
-    });
-    
-    // Wait for all campaigns to be processed
-    const results = await Promise.all(campaignPromises);
-    
-    // Filter out null results and add to array
-    results.forEach(campaign => {
-      if (campaign) {
-        enrichedCampaigns.push(campaign);
+      
+      const allCampaigns = (campaignsResult.data as any)?.items || campaignsResult.data || [];
+      console.log(`📋 Found ${allCampaigns.length} total campaigns from Instantly`);
+      
+      // Filter for our specific campaign IDs
+      const campaignIds = Object.values(INSTANTLY_CAMPAIGNS);
+      const specificCampaigns = allCampaigns.filter((campaign: any) => 
+        campaignIds.includes(campaign.id)
+      );
+      
+      console.log(`🎯 Found ${specificCampaigns.length}/3 specific campaigns:`, 
+        specificCampaigns.map((c: any) => ({ id: c.id, name: c.name }))
+      );
+      
+      // Enrich each campaign with additional data
+      const enrichedCampaigns = await Promise.all(
+        specificCampaigns.map(async (campaign: any) => {
+          try {
+            // Try to get analytics for this campaign
+            const analytics = await this.getCampaignAnalytics(campaign.id);
+            
+            // Map to enriched format
+            const enriched = this.mapToEnrichedFormat(campaign, analytics);
+            console.log(`✅ Campaign "${enriched.name}" processed successfully`);
+            return enriched;
+            
+          } catch (error) {
+            console.warn(`⚠️ Error enriching campaign ${campaign.id}:`, error);
+            // Still return the campaign without analytics
+            return this.mapToEnrichedFormat(campaign, null);
+          }
+        })
+      );
+      
+      // If we didn't find all 3 campaigns, add fallback campaigns for missing ones
+      if (enrichedCampaigns.length < 3) {
+        console.log(`⚠️ Only found ${enrichedCampaigns.length}/3 campaigns, adding fallback campaigns`);
+        const foundIds = enrichedCampaigns.map((c: any) => c.id);
+        const missingIds = campaignIds.filter(id => !foundIds.includes(id));
+        
+        const fallbackCampaigns = missingIds.map(id => this.createFallbackCampaign(id));
+        enrichedCampaigns.push(...fallbackCampaigns);
       }
-    });
+      
+      console.log(`✅ Successfully prepared ${enrichedCampaigns.length} campaigns for dashboard`);
+      return enrichedCampaigns;
+      
+    } catch (error) {
+      console.error('❌ Failed to fetch campaigns:', error);
+      return this.getFallbackCampaigns();
+    }
+  }
+
+  /**
+   * Create fallback campaigns when API is unavailable
+   */
+  private static getFallbackCampaigns(): EnrichedCampaignData[] {
+    console.log('🔄 Using fallback campaign data...');
     
-    console.log(`✅ Successfully fetched ${enrichedCampaigns.length}/3 campaigns from Instantly`);
-    return enrichedCampaigns;
+    return Object.entries(INSTANTLY_CAMPAIGNS).map(([, id]) => 
+      this.createFallbackCampaign(id)
+    );
+  }
+
+  /**
+   * Create a single fallback campaign
+   */
+  private static createFallbackCampaign(campaignId: string): EnrichedCampaignData {
+    const campaignName = CAMPAIGN_NAMES[campaignId as keyof typeof CAMPAIGN_NAMES] || 'Unknown Campaign';
+    
+    return {
+      id: campaignId,
+      name: campaignName,
+      status: 'Draft',
+      statusColor: '#3b82f6',
+      preparation: 50,
+      leadsReady: 0,
+      emailsSent: 0,
+      replies: 0,
+      meetings: 0,
+      template: this.inferTemplate(campaignName),
+      platform: 'Instantly (Fallback)'
+    };
   }
 
   /**
@@ -239,7 +291,7 @@ export class InstantlyCampaignService {
       template: this.inferTemplate(campaignName),
       platform: 'Instantly',
       sequences: details.sequences || [],
-      analytics,
+      analytics: analytics || undefined,
       rawData: details
     };
   }

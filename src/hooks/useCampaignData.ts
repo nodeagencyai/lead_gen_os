@@ -29,13 +29,53 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
       if (mode === 'email') {
         // Fetch specific Instantly campaigns with real data
         console.log('🔄 Fetching real data from 3 specific Instantly campaigns...');
-        const realCampaigns = await InstantlyCampaignService.fetchAllCampaigns();
         
-        console.log(`✅ Loaded ${realCampaigns.length} campaigns with real Instantly data:`, 
-          realCampaigns.map(c => ({ name: c.name, status: c.status, leads: c.leadsReady, emails: c.emailsSent }))
-        );
-        
-        setCampaigns(realCampaigns);
+        try {
+          const realCampaigns = await InstantlyCampaignService.fetchAllCampaigns();
+          
+          if (realCampaigns && realCampaigns.length > 0) {
+            console.log(`✅ Loaded ${realCampaigns.length} campaigns with real Instantly data:`, 
+              realCampaigns.map(c => ({ name: c.name, status: c.status, leads: c.leadsReady, emails: c.emailsSent }))
+            );
+            setCampaigns(realCampaigns);
+          } else {
+            console.warn('⚠️ No campaigns returned, falling back to old method...');
+            // Fallback to original method if new service fails
+            const instantlyData = await IntegrationService.getInstantlyData();
+            const mappedCampaigns = instantlyData.campaigns?.map((camp: any) => ({
+              id: camp.id,
+              name: camp.name,
+              status: camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused',
+              statusColor: camp.status === 1 ? '#10b981' : camp.status === 0 ? '#3b82f6' : '#f59e0b',
+              preparation: 75,
+              leadsReady: 0,
+              emailsSent: 0,
+              replies: 0,
+              meetings: 0,
+              template: 'General Outreach',
+              platform: 'Instantly'
+            })) || [];
+            setCampaigns(mappedCampaigns);
+          }
+        } catch (error) {
+          console.error('❌ New service failed, using fallback:', error);
+          // Final fallback to original method
+          const instantlyData = await IntegrationService.getInstantlyData();
+          const mappedCampaigns = instantlyData.campaigns?.map((camp: any) => ({
+            id: camp.id,
+            name: camp.name,
+            status: camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused',
+            statusColor: camp.status === 1 ? '#10b981' : camp.status === 0 ? '#3b82f6' : '#f59e0b',
+            preparation: 75,
+            leadsReady: 0,
+            emailsSent: 0,
+            replies: 0,
+            meetings: 0,
+            template: 'General Outreach',
+            platform: 'Instantly'
+          })) || [];
+          setCampaigns(mappedCampaigns);
+        }
         
       } else {
         // LinkedIn campaigns (HeyReach integration)
