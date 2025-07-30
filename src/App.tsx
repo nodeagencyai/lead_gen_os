@@ -8,6 +8,7 @@ import AdminLogin from './components/AdminLogin';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
 import LeadAnalytics from './components/LeadAnalytics';
+import SupabaseDebug from './components/SupabaseDebug';
 import { DebugPanel } from './components/DebugPanel';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
@@ -187,6 +188,7 @@ function App() {
           </div>
         )}
 
+
         {/* Lead Analytics */}
         <LeadAnalytics />
 
@@ -362,7 +364,7 @@ function App() {
 
         {/* Footer */}
         <div className="text-center text-sm mt-12" style={{ color: '#777777' }}>
-          Powered by Node AI
+          Powered by Node AI • Flickering Fix Deployed ✅
         </div>
       </div>
 
