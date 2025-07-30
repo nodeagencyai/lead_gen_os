@@ -230,8 +230,72 @@ export class InstantlyCampaignService {
   }
 
   /**
-   * Fetch enhanced sequence data using the correct API v2 endpoint
-   * Primary endpoint GET /campaigns/{campaign_id} contains sequences directly
+   * Fetch campaign subsequences (follow-up sequences)
+   * GET /subsequences?parent_campaign={campaign_id}
+   */
+  static async getCampaignSubsequences(campaignId: string): Promise<any[]> {
+    try {
+      console.log(`🔄 Fetching subsequences for campaign ${campaignId} from API v2...`);
+      
+      const result = await apiClient.instantly(`/subsequences?parent_campaign=${campaignId}`);
+      
+      if (result.error) {
+        console.warn(`⚠️ Subsequences not available for campaign ${campaignId}:`, result.error);
+        return [];
+      }
+      
+      const subsequences = (result.data as any)?.items || result.data || [];
+      console.log(`✅ Found ${subsequences.length} subsequences for campaign ${campaignId}`);
+      
+      return subsequences;
+      
+    } catch (error) {
+      console.error(`❌ Error fetching subsequences for campaign ${campaignId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Parse sequence steps and variants to extract email content
+   * Expected structure: sequences[].steps[].variants[]{subject, body}
+   */
+  static parseSequenceSteps(sequences: any[]): any[] {
+    const parsedSteps: any[] = [];
+    
+    sequences.forEach((sequence, seqIndex) => {
+      if (sequence.steps && Array.isArray(sequence.steps)) {
+        sequence.steps.forEach((step: any, stepIndex: number) => {
+          if (step.variants && Array.isArray(step.variants)) {
+            step.variants.forEach((variant: any, variantIndex: number) => {
+              if (!variant.disabled && variant.subject && variant.body) {
+                parsedSteps.push({
+                  id: `seq-${seqIndex}-step-${stepIndex}-var-${variantIndex}`,
+                  step_number: stepIndex + 1,
+                  sequence_index: seqIndex,
+                  variant_index: variantIndex,
+                  subject: variant.subject,
+                  content: variant.body,
+                  delay_days: step.delay || 0,
+                  delay_hours: 0, // API v2 uses days only
+                  type: step.type === 'email' ? 'email' : 'follow_up',
+                  sent: 0, // Will be populated from analytics
+                  opened: 0,
+                  replied: 0
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    console.log(`📝 Parsed ${parsedSteps.length} sequence steps from ${sequences.length} sequences`);
+    return parsedSteps;
+  }
+
+  /**
+   * Fetch complete sequence data including primary sequences and subsequences
+   * Uses the correct API v2 structure with sequences[].steps[].variants[]
    */
   static async getEnhancedSequenceData(campaignId: string): Promise<{
     sequences: any[];
@@ -240,62 +304,73 @@ export class InstantlyCampaignService {
     stepAnalytics?: any[];
   }> {
     try {
-      console.log(`🔍 Fetching enhanced sequence data from API v2 for campaign ${campaignId}...`);
+      console.log(`🔍 Fetching complete sequence data from API v2 for campaign ${campaignId}...`);
       
       // Run debug to understand API responses
       await this.debugCampaignAccess(campaignId);
       
-      // Fetch campaign details (which includes sequences), analytics, and step analytics in parallel
-      const [campaignDetails, analytics, stepAnalytics] = await Promise.all([
-        this.getCampaignDetails(campaignId), // This should contain sequences directly
+      // Fetch campaign details, subsequences, analytics in parallel
+      const [campaignDetails, subsequences, analytics, stepAnalytics] = await Promise.all([
+        this.getCampaignDetails(campaignId), // Contains primary sequences
+        this.getCampaignSubsequences(campaignId), // Contains follow-up sequences
         this.getCampaignAnalytics(campaignId),
         this.getCampaignStepAnalytics(campaignId)
       ]);
       
-      let sequences: any[] = [];
+      let allSequences: any[] = [];
       
-      // Extract sequences from the primary campaign endpoint
+      // 1. Extract primary sequences from main campaign
       if (campaignDetails?.sequences && Array.isArray(campaignDetails.sequences)) {
-        sequences = campaignDetails.sequences;
-        console.log(`✅ SUCCESS: Found ${sequences.length} sequences in API v2 primary endpoint!`);
+        console.log(`✅ Found ${campaignDetails.sequences.length} primary sequences in main campaign`);
+        allSequences.push(...campaignDetails.sequences);
         
-        // Log structure of first sequence for debugging
-        if (sequences.length > 0) {
-          console.log(`📧 First sequence structure:`, {
-            keys: Object.keys(sequences[0]),
-            sample: JSON.stringify(sequences[0], null, 2).substring(0, 500) + '...'
+        // Log structure of first primary sequence
+        if (campaignDetails.sequences.length > 0) {
+          console.log(`📧 Primary sequence structure:`, {
+            keys: Object.keys(campaignDetails.sequences[0]),
+            hasSteps: !!campaignDetails.sequences[0].steps,
+            stepsCount: campaignDetails.sequences[0].steps?.length || 0
           });
         }
       } else {
-        console.warn(`⚠️ No sequences found in primary API v2 endpoint for campaign ${campaignId}`);
-        console.log('Possible reasons:');
-        console.log('1. Campaign has no sequences configured in Instantly');
-        console.log('2. Campaign is in draft status');
-        console.log('3. API proxy may not be correctly routing to API v2');
+        console.warn(`⚠️ No primary sequences found in main campaign ${campaignId}`);
       }
       
-      // Merge step analytics with sequences if available
-      if (stepAnalytics && sequences.length > 0) {
-        console.log(`📊 Merging step analytics with ${sequences.length} sequences`);
-        // Step analytics will be handled separately in the UI
+      // 2. Extract sequences from subsequences (follow-up sequences)
+      if (subsequences && subsequences.length > 0) {
+        console.log(`✅ Found ${subsequences.length} subsequences`);
+        subsequences.forEach((subseq: any, index: number) => {
+          if (subseq.sequences && Array.isArray(subseq.sequences)) {
+            console.log(`📧 Subsequence ${index + 1} has ${subseq.sequences.length} sequences`);
+            allSequences.push(...subseq.sequences);
+          }
+        });
+      } else {
+        console.log(`ℹ️ No subsequences found for campaign ${campaignId}`);
       }
       
-      console.log(`✅ Enhanced sequence data prepared for campaign ${campaignId}:`, {
-        sequenceCount: sequences.length,
+      // 3. Parse all sequences to extract individual email steps with variants
+      const parsedSteps = this.parseSequenceSteps(allSequences);
+      
+      console.log(`✅ Complete sequence data for campaign ${campaignId}:`, {
+        primarySequences: campaignDetails?.sequences?.length || 0,
+        subsequenceCount: subsequences.length,
+        totalSequences: allSequences.length,
+        parsedSteps: parsedSteps.length,
         hasCampaignInfo: !!campaignDetails,
         hasAnalytics: !!analytics,
         hasStepAnalytics: !!stepAnalytics
       });
       
       return {
-        sequences,
+        sequences: parsedSteps, // Return parsed steps ready for UI
         campaignInfo: campaignDetails,
         analytics,
         stepAnalytics: stepAnalytics || undefined
       };
       
     } catch (error) {
-      console.error(`❌ Error fetching enhanced sequence data for campaign ${campaignId}:`, error);
+      console.error(`❌ Error fetching complete sequence data for campaign ${campaignId}:`, error);
       return {
         sequences: [],
         campaignInfo: null,

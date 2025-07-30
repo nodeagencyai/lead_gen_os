@@ -5,6 +5,8 @@ import { InstantlyCampaignService } from '../services/instantlyCampaignService';
 interface SequenceStep {
   id: string;
   step_number: number;
+  sequence_index?: number;
+  variant_index?: number;
   subject: string;
   content: string;
   delay_days: number;
@@ -144,13 +146,18 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
               <Mail size={48} className="mx-auto mb-4" style={{ color: '#888888' }} />
               <h3 className="text-lg font-semibold text-white mb-2">No Sequences Found</h3>
               <p className="text-gray-400 mb-4">
-                This campaign doesn't have any sequences configured yet.
+                This campaign doesn't have any sequences or subsequences configured yet.
               </p>
               {campaignInfo && (
                 <div className="text-sm text-gray-500 max-w-md mx-auto">
                   <p>Campaign: <span className="text-gray-400">{campaignName}</span></p>
                   <p>Status: <span className="text-gray-400">{campaignInfo.status || 'Draft'}</span></p>
-                  <p className="mt-2">Sequences may be available once the campaign is configured in Instantly.</p>
+                  <p className="mt-2">Check your Instantly campaign for:</p>
+                  <ul className="text-left mt-2 space-y-1">
+                    <li>• Primary sequences in the main campaign</li>
+                    <li>• Follow-up subsequences attached to this campaign</li>
+                    <li>• Email variants with subject and body content</li>
+                  </ul>
                 </div>
               )}
             </div>
@@ -192,6 +199,12 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
                           >
                             {sequence.type === 'email' ? 'Initial Email' : 'Follow-up'}
                           </span>
+                          {sequence.sequence_index !== undefined && (
+                            <span className="text-xs text-gray-500">
+                              Seq {sequence.sequence_index + 1}
+                              {sequence.variant_index !== undefined && `.${sequence.variant_index + 1}`}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
