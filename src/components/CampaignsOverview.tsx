@@ -340,8 +340,8 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
                 </div>
               </div>
 
-              {/* View Sequences & Platform */}
-              <div className="space-y-3">
+              {/* View Sequences */}
+              <div>
                 <button
                   onClick={() => openSequenceModal(campaign.id, campaign.name)}
                   className="w-full flex items-center justify-center p-3 rounded-lg transition-all duration-200 hover:border-opacity-80"
@@ -360,13 +360,6 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
                     <span className="text-sm" style={{ color: '#888888' }}>View Sequences</span>
                   </div>
                 </button>
-                <div 
-                  className="flex items-center space-x-2 p-3 rounded-lg"
-                  style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}
-                >
-                  <span className="text-sm" style={{ color: '#888888' }}>Platform</span>
-                  <span className="text-sm text-white font-medium">{campaign.platform}</span>
-                </div>
               </div>
             </div>
           ))}
