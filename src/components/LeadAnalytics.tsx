@@ -78,7 +78,7 @@ const AnalyticsCard: React.FC<AnalyticsCardProps> = ({
 
 const LeadAnalytics: React.FC = () => {
   const { mode } = useCampaignStore();
-  const { analytics, loading, error, refetch } = useLeadAnalytics(mode);
+  const { analytics, loading, isRefreshing, error, refetch } = useLeadAnalytics(mode);
 
   if (error) {
     return (
@@ -127,15 +127,16 @@ const LeadAnalytics: React.FC = () => {
         {!loading && (
           <button
             onClick={refetch}
-            className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80"
+            disabled={isRefreshing}
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80 disabled:opacity-50"
             style={{ 
               backgroundColor: '#333333', 
               border: '1px solid #555555', 
               color: '#ffffff' 
             }}
           >
-            <RefreshCw className="w-4 h-4" />
-            <span className="text-sm">Refresh</span>
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="text-sm">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         )}
       </div>
@@ -144,39 +145,31 @@ const LeadAnalytics: React.FC = () => {
         {/* Total Leads Card */}
         <AnalyticsCard
           title="Total Leads"
-          value={loading ? "..." : analytics?.totalLeads.toLocaleString() || "0"}
+          value={analytics?.totalLeads.toLocaleString() || "0"}
           subtitle="All time"
-          change={loading ? "..." : `+${analytics?.growth.totalLeadsChange || 0}% this month`}
+          change={`+${analytics?.growth.totalLeadsChange || 0}% this month`}
           icon={<Users className="w-5 h-5" />}
-          loading={loading}
+          loading={loading} // Only show loading on initial load
         />
 
         {/* Profile Coverage Card */}
         <AnalyticsCard
           title="Profile Coverage"
-          value={loading ? "..." : `${analytics?.profileCoverage.percentage || 0}%`}
-          subtitle={
-            loading 
-              ? "..." 
-              : `${analytics?.profileCoverage.completed || 0} of ${analytics?.profileCoverage.total || 0} leads`
-          }
-          change={loading ? "..." : `+${analytics?.growth.profileCoverageChange || 0}% this month`}
+          value={`${analytics?.profileCoverage.percentage || 0}%`}
+          subtitle={`${analytics?.profileCoverage.completed || 0} of ${analytics?.profileCoverage.total || 0} leads`}
+          change={`+${analytics?.growth.profileCoverageChange || 0}% this month`}
           icon={<CheckCircle className="w-5 h-5" />}
-          loading={loading}
+          loading={loading} // Only show loading on initial load
         />
 
         {/* Personalization Rate Card */}
         <AnalyticsCard
           title="Personalization Rate"
-          value={loading ? "..." : `${analytics?.personalizationRate.percentage || 0}%`}
-          subtitle={
-            loading 
-              ? "..." 
-              : `${analytics?.personalizationRate.personalized || 0} with hooks/icebreakers`
-          }
-          change={loading ? "..." : `+${analytics?.growth.personalizationChange || 0}% this month`}
+          value={`${analytics?.personalizationRate.percentage || 0}%`}
+          subtitle={`${analytics?.personalizationRate.personalized || 0} with hooks/icebreakers`}
+          change={`+${analytics?.growth.personalizationChange || 0}% this month`}
           icon={<Target className="w-5 h-5" />}
-          loading={loading}
+          loading={loading} // Only show loading on initial load
         />
       </div>
     </div>
