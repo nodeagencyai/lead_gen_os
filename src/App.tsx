@@ -18,7 +18,7 @@ function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
   const { isAuthenticated, isLoading, authenticate, logout } = useAdminAuth();
   const { mode } = useCampaignStore();
-  const { emailMetrics, linkedinMetrics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
+  const { emailMetrics, linkedinMetrics, leadAnalytics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
   const { chart1, chart2, loading: chartLoading, error: chartError, refetch: refetchCharts } = useChartData();
 
   // Show loading screen while checking authentication
@@ -231,7 +231,7 @@ function App() {
                 <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Total Leads</div>
                 <div style={{ color: '#888888' }}><Users className="w-5 h-5" /></div>
               </div>
-              <div className="text-3xl font-bold mb-2 text-white">{leads.length.toLocaleString()}</div>
+              <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.totalLeads.toLocaleString()}</div>
               <div className="text-sm mb-3" style={{ color: '#999999' }}>All time</div>
               <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
                 <TrendingUp className="w-4 h-4 mr-1" />
@@ -259,7 +259,7 @@ function App() {
                 <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Active Leads</div>
                 <div style={{ color: '#888888' }}><CheckCircle className="w-5 h-5" /></div>
               </div>
-              <div className="text-3xl font-bold mb-2 text-white">{leads.filter(lead => lead.status !== 'completed').length.toLocaleString()}</div>
+              <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.activeLeads.toLocaleString()}</div>
               <div className="text-sm mb-3" style={{ color: '#999999' }}>Currently being processed</div>
               <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
                 <TrendingUp className="w-4 h-4 mr-1" />
@@ -287,7 +287,7 @@ function App() {
                 <div className="text-sm font-medium" style={{ color: '#cccccc' }}>In Campaigns</div>
                 <div style={{ color: '#888888' }}><Target className="w-5 h-5" /></div>
               </div>
-              <div className="text-3xl font-bold mb-2 text-white">{campaigns.reduce((total, campaign) => total + (campaign.leads || 0), 0).toLocaleString()}</div>
+              <div className="text-3xl font-bold mb-2 text-white">{leadAnalytics.campaignLeads.toLocaleString()}</div>
               <div className="text-sm mb-3" style={{ color: '#999999' }}>Across {campaigns.length} campaigns</div>
               <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
                 <TrendingUp className="w-4 h-4 mr-1" />
