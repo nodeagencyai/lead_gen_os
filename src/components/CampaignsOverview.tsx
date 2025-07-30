@@ -7,7 +7,7 @@ import CampaignToggle from './CampaignToggle';
 interface Campaign {
   id: string;
   name: string;
-  status: 'In progress' | 'Completed' | 'Ready' | 'Draft';
+  status: 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed';
   statusColor: string;
   preparation: number;
   leadsReady: number;
@@ -32,9 +32,9 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
   
   const filteredCampaigns = statusFilter === 'All' 
     ? campaigns 
-    : campaigns.filter(c => c.status === statusFilter);
+    : campaigns.filter(c => c.status.toLowerCase() === statusFilter.toLowerCase());
 
-  const statusOptions = ['All', 'Ready', 'In progress', 'Completed', 'Draft'];
+  const statusOptions = ['All', 'Draft', 'Running', 'Paused', 'Stopped', 'Completed'];
 
   return (
     <div className="min-h-screen bg-black text-white">

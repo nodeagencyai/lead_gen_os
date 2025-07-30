@@ -34,13 +34,18 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
         const apolloLeads = await LeadsService.getApolloLeads();
         
         const mappedCampaigns = instantlyData.campaigns.map((camp: any) => {
-          const statusInfo = mapInstantlyStatus(camp.status);
+          // Use exact Instantly status instead of mapping
+          const exactStatus = getExactInstantlyStatus(camp);
+          const statusColor = getInstantlyStatusColor(exactStatus);
+          
+          // Debug log to verify status processing
+          console.log(`Campaign "${camp.name}": Raw status = ${camp.status}, Mapped status = ${exactStatus}`);
           
           return {
             id: camp.id,
             name: camp.name,
-            status: statusInfo.status,
-            statusColor: statusInfo.color,
+            status: exactStatus,
+            statusColor: statusColor,
             preparation: calculatePreparation(camp),
             leadsReady: apolloLeads.length, // Total leads available
             emailsSent: 0, // From analytics when available
@@ -87,14 +92,46 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
   };
 };
 
-// Helper functions
-const mapInstantlyStatus = (status: number) => {
+// Helper functions for Instantly's exact status system
+const getExactInstantlyStatus = (campaign: any): 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed' => {
+  // Check multiple possible status fields from Instantly API
+  const status = campaign.status || campaign.campaign_status || campaign.state || campaign.current_status;
+  
+  // Handle numeric status codes that map to Instantly's string statuses
+  if (typeof status === 'number') {
+    switch(status) {
+      case 0: return 'Draft';
+      case 1: return 'Running';
+      case 2: return 'Paused';
+      case 3: return 'Stopped';
+      case 4: return 'Completed';
+      default: return 'Draft';
+    }
+  }
+  
+  // Handle string status values (normalize to exact Instantly statuses)
+  if (typeof status === 'string') {
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('draft')) return 'Draft';
+    if (statusLower.includes('running') || statusLower.includes('active')) return 'Running';
+    if (statusLower.includes('paused')) return 'Paused';
+    if (statusLower.includes('stopped') || statusLower.includes('inactive')) return 'Stopped';
+    if (statusLower.includes('completed') || statusLower.includes('finished')) return 'Completed';
+  }
+  
+  // Default fallback
+  return 'Draft';
+};
+
+const getInstantlyStatusColor = (status: 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed'): string => {
+  // Color coding to match Instantly's system
   switch(status) {
-    case 0: return { status: 'Ready', color: '#10b981' };
-    case 1: return { status: 'In progress', color: '#3b82f6' };
-    case 2: return { status: 'Draft', color: '#8b5cf6' };
-    case 3: return { status: 'Completed', color: '#6b7280' };
-    default: return { status: 'Draft', color: '#8b5cf6' };
+    case 'Draft': return '#3b82f6';      // 🔵 Blue
+    case 'Running': return '#10b981';    // 🟢 Green  
+    case 'Paused': return '#f59e0b';     // 🟡 Yellow
+    case 'Stopped': return '#ef4444';   // 🔴 Red
+    case 'Completed': return '#6b7280'; // ⚪ Gray
+    default: return '#3b82f6';          // Default blue
   }
 };
 
