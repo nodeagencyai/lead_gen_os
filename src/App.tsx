@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Search, LogOut } from 'lucide-react';
+import { TrendingUp, TrendingDown, Search, LogOut, Users, CheckCircle, Target, RefreshCw } from 'lucide-react';
 import LeadFinder from './components/LeadFinder.tsx';
 import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
@@ -7,8 +7,6 @@ import IntegrationSetup from './components/IntegrationSetup';
 import AdminLogin from './components/AdminLogin';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
-import LeadAnalytics from './components/LeadAnalytics';
-import SupabaseDebug from './components/SupabaseDebug';
 import { DebugPanel } from './components/DebugPanel';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
@@ -190,7 +188,114 @@ function App() {
 
 
         {/* Lead Analytics */}
-        <LeadAnalytics />
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+              Lead Analytics ({mode === 'email' ? 'Apollo' : 'LinkedIn'})
+            </h2>
+            {!loading && (
+              <button
+                onClick={forceRefresh}
+                disabled={loading}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors hover:opacity-80 disabled:opacity-50"
+                style={{ 
+                  backgroundColor: '#333333', 
+                  border: '1px solid #555555', 
+                  color: '#ffffff' 
+                }}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span className="text-sm">{loading ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Total Leads Card */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Total Leads</div>
+                <div style={{ color: '#888888' }}><Users className="w-5 h-5" /></div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-white">{leads.length.toLocaleString()}</div>
+              <div className="text-sm mb-3" style={{ color: '#999999' }}>All time</div>
+              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +0% this month
+              </div>
+            </div>
+
+            {/* Active Leads Card */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Active Leads</div>
+                <div style={{ color: '#888888' }}><CheckCircle className="w-5 h-5" /></div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-white">{leads.filter(lead => lead.status !== 'completed').length.toLocaleString()}</div>
+              <div className="text-sm mb-3" style={{ color: '#999999' }}>Currently being processed</div>
+              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +0% this month
+              </div>
+            </div>
+
+            {/* Campaign Leads Card */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm font-medium" style={{ color: '#cccccc' }}>In Campaigns</div>
+                <div style={{ color: '#888888' }}><Target className="w-5 h-5" /></div>
+              </div>
+              <div className="text-3xl font-bold mb-2 text-white">{campaigns.reduce((total, campaign) => total + (campaign.leads || 0), 0).toLocaleString()}</div>
+              <div className="text-sm mb-3" style={{ color: '#999999' }}>Across {campaigns.length} campaigns</div>
+              <div className="flex items-center text-sm" style={{ color: '#10b981' }}>
+                <TrendingUp className="w-4 h-4 mr-1" />
+                +0% this month
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Key Metrics */}
         <div className="mb-8">
