@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Download, Eye, Settings, MoreHorizontal, RefreshCw, List } from 'lucide-react';
+import { Plus, Download, RefreshCw, List } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import { useCampaignData } from '../hooks/useCampaignData';
 import CampaignToggle from './CampaignToggle';
@@ -268,22 +268,12 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               }}
             >
               {/* Campaign Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: campaign.statusColor }}
-                  />
-                  <h3 className="text-lg font-semibold text-white">{campaign.name}</h3>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button className="p-1 rounded hover:bg-gray-700 transition-colors">
-                    <Eye size={16} style={{ color: '#888888' }} />
-                  </button>
-                  <button className="p-1 rounded hover:bg-gray-700 transition-colors">
-                    <Settings size={16} style={{ color: '#888888' }} />
-                  </button>
-                </div>
+              <div className="flex items-center space-x-3 mb-4">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: campaign.statusColor }}
+                />
+                <h3 className="text-lg font-semibold text-white">{campaign.name}</h3>
               </div>
 
               {/* Status */}
