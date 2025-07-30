@@ -71,46 +71,61 @@ interface EnrichedCampaignData {
 export class InstantlyCampaignService {
   
   /**
-   * Debug method to test API connectivity and campaign existence
+   * Debug method to test API v2 connectivity and campaign existence
    */
   static async debugCampaignAccess(campaignId: string): Promise<void> {
-    console.log(`🧪 DEBUG: Testing API access for campaign ${campaignId}...`);
+    console.log(`🧪 DEBUG: Testing Instantly API v2 access for campaign ${campaignId}...`);
     
     try {
-      // First, test if we can get the campaigns list
-      console.log(`📋 Testing campaigns list endpoint...`);
-      const campaignsResult = await apiClient.instantly('/campaigns');
+      // Test the primary API v2 endpoint that should contain sequences
+      console.log(`🎯 Testing primary API v2 endpoint: /campaigns/${campaignId}`);
+      const primaryResult = await apiClient.instantly(`/campaigns/${campaignId}`);
       
-      if (campaignsResult.error) {
-        console.error(`❌ Campaigns list failed:`, campaignsResult.error);
+      if (primaryResult.error) {
+        console.error(`❌ Primary campaign endpoint failed:`, primaryResult.error);
       } else {
-        const allCampaigns = (campaignsResult.data as any)?.items || campaignsResult.data || [];
-        console.log(`✅ Found ${allCampaigns.length} total campaigns`);
+        const campaign = primaryResult.data as any;
+        console.log(`✅ Primary campaign endpoint successful`);
+        console.log(`📋 Campaign structure:`, {
+          id: campaign.id,
+          name: campaign.name,
+          status: campaign.status,
+          hasSequences: !!campaign.sequences,
+          sequenceCount: campaign.sequences?.length || 0,
+          allKeys: Object.keys(campaign)
+        });
         
-        // Check if our specific campaign exists
-        const specificCampaign = allCampaigns.find((c: any) => c.id === campaignId);
-        if (specificCampaign) {
-          console.log(`✅ Campaign ${campaignId} found in campaigns list:`, {
-            id: specificCampaign.id,
-            name: specificCampaign.name,
-            status: specificCampaign.status,
-            keys: Object.keys(specificCampaign)
+        // Log sequences if they exist
+        if (campaign.sequences && Array.isArray(campaign.sequences)) {
+          console.log(`🎯 FOUND SEQUENCES! ${campaign.sequences.length} sequences in campaign:`);
+          campaign.sequences.forEach((seq: any, index: number) => {
+            console.log(`📧 Sequence ${index + 1}:`, {
+              keys: Object.keys(seq),
+              hasSubject: !!seq.subject,
+              hasContent: !!seq.content || !!seq.body,
+              hasSteps: !!seq.steps,
+              isArray: Array.isArray(seq)
+            });
           });
         } else {
-          console.warn(`⚠️ Campaign ${campaignId} NOT found in campaigns list`);
-          console.log(`Available campaign IDs:`, allCampaigns.map((c: any) => c.id));
+          console.warn(`⚠️ No sequences array found in primary endpoint response`);
         }
       }
       
-      // Then test direct campaign access
-      console.log(`🎯 Testing direct campaign access...`);
-      const directResult = await apiClient.instantly(`/campaigns/${campaignId}`);
+      // Also test the campaigns list to see if it shows sequences
+      console.log(`📋 Testing campaigns list for comparison...`);
+      const campaignsResult = await apiClient.instantly('/campaigns');
       
-      if (directResult.error) {
-        console.error(`❌ Direct campaign access failed:`, directResult.error);
-      } else {
-        console.log(`✅ Direct campaign access successful`);
-        console.log(`📋 Campaign keys:`, Object.keys(directResult.data || {}));
+      if (!campaignsResult.error) {
+        const allCampaigns = (campaignsResult.data as any)?.items || campaignsResult.data || [];
+        const specificCampaign = allCampaigns.find((c: any) => c.id === campaignId);
+        if (specificCampaign) {
+          console.log(`📝 Campaign in list view:`, {
+            hasSequences: !!specificCampaign.sequences,
+            sequenceCount: specificCampaign.sequences?.length || 0,
+            keys: Object.keys(specificCampaign)
+          });
+        }
       }
       
     } catch (error) {
@@ -119,46 +134,48 @@ export class InstantlyCampaignService {
   }
   
   /**
-   * Fetch specific campaign details from Instantly API
+   * Fetch campaign details with sequences from Instantly API v2
+   * Primary endpoint: GET /campaigns/{campaign_id} - contains complete campaign + sequences
    */
   static async getCampaignDetails(campaignId: string): Promise<InstantlyCampaignDetails | null> {
     try {
-      console.log(`🔄 Fetching campaign details for ${campaignId}...`);
+      console.log(`🔄 Fetching campaign details from API v2 for ${campaignId}...`);
       
-      // Use existing API endpoint
+      // Use the primary API v2 endpoint that contains sequences
       const result = await apiClient.instantly(`/campaigns/${campaignId}`);
       
       if (result.error) {
-        console.error(`❌ Failed to fetch campaign ${campaignId}:`, result.error);
+        console.error(`❌ Failed to fetch campaign ${campaignId} from API v2:`, result.error);
         return null;
       }
       
-      console.log(`✅ Campaign ${campaignId} details fetched successfully`);
-      console.log(`📋 Campaign details keys:`, Object.keys(result.data || {}));
+      const campaign = result.data as any;
       
-      // Log any sequence-related fields found in campaign details
-      const data = result.data as any;
-      const sequenceKeys = Object.keys(data || {}).filter(key => 
-        key.toLowerCase().includes('sequence') || 
-        key.toLowerCase().includes('step') || 
-        key.toLowerCase().includes('template') ||
-        key.toLowerCase().includes('workflow')
-      );
+      console.log(`✅ Campaign ${campaignId} fetched from API v2`);
+      console.log(`📋 Campaign structure:`, {
+        id: campaign.id,
+        name: campaign.name,
+        status: campaign.status,
+        hasSequences: !!campaign.sequences,
+        sequenceCount: campaign.sequences?.length || 0
+      });
       
-      if (sequenceKeys.length > 0) {
-        console.log(`🎯 Found sequence-related keys in campaign details:`, sequenceKeys);
-        sequenceKeys.forEach(key => {
-          const value = data[key];
-          console.log(`📝 ${key}:`, Array.isArray(value) ? `Array with ${value.length} items` : typeof value);
+      // Specifically log sequences if found
+      if (campaign.sequences && Array.isArray(campaign.sequences) && campaign.sequences.length > 0) {
+        console.log(`🎯 SUCCESS: Found ${campaign.sequences.length} sequences in API v2 response!`);
+        console.log(`📧 First sequence preview:`, {
+          keys: Object.keys(campaign.sequences[0]),
+          hasSubject: !!campaign.sequences[0].subject,
+          hasContent: !!campaign.sequences[0].content || !!campaign.sequences[0].body
         });
       } else {
-        console.log(`⚠️ No sequence-related keys found in campaign details`);
+        console.warn(`⚠️ No sequences found in API v2 response for campaign ${campaignId}`);
       }
       
-      return result.data;
+      return campaign;
       
     } catch (error) {
-      console.error(`❌ Error fetching campaign ${campaignId}:`, error);
+      console.error(`❌ Error fetching campaign ${campaignId} from API v2:`, error);
       return null;
     }
   }
@@ -168,18 +185,18 @@ export class InstantlyCampaignService {
    */
   static async getCampaignAnalytics(campaignId: string): Promise<CampaignAnalytics | null> {
     try {
-      console.log(`📊 Fetching analytics for campaign ${campaignId}...`);
+      console.log(`📊 Fetching analytics for campaign ${campaignId} from API v2...`);
       
-      // Use existing API endpoint (v1 for now)
-      const result = await apiClient.instantly(`/campaigns/${campaignId}/analytics`);
+      // Use API v2 analytics endpoint
+      const result = await apiClient.instantly(`/campaigns/analytics?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
         return null;
       }
       
-      console.log(`✅ Analytics for campaign ${campaignId} fetched successfully`);
-      return result.data;
+      console.log(`✅ Analytics for campaign ${campaignId} fetched from API v2`);
+      return result.data as CampaignAnalytics;
       
     } catch (error) {
       console.error(`❌ Error fetching analytics for campaign ${campaignId}:`, error);
@@ -188,144 +205,93 @@ export class InstantlyCampaignService {
   }
 
   /**
-   * Fetch enhanced sequence data with campaign context
+   * Fetch step-by-step analytics from Instantly API v2
+   * Returns performance data per step and variant
+   */
+  static async getCampaignStepAnalytics(campaignId: string): Promise<any[] | null> {
+    try {
+      console.log(`📊 Fetching step analytics for campaign ${campaignId} from API v2...`);
+      
+      // Use API v2 step analytics endpoint
+      const result = await apiClient.instantly(`/campaigns/analytics/steps?campaign_id=${campaignId}`);
+      
+      if (result.error) {
+        console.warn(`⚠️ Step analytics not available for campaign ${campaignId}:`, result.error);
+        return null;
+      }
+      
+      console.log(`✅ Step analytics for campaign ${campaignId} fetched from API v2`);
+      return result.data as any[];
+      
+    } catch (error) {
+      console.error(`❌ Error fetching step analytics for campaign ${campaignId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch enhanced sequence data using the correct API v2 endpoint
+   * Primary endpoint GET /campaigns/{campaign_id} contains sequences directly
    */
   static async getEnhancedSequenceData(campaignId: string): Promise<{
     sequences: any[];
     campaignInfo: any;
     analytics: any;
+    stepAnalytics?: any[];
   }> {
     try {
-      console.log(`🔍 Fetching enhanced sequence data for campaign ${campaignId}...`);
+      console.log(`🔍 Fetching enhanced sequence data from API v2 for campaign ${campaignId}...`);
       
-      // First run debug to understand API responses
+      // Run debug to understand API responses
       await this.debugCampaignAccess(campaignId);
       
-      // Fetch campaign details, sequences, and analytics in parallel
-      const [campaignDetails, analytics] = await Promise.all([
-        this.getCampaignDetails(campaignId),
-        this.getCampaignAnalytics(campaignId)
+      // Fetch campaign details (which includes sequences), analytics, and step analytics in parallel
+      const [campaignDetails, analytics, stepAnalytics] = await Promise.all([
+        this.getCampaignDetails(campaignId), // This should contain sequences directly
+        this.getCampaignAnalytics(campaignId),
+        this.getCampaignStepAnalytics(campaignId)
       ]);
       
       let sequences: any[] = [];
       
-      // Try multiple API endpoints to get sequence data
-      if (campaignDetails?.sequences && campaignDetails.sequences.length > 0) {
+      // Extract sequences from the primary campaign endpoint
+      if (campaignDetails?.sequences && Array.isArray(campaignDetails.sequences)) {
         sequences = campaignDetails.sequences;
-        console.log(`✅ Found ${sequences.length} sequences in campaign details`);
-      } else {
-        console.log(`🔍 Trying multiple endpoints to fetch sequences for campaign ${campaignId}...`);
+        console.log(`✅ SUCCESS: Found ${sequences.length} sequences in API v2 primary endpoint!`);
         
-        // Based on Instantly API v1/v2, try these endpoints for sequence data
-        const endpointsToTry = [
-          `/campaigns/${campaignId}`, // Full campaign details (most likely to have sequences)
-          `/campaigns/analytics/steps?id=${campaignId}`, // Step-by-step analytics
-          `/campaigns/${campaignId}/sequences`, // Direct sequences (if exists)
-          `/campaigns/${campaignId}/steps`, // Campaign steps
-          `/campaigns/${campaignId}/templates`, // Email templates
-          `/campaigns/${campaignId}/workflow`, // Workflow/sequence data
-          `/campaigns/${campaignId}/funnel` // Funnel steps
-        ];
-        
-        for (const endpoint of endpointsToTry) {
-          console.log(`📡 Trying endpoint: ${endpoint}`);
-          const result = await apiClient.instantly(endpoint);
-          
-          if (!result.error && result.data) {
-            console.log(`📋 Response from ${endpoint}:`, JSON.stringify(result.data, null, 2));
-            
-            const data = result.data as any; // Type assertion for API response
-            
-            // Handle different possible response structures from Instantly API
-            if (Array.isArray(data)) {
-              sequences = data;
-              console.log(`📝 Found array response with ${data.length} items`);
-            } else if (data.sequences && Array.isArray(data.sequences)) {
-              sequences = data.sequences;
-              console.log(`📝 Found sequences array with ${data.sequences.length} items`);
-            } else if (data.steps && Array.isArray(data.steps)) {
-              sequences = data.steps;
-              console.log(`📝 Found steps array with ${data.steps.length} items`);
-            } else if (data.templates && Array.isArray(data.templates)) {
-              sequences = data.templates;
-              console.log(`📝 Found templates array with ${data.templates.length} items`);
-            } else if (data.items && Array.isArray(data.items)) {
-              sequences = data.items;
-              console.log(`📝 Found paginated items with ${data.items.length} items`);
-            } else if (data.workflow && Array.isArray(data.workflow)) {
-              sequences = data.workflow;
-              console.log(`📝 Found workflow array with ${data.workflow.length} items`);
-            } else if (data.funnel && Array.isArray(data.funnel)) {
-              sequences = data.funnel;
-              console.log(`📝 Found funnel array with ${data.funnel.length} items`);
-            } else if (data.sequence_steps && Array.isArray(data.sequence_steps)) {
-              sequences = data.sequence_steps;
-              console.log(`📝 Found sequence_steps array with ${data.sequence_steps.length} items`);
-            } else if (data.sequenceSteps && Array.isArray(data.sequenceSteps)) {
-              sequences = data.sequenceSteps;
-              console.log(`📝 Found sequenceSteps array with ${data.sequenceSteps.length} items`);
-            } else if (data.campaign_sequences && Array.isArray(data.campaign_sequences)) {
-              sequences = data.campaign_sequences;
-              console.log(`📝 Found campaign_sequences array with ${data.campaign_sequences.length} items`);
-            } else {
-              // Log all available keys in the response to help debug
-              console.log(`📋 Available keys in response:`, Object.keys(data));
-              console.log(`🔍 Looking for sequence-related data in response structure...`);
-              
-              // Check for any keys that might contain sequence data
-              const possibleSequenceKeys = Object.keys(data).filter(key => 
-                key.toLowerCase().includes('sequence') || 
-                key.toLowerCase().includes('step') || 
-                key.toLowerCase().includes('template') ||
-                key.toLowerCase().includes('workflow') ||
-                key.toLowerCase().includes('funnel')
-              );
-              
-              if (possibleSequenceKeys.length > 0) {
-                console.log(`🎯 Found potential sequence keys:`, possibleSequenceKeys);
-                for (const key of possibleSequenceKeys) {
-                  const value = data[key];
-                  if (Array.isArray(value) && value.length > 0) {
-                    console.log(`✅ Using key "${key}" with ${value.length} items`);
-                    sequences = value;
-                    break;
-                  }
-                }
-              }
-            }
-            
-            if (sequences.length > 0) {
-              console.log(`✅ Found ${sequences.length} sequences via endpoint: ${endpoint}`);
-              console.log(`📝 First sequence sample:`, JSON.stringify(sequences[0], null, 2));
-              break;
-            } else {
-              console.log(`⚪ No sequences in response structure from ${endpoint}`);
-            }
-          } else {
-            console.log(`❌ Endpoint ${endpoint} failed:`, result.error);
-          }
+        // Log structure of first sequence for debugging
+        if (sequences.length > 0) {
+          console.log(`📧 First sequence structure:`, {
+            keys: Object.keys(sequences[0]),
+            sample: JSON.stringify(sequences[0], null, 2).substring(0, 500) + '...'
+          });
         }
+      } else {
+        console.warn(`⚠️ No sequences found in primary API v2 endpoint for campaign ${campaignId}`);
+        console.log('Possible reasons:');
+        console.log('1. Campaign has no sequences configured in Instantly');
+        console.log('2. Campaign is in draft status');
+        console.log('3. API proxy may not be correctly routing to API v2');
       }
       
-      // If no sequences found, log warning but don't create fake data
-      if (sequences.length === 0) {
-        console.warn(`⚠️ No sequences found in Instantly API for campaign ${campaignId}`);
-        console.log('This likely means:');
-        console.log('1. Campaign exists but has no sequences configured in Instantly');
-        console.log('2. API endpoint may not be available');
-        console.log('3. Campaign is in draft status with no sequences set up yet');
+      // Merge step analytics with sequences if available
+      if (stepAnalytics && sequences.length > 0) {
+        console.log(`📊 Merging step analytics with ${sequences.length} sequences`);
+        // Step analytics will be handled separately in the UI
       }
       
       console.log(`✅ Enhanced sequence data prepared for campaign ${campaignId}:`, {
         sequenceCount: sequences.length,
         hasCampaignInfo: !!campaignDetails,
-        hasAnalytics: !!analytics
+        hasAnalytics: !!analytics,
+        hasStepAnalytics: !!stepAnalytics
       });
       
       return {
         sequences,
         campaignInfo: campaignDetails,
-        analytics
+        analytics,
+        stepAnalytics: stepAnalytics || undefined
       };
       
     } catch (error) {
@@ -333,7 +299,8 @@ export class InstantlyCampaignService {
       return {
         sequences: [],
         campaignInfo: null,
-        analytics: null
+        analytics: null,
+        stepAnalytics: undefined
       };
     }
   }
