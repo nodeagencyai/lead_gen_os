@@ -68,7 +68,7 @@ export const useAdminAuth = () => {
     // Set up periodic authentication check (every minute)
     const interval = setInterval(() => {
       const isAuth = checkAuthentication();
-      if (!isAuth && authState.isAuthenticated) {
+      if (!isAuth) {
         // Session expired
         logout();
       }
@@ -76,8 +76,10 @@ export const useAdminAuth = () => {
 
     // Extend session on user activity
     const handleUserActivity = () => {
-      if (authState.isAuthenticated) {
-        extendSession();
+      // Check current auth state from sessionStorage instead of stale closure
+      const currentAuth = sessionStorage.getItem('adminAuthenticated') === 'true';
+      if (currentAuth) {
+        sessionStorage.setItem('adminLoginTime', Date.now().toString());
       }
     };
 
@@ -93,7 +95,7 @@ export const useAdminAuth = () => {
         document.removeEventListener(event, handleUserActivity, true);
       });
     };
-  }, [authState.isAuthenticated]);
+  }, []); // Empty dependency array - run once on mount only
 
   return {
     isAuthenticated: authState.isAuthenticated,

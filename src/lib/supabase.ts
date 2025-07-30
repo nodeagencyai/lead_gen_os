@@ -116,16 +116,43 @@ export interface Integration {
 // Apollo table structure for email campaigns
 export interface ApolloLead {
   id: string;
-  name: string;
+  full_name: string;
+  first_name?: string;
+  last_name?: string;
+  title?: string;
+  headline?: string;
+  company_email?: string;
+  personal_email?: string;
   email?: string;
-  phone?: string;
-  company?: string;
-  position?: string;
   linkedin_url?: string;
-  raw_data?: Record<string, any>;
-  status: 'new' | 'contacted' | 'replied' | 'qualified' | 'converted' | 'unqualified';
-  created_at: string;
-  updated_at: string;
+  company?: string;
+  company_linkedin_url?: string;
+  company_website_url?: string;
+  city?: string;
+  country?: string;
+  company_description?: string;
+  personal_summary?: string;
+  icebreaker?: string;
+  recent_company_news?: string;
+  professional_updates?: string;
+  industry_context?: string;
+  personalization_hooks?: string;
+  personalization_hook1?: string;
+  personalization_hook2?: string;
+  personalization_hook3?: string;
+  personalization_hook4?: string;
+  company_developments?: string;
+  professional_achievements?: string;
+  growth_indicators?: string;
+  market_position?: string;
+  company_culture?: string;
+  business_challenges?: string;
+  icebreaker_insight_primary_angle?: string;
+  icebreaker_insight_supporting_details?: string;
+  icebreaker_insight_timing_relevance?: string;
+  source_attribution?: string;
+  processed?: boolean;
+  campaign_name?: string;
 }
 
 // LinkedIn table structure for LinkedIn campaigns

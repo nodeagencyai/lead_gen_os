@@ -364,7 +364,7 @@ function App() {
 
         {/* Footer */}
         <div className="text-center text-sm mt-12" style={{ color: '#777777' }}>
-          Powered by Node AI • Flickering Fix Deployed ✅
+          Powered by Node AI
         </div>
       </div>
 
