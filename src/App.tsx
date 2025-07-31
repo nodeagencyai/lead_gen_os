@@ -4,6 +4,7 @@ import LeadFinder from './components/LeadFinder.tsx';
 import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
 import IntegrationSetup from './components/IntegrationSetup';
+import Monitoring from './components/Monitoring';
 import AdminLogin from './components/AdminLogin';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
@@ -15,7 +16,7 @@ import { useAdminAuth } from './hooks/useAdminAuth';
 import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
 
 function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring'>('dashboard');
   const { isAuthenticated, isLoading, authenticate, logout } = useAdminAuth();
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, leadAnalytics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
@@ -83,6 +84,10 @@ function App() {
     return <IntegrationSetup onNavigate={setCurrentView} />;
   }
 
+  if (currentView === 'monitoring') {
+    return <Monitoring onNavigate={setCurrentView} />;
+  }
+
   // MINIMALISTIC SPINNER - Clean UI without text
   if (loading) {
     return (
@@ -139,6 +144,13 @@ function App() {
              style={{ color: currentView === 'integrations' ? '#ffffff' : '#888888' }}
             >
               Integrations
+            </button>
+            <button 
+              onClick={() => setCurrentView('monitoring')}
+              className="transition-colors hover:opacity-80" 
+             style={{ color: currentView === 'monitoring' ? '#ffffff' : '#888888' }}
+            >
+              Monitoring
             </button>
           </div>
           <div className="flex items-center space-x-4">
