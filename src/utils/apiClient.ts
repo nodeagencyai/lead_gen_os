@@ -42,11 +42,15 @@ class ApiClient {
   private getBaseUrl(): string {
     // FORCE: Always use serverless proxy routes - NO direct external API calls
     if (typeof window !== 'undefined') {
+      // In development, API server runs on port 3001
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:3001';
+      }
       return window.location.origin;
     }
     
-    // Development fallback - but still use proxy routes
-    return 'http://localhost:5173';
+    // Development fallback - use API server port
+    return 'http://localhost:3001';
   }
 
   private async makeRequest<T>(

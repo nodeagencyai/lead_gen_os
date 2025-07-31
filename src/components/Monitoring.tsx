@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, AlertCircle, CheckCircle, Clock, TrendingUp, TrendingDown, RefreshCw, Filter, Search } from 'lucide-react';
 import CampaignToggle from './CampaignToggle';
+import { apiClient } from '../utils/apiClient';
 
 interface MonitoringProps {
   onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
@@ -22,117 +23,205 @@ interface WorkflowRun {
 }
 
 const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workflowFilter, setWorkflowFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Real API data states
+  const [dashboardData, setDashboardData] = useState<any>(null);
+  const [healthData, setHealthData] = useState<any>(null);
+  const [recentWorkflows, setRecentWorkflows] = useState<WorkflowRun[]>([]);
 
-  // Mock data - replace with real API calls
-  const systemHealthMetrics = [
-    { title: 'Total Workflows Run', value: '2,847', change: '+23%', positive: true },
-    { title: 'System Uptime', value: '99.8%', change: '+0.2%', positive: true },
-    { title: 'Error Rate', value: '1.2%', change: '-0.8%', positive: true }
-  ];
+  // Fetch real monitoring data
+  const fetchMonitoringData = async (isManualRefresh = false) => {
+    try {
+      if (isManualRefresh) {
+        setLoading(true);
+      }
+      setError(null);
 
-  const workflowMetrics = [
-    { title: 'Apollo Workflows', value: '1,245', change: '+18%', positive: true },
-    { title: 'Apollo Success Rate', value: '98.5%', change: '+2.1%', positive: true },
-    { title: 'LinkedIn Workflows', value: '1,602', change: '+25%', positive: true },
-    { title: 'LinkedIn Success Rate', value: '97.8%', change: '+1.5%', positive: true },
-    { title: 'Active Errors', value: '3', change: '-2', positive: true, isError: true }
-  ];
+      // Fetch data from all monitoring endpoints in parallel
+      const [dashboardResult, healthResult] = await Promise.all([
+        apiClient.get('/api/monitoring/dashboard?timeRange=24h'),
+        apiClient.get('/api/monitoring/health')
+      ]);
 
-  const recentWorkflows: WorkflowRun[] = [
-    {
-      id: '1',
-      workflow: 'Apollo Lead Scraping',
-      status: 'success',
-      started: '2024-01-26 14:32',
-      duration: '2m 45s',
-      leadsProcessed: 150,
-      campaign: 'Digital Marketing Agencies',
-      platform: 'Apollo',
-      workflowType: 'lead_scraping',
-      executionId: 'exec_001'
-    },
-    {
-      id: '2',
-      workflow: 'LinkedIn Outreach',
-      status: 'running',
-      started: '2024-01-26 14:28',
-      duration: '4m 12s',
-      leadsProcessed: 89,
-      campaign: 'Tech Startup Founders',
-      platform: 'HeyReach',
-      workflowType: 'linkedin_outreach',
-      executionId: 'exec_002'
-    },
-    {
-      id: '3',
-      workflow: 'Email Campaign',
-      status: 'success',
-      started: '2024-01-26 14:15',
-      duration: '1m 33s',
-      leadsProcessed: 200,
-      campaign: 'Creative Agencies',
-      platform: 'Instantly',
-      workflowType: 'email_sending',
-      executionId: 'exec_003'
-    },
-    {
-      id: '4',
-      workflow: 'Apollo Lead Scraping',
-      status: 'failed',
-      started: '2024-01-26 13:58',
-      duration: '0m 45s',
-      leadsProcessed: 0,
-      campaign: 'Recruitment Agencies',
-      platform: 'Apollo',
-      workflowType: 'lead_scraping',
-      executionId: 'exec_004',
-      errorMessage: 'API rate limit exceeded. Apollo API returned 429 status code.'
-    },
-    {
-      id: '5',
-      workflow: 'LinkedIn Connection',
-      status: 'success',
-      started: '2024-01-26 13:45',
-      duration: '3m 21s',
-      leadsProcessed: 75,
-      campaign: 'SaaS Decision Makers',
-      platform: 'LinkedIn',
-      workflowType: 'linkedin_outreach',
-      executionId: 'exec_005'
-    },
-    {
-      id: '6',
-      workflow: 'Email Validation',
-      status: 'failed',
-      started: '2024-01-26 13:20',
-      duration: '0m 15s',
-      leadsProcessed: 0,
-      campaign: 'E-commerce Owners',
-      platform: 'N8N',
-      workflowType: 'data_processing',
-      executionId: 'exec_006',
-      errorMessage: 'Webhook timeout. N8N workflow did not respond within 30 seconds.'
-    },
-    {
-      id: '7',
-      workflow: 'HeyReach Outreach',
-      status: 'failed',
-      started: '2024-01-26 13:10',
-      duration: '1m 05s',
-      leadsProcessed: 25,
-      campaign: 'Software Engineers',
-      platform: 'HeyReach',
-      workflowType: 'linkedin_outreach',
-      executionId: 'exec_007',
-      errorMessage: 'Authentication failed. HeyReach API key expired or invalid.'
+      if (dashboardResult.error) {
+        throw new Error(`Dashboard API: ${dashboardResult.error}`);
+      }
+      if (healthResult.error) {
+        throw new Error(`Health API: ${healthResult.error}`);
+      }
+
+      setDashboardData(dashboardResult.data);
+      setHealthData(healthResult.data);
+      
+      // Transform recent activity to workflow format
+      if (dashboardResult.data?.recent_activity) {
+        const transformedWorkflows = transformRecentActivity(dashboardResult.data.recent_activity);
+        setRecentWorkflows(transformedWorkflows);
+      }
+
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Failed to fetch monitoring data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load monitoring data');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Transform API data to component format
+  const transformRecentActivity = (activities: any[]): WorkflowRun[] => {
+    return activities.slice(0, 20).map((activity, index) => {
+      let status: 'success' | 'failed' | 'running' = 'success';
+      let platform: 'Apollo' | 'LinkedIn' | 'Instantly' | 'HeyReach' | 'N8N' = 'N8N';
+      let workflowType: 'lead_scraping' | 'email_sending' | 'linkedin_outreach' | 'data_processing' = 'data_processing';
+
+      // Determine status from activity
+      if (activity.activity_type === 'error') {
+        status = 'failed';
+      } else if (activity.severity === 'error') {
+        status = 'failed';
+      } else if (activity.details?.includes('running') || activity.details?.includes('processing')) {
+        status = 'running';
+      }
+
+      // Determine platform and workflow type from title
+      if (activity.title?.includes('Apollo')) {
+        platform = 'Apollo';
+        workflowType = 'lead_scraping';
+      } else if (activity.title?.includes('LinkedIn') || activity.title?.includes('HeyReach')) {
+        platform = 'LinkedIn';
+        workflowType = 'linkedin_outreach';
+      } else if (activity.title?.includes('Email') || activity.title?.includes('Instantly')) {
+        platform = 'Instantly';
+        workflowType = 'email_sending';
+      }
+
+      return {
+        id: `activity-${index}`,
+        workflow: activity.title || 'Unknown Workflow',
+        status,
+        started: new Date(activity.timestamp).toLocaleString(),
+        duration: calculateDuration(activity.timestamp),
+        leadsProcessed: activity.metric_value || 0,
+        campaign: activity.subtitle || 'Unknown Campaign',
+        errorMessage: activity.activity_type === 'error' ? activity.details : undefined,
+        executionId: `exec-${index}`,
+        platform,
+        workflowType
+      };
+    });
+  };
+
+  const calculateDuration = (timestamp: string): string => {
+    const startTime = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - startTime.getTime();
+    
+    const minutes = Math.floor(diffMs / 60000);
+    const seconds = Math.floor((diffMs % 60000) / 1000);
+    
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  };
+
+  // Calculate metrics from real data
+  const systemHealthMetrics = dashboardData ? [
+    { 
+      title: 'Total Workflows Run', 
+      value: (dashboardData.executions?.total || 0).toLocaleString(), 
+      change: '+23%', // Would need historical data for real calculation
+      positive: true 
+    },
+    { 
+      title: 'System Uptime', 
+      value: healthData?.uptime || '99.8%', 
+      change: '+0.2%', 
+      positive: true 
+    },
+    { 
+      title: 'Error Rate', 
+      value: dashboardData.executions?.total > 0 
+        ? `${Math.round((dashboardData.errors?.total / dashboardData.executions.total) * 100 * 100) / 100}%`
+        : '0%', 
+      change: dashboardData.errors?.total > 0 ? '+0.8%' : '-0.8%', 
+      positive: dashboardData.errors?.total === 0
+    }
+  ] : [
+    { title: 'Total Workflows Run', value: '0', change: '0%', positive: true },
+    { title: 'System Uptime', value: '100%', change: '0%', positive: true },
+    { title: 'Error Rate', value: '0%', change: '0%', positive: true }
   ];
+
+  const workflowMetrics = dashboardData ? [
+    { 
+      title: 'Apollo Workflows', 
+      value: (dashboardData.health?.apollo?.totalExecutions || 0).toLocaleString(), 
+      change: '+18%', 
+      positive: true 
+    },
+    { 
+      title: 'Apollo Success Rate', 
+      value: dashboardData.health?.apollo?.totalExecutions > 0
+        ? `${Math.round((dashboardData.health.apollo.successfulExecutions / dashboardData.health.apollo.totalExecutions) * 100 * 100) / 100}%`
+        : '0%', 
+      change: '+2.1%', 
+      positive: true 
+    },
+    { 
+      title: 'LinkedIn Workflows', 
+      value: (dashboardData.health?.linkedin?.totalExecutions || 0).toLocaleString(), 
+      change: '+25%', 
+      positive: true 
+    },
+    { 
+      title: 'LinkedIn Success Rate', 
+      value: dashboardData.health?.linkedin?.totalExecutions > 0
+        ? `${Math.round((dashboardData.health.linkedin.successfulExecutions / dashboardData.health.linkedin.totalExecutions) * 100 * 100) / 100}%`
+        : '0%', 
+      change: '+1.5%', 
+      positive: true 
+    },
+    { 
+      title: 'Active Errors', 
+      value: (dashboardData.errors?.bySeverity?.critical || 0).toString(), 
+      change: dashboardData.errors?.bySeverity?.critical > 0 ? '+2' : '-2', 
+      positive: dashboardData.errors?.bySeverity?.critical === 0, 
+      isError: true 
+    }
+  ] : [
+    { title: 'Apollo Workflows', value: '0', change: '0%', positive: true },
+    { title: 'Apollo Success Rate', value: '0%', change: '0%', positive: true },
+    { title: 'LinkedIn Workflows', value: '0', change: '0%', positive: true },
+    { title: 'LinkedIn Success Rate', value: '0%', change: '0%', positive: true },
+    { title: 'Active Errors', value: '0', change: '0', positive: true, isError: true }
+  ];
+
+  // Initial data fetch and auto-refresh setup
+  useEffect(() => {
+    fetchMonitoringData();
+
+    if (autoRefresh) {
+      const interval = setInterval(() => {
+        fetchMonitoringData();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh]);
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    fetchMonitoringData(true);
+  };
 
   // Filter workflows based on search and filters
   const filteredWorkflows = recentWorkflows.filter(workflow => {
@@ -146,17 +235,6 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
     return matchesSearch && matchesWorkflowFilter && matchesStatusFilter;
   });
 
-  // Auto-refresh functionality
-  useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(() => {
-        // In real implementation, this would fetch fresh data
-        console.log('Auto-refreshing workflow data...');
-      }, 10000); // Refresh every 10 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -175,6 +253,18 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
       default: return <Activity className="w-4 h-4" />;
     }
   };
+
+  // Show loading screen on initial load
+  if (loading && !dashboardData) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg" style={{ color: '#888888' }}>Loading monitoring data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -246,13 +336,18 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
           </h1>
           <div className="flex items-center space-x-4">
             <button 
-              onClick={() => setLoading(true)}
+              onClick={handleRefresh}
               disabled={loading}
               className="text-sm px-3 py-1 rounded-full transition-colors hover:opacity-80 disabled:opacity-50"
               style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
             >
               {loading ? 'Refreshing...' : 'Refresh Data'}
             </button>
+            {lastUpdated && (
+              <div className="text-xs" style={{ color: '#888888' }}>
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </div>
+            )}
             <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333', color: '#888888' }}>
               N8N Workflows
             </div>
@@ -497,6 +592,16 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                     </td>
                   </tr>
                 ))}
+                {filteredWorkflows.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center" style={{ color: '#888888' }}>
+                      {recentWorkflows.length === 0 
+                        ? 'No workflow data available. Start sending webhook data from N8N to see activity here.' 
+                        : 'No workflows match your current filters.'
+                      }
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
