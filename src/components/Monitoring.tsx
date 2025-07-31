@@ -330,6 +330,11 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
             System Monitoring Dashboard
           </h1>
           <div className="flex items-center space-x-4">
+            {lastUpdated && (
+              <div className="text-xs" style={{ color: '#888888' }}>
+                Last updated: {lastUpdated.toLocaleTimeString()}
+              </div>
+            )}
             <button 
               onClick={handleRefresh}
               disabled={loading}
@@ -338,11 +343,6 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
             >
               {loading ? 'Refreshing...' : 'Refresh Data'}
             </button>
-            {lastUpdated && (
-              <div className="text-xs" style={{ color: '#888888' }}>
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </div>
-            )}
             <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333', color: '#888888' }}>
               N8N Workflows
             </div>
