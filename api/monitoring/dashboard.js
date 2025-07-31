@@ -8,10 +8,11 @@ if (!supabaseUrl || !supabaseKey) {
   console.error('Missing Supabase environment variables');
 }
 
-const supabase = createClient(
-  supabaseUrl || 'https://efpwtvlgnftlabmliguf.supabase.co',
-  supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmcHd0dmxnbmZ0bGFibWxpZ3VmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Mzc4NjI2NywiZXhwIjoyMDY5MzYyMjY3fQ.jd7hbkp38CxkW05eSDcyJMwkidkE4REqxzqb7Fa1U9c'
-);
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing required Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
   // Enable CORS

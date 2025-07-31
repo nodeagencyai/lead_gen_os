@@ -47,15 +47,23 @@ const enrichedLeads = scrapedLeads.map(lead => ({
 ```
 
 ### Step 3: Environment Variables
-Add to your `.env` file and Vercel environment variables:
+⚠️  **SECURITY CRITICAL**: Never commit API keys to Git!
+
+Add to your `.env.local` file (local development):
 ```env
-# API Keys (if not already set)
+# API Keys - NEVER commit these to GitHub!
 INSTANTLY_API_KEY=your_instantly_api_key
 HEYREACH_API_KEY=your_heyreach_api_key
 
-# Supabase (should already be set)
+# Supabase - NEVER commit these to GitHub!
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 ```
+
+Add to Vercel Environment Variables (production):
+- Go to Vercel Project Settings → Environment Variables
+- Add each variable above with the actual values
+- These APIs will fail without proper environment variables set
 
 ### Step 4: Replace Components
 Option A - Replace existing files:
