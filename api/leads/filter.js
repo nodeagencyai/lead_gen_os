@@ -36,8 +36,11 @@ export default async function handler(req, res) {
   } = req.query;
 
   try {
+    // Map source to correct table name
+    const tableName = source === 'linkedin' ? 'LinkedIn' : 'Apollo';
+    
     let query = supabase
-      .from(source)
+      .from(tableName)
       .select(`
         *
       `)
@@ -84,7 +87,7 @@ export default async function handler(req, res) {
           .from('campaign_sends')
           .select('*')
           .in('lead_id', leadIds)
-          .eq('lead_source', source)
+          .eq('lead_source', tableName)
           .order('sent_at', { ascending: false });
 
         // Group campaign history by lead_id

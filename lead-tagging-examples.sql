@@ -6,11 +6,11 @@
 -- =========================================
 
 -- Insert LinkedIn lead with tags
-INSERT INTO linkedin (full_name, company, title, niche, tags) VALUES 
+INSERT INTO "LinkedIn" (full_name, company, title, niche, tags) VALUES 
 ('John Smith', 'TechCorp', 'CEO', 'saas', ARRAY['series-a', 'enterprise', 'ai-startup']);
 
 -- Insert Apollo lead with tags
-INSERT INTO apollo (full_name, company, title, niche, tags) VALUES 
+INSERT INTO "Apollo" (full_name, company, title, niche, tags) VALUES 
 ('Jane Doe', 'StartupInc', 'CTO', 'fintech', ARRAY['seed-stage', 'blockchain', 'remote-first']);
 
 -- =========================================
@@ -18,46 +18,46 @@ INSERT INTO apollo (full_name, company, title, niche, tags) VALUES
 -- =========================================
 
 -- Find all leads in 'saas' niche
-SELECT * FROM linkedin WHERE niche = 'saas'
+SELECT * FROM "LinkedIn" WHERE niche = 'saas'
 UNION ALL
-SELECT * FROM apollo WHERE niche = 'saas';
+SELECT * FROM "Apollo" WHERE niche = 'saas';
 
 -- Find leads with specific tag
-SELECT * FROM linkedin WHERE 'series-a' = ANY(tags)
+SELECT * FROM "LinkedIn" WHERE 'series-a' = ANY(tags)
 UNION ALL  
-SELECT * FROM apollo WHERE 'series-a' = ANY(tags);
+SELECT * FROM "Apollo" WHERE 'series-a' = ANY(tags);
 
 -- Find leads with multiple tags (AND condition)
-SELECT * FROM linkedin WHERE tags @> ARRAY['enterprise', 'ai-startup']
+SELECT * FROM "LinkedIn" WHERE tags @> ARRAY['enterprise', 'ai-startup']
 UNION ALL
-SELECT * FROM apollo WHERE tags @> ARRAY['enterprise', 'ai-startup'];
+SELECT * FROM "Apollo" WHERE tags @> ARRAY['enterprise', 'ai-startup'];
 
 -- Find leads with any of multiple tags (OR condition)
-SELECT * FROM linkedin WHERE tags && ARRAY['series-a', 'seed-stage']
+SELECT * FROM "LinkedIn" WHERE tags && ARRAY['series-a', 'seed-stage']
 UNION ALL
-SELECT * FROM apollo WHERE tags && ARRAY['series-a', 'seed-stage'];
+SELECT * FROM "Apollo" WHERE tags && ARRAY['series-a', 'seed-stage'];
 
 -- =========================================
 -- UPDATING TAGS AND NICHE
 -- =========================================
 
 -- Add a tag to existing lead
-UPDATE linkedin 
+UPDATE "LinkedIn" 
 SET tags = array_append(tags, 'high-priority') 
 WHERE id = 'your-lead-id';
 
 -- Remove a tag from lead
-UPDATE linkedin 
+UPDATE "LinkedIn" 
 SET tags = array_remove(tags, 'old-tag') 
 WHERE id = 'your-lead-id';
 
 -- Replace all tags
-UPDATE linkedin 
+UPDATE "LinkedIn" 
 SET tags = ARRAY['new-tag', 'another-tag'] 
 WHERE id = 'your-lead-id';
 
 -- Update niche
-UPDATE linkedin 
+UPDATE "LinkedIn" 
 SET niche = 'healthtech' 
 WHERE id = 'your-lead-id';
 
@@ -67,7 +67,7 @@ WHERE id = 'your-lead-id';
 
 -- Record that a lead was sent to a campaign
 INSERT INTO campaign_sends (lead_id, lead_source, campaign_id, campaign_name, platform) VALUES
-('your-lead-id', 'linkedin', 'campaign-123', 'Q4 SaaS Outreach', 'heyreach');
+('your-lead-id', 'LinkedIn', 'campaign-123', 'Q4 SaaS Outreach', 'heyreach');
 
 -- Update campaign status when lead replies
 UPDATE campaign_sends 
@@ -112,9 +112,9 @@ SELECT
   unnest(tags) as tag, 
   COUNT(*) as usage_count
 FROM (
-  SELECT tags FROM linkedin WHERE tags IS NOT NULL
+  SELECT tags FROM "LinkedIn" WHERE tags IS NOT NULL
   UNION ALL
-  SELECT tags FROM apollo WHERE tags IS NOT NULL
+  SELECT tags FROM "Apollo" WHERE tags IS NOT NULL
 ) all_tags
 GROUP BY tag
 ORDER BY usage_count DESC;
@@ -148,16 +148,16 @@ ORDER BY avg_reply_rate DESC;
 -- =========================================
 
 -- Find leads with empty or null tags
-SELECT * FROM linkedin WHERE tags IS NULL OR array_length(tags, 1) IS NULL;
-SELECT * FROM apollo WHERE tags IS NULL OR array_length(tags, 1) IS NULL;
+SELECT * FROM "LinkedIn" WHERE tags IS NULL OR array_length(tags, 1) IS NULL;
+SELECT * FROM "Apollo" WHERE tags IS NULL OR array_length(tags, 1) IS NULL;
 
 -- Clean up duplicate tags in a lead
-UPDATE linkedin 
+UPDATE "LinkedIn" 
 SET tags = (SELECT ARRAY(SELECT DISTINCT unnest(tags)))
 WHERE array_length(tags, 1) > 1;
 
 -- Find orphaned campaign sends (leads that don't exist)
 SELECT cs.* FROM campaign_sends cs
-LEFT JOIN linkedin l ON l.id = cs.lead_id AND cs.lead_source = 'linkedin'
-LEFT JOIN apollo a ON a.id = cs.lead_id AND cs.lead_source = 'apollo'
+LEFT JOIN "LinkedIn" l ON l.id = cs.lead_id AND cs.lead_source = 'LinkedIn'
+LEFT JOIN "Apollo" a ON a.id = cs.lead_id AND cs.lead_source = 'Apollo'
 WHERE l.id IS NULL AND a.id IS NULL;

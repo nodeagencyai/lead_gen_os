@@ -33,9 +33,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Map lead source to correct table name
+    const tableName = leadSource === 'linkedin' ? 'LinkedIn' : 'Apollo';
+    
     // Fetch leads data
     const { data: leads, error: fetchError } = await supabase
-      .from(leadSource)
+      .from(tableName)
       .select('*')
       .in('id', leadIds);
 
@@ -71,7 +74,7 @@ export default async function handler(req, res) {
     // Record campaign sends in database
     const campaignSends = leadIds.map(leadId => ({
       lead_id: leadId,
-      lead_source: leadSource,
+      lead_source: tableName,
       campaign_id: campaignId,
       campaign_name: campaignName || `Campaign ${campaignId}`,
       platform: platform,

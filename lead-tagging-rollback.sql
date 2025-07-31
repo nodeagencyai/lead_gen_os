@@ -9,12 +9,12 @@ DROP VIEW IF EXISTS leads_with_campaigns;
 DROP VIEW IF EXISTS campaign_analytics;
 
 -- Drop triggers
-DROP TRIGGER IF EXISTS update_linkedin_updated_at ON linkedin;
-DROP TRIGGER IF EXISTS update_apollo_updated_at ON apollo;
+DROP TRIGGER IF EXISTS update_linkedin_updated_at ON "LinkedIn";
+DROP TRIGGER IF EXISTS update_apollo_updated_at ON "Apollo";
 DROP TRIGGER IF EXISTS update_campaign_sends_updated_at ON campaign_sends;
 
--- Drop the update function
-DROP FUNCTION IF EXISTS update_updated_at_column();
+-- Don't drop the update function as it's used by other tables
+-- DROP FUNCTION IF EXISTS update_updated_at_column(); -- Commented out - function is shared
 
 -- Drop the campaign_sends table entirely
 DROP TABLE IF EXISTS campaign_sends;
@@ -30,24 +30,24 @@ DROP INDEX IF EXISTS idx_apollo_tags;
 DROP INDEX IF EXISTS idx_apollo_created_at;
 DROP INDEX IF EXISTS idx_apollo_updated_at;
 
--- Remove columns from linkedin table
-ALTER TABLE linkedin 
+-- Remove columns from LinkedIn table
+ALTER TABLE "LinkedIn" 
 DROP COLUMN IF EXISTS niche,
 DROP COLUMN IF EXISTS tags,
 DROP COLUMN IF EXISTS created_at,
 DROP COLUMN IF EXISTS updated_at;
 
--- Remove columns from apollo table
-ALTER TABLE apollo 
+-- Remove columns from Apollo table
+ALTER TABLE "Apollo" 
 DROP COLUMN IF EXISTS niche,
 DROP COLUMN IF EXISTS tags,
 DROP COLUMN IF EXISTS created_at,
 DROP COLUMN IF EXISTS updated_at;
 
 -- Verify rollback
-SELECT 'linkedin' as table_name, count(*) as row_count FROM linkedin
+SELECT 'LinkedIn' as table_name, count(*) as row_count FROM "LinkedIn"
 UNION ALL
-SELECT 'apollo' as table_name, count(*) as row_count FROM apollo;
+SELECT 'Apollo' as table_name, count(*) as row_count FROM "Apollo";
 
 COMMIT;
 
