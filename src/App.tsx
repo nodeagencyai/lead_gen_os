@@ -139,18 +139,18 @@ function App() {
               Campaigns
             </button>
             <button 
-              onClick={() => setCurrentView('integrations')}
-              className="transition-colors hover:opacity-80" 
-             style={{ color: currentView === 'integrations' ? '#ffffff' : '#888888' }}
-            >
-              Integrations
-            </button>
-            <button 
               onClick={() => setCurrentView('monitoring')}
               className="transition-colors hover:opacity-80" 
              style={{ color: currentView === 'monitoring' ? '#ffffff' : '#888888' }}
             >
               Monitoring
+            </button>
+            <button 
+              onClick={() => setCurrentView('integrations')}
+              className="transition-colors hover:opacity-80" 
+             style={{ color: currentView === 'integrations' ? '#ffffff' : '#888888' }}
+            >
+              Settings
             </button>
           </div>
           <div className="flex items-center space-x-4">

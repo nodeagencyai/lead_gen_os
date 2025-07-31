@@ -13,7 +13,7 @@ interface Integration {
 }
 
 interface IntegrationSetupProps {
-  onNavigate?: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations') => void;
+  onNavigate?: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
 }
 
 const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
@@ -220,11 +220,18 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                 Campaigns
               </button>
               <button 
+                onClick={() => onNavigate('monitoring')}
+                className="transition-colors hover:opacity-80" 
+                style={{ color: '#888888' }}
+              >
+                Monitoring
+              </button>
+              <button 
                 onClick={() => onNavigate('integrations')}
                 className="transition-colors hover:opacity-80" 
                 style={{ color: '#ffffff' }}
               >
-                Integrations
+                Settings
               </button>
             </div>
             <div className="flex items-center">
@@ -236,7 +243,7 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
 
       <div className="max-w-4xl mx-auto p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4 text-white">Integration Setup</h1>
+          <h1 className="text-3xl font-bold mb-4 text-white">Settings</h1>
           <p style={{ color: '#ffffff' }}>Connect your N8N workflows and automation platforms</p>
         </div>
 

@@ -218,18 +218,18 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
               Campaigns
             </button>
             <button 
-              onClick={() => onNavigate('integrations')}
-              className="transition-colors hover:opacity-80" 
-              style={{ color: '#888888' }}
-            >
-              Integrations
-            </button>
-            <button 
               onClick={() => onNavigate('monitoring')}
               className="transition-colors hover:opacity-80" 
               style={{ color: '#ffffff' }}
             >
               Monitoring
+            </button>
+            <button 
+              onClick={() => onNavigate('integrations')}
+              className="transition-colors hover:opacity-80" 
+              style={{ color: '#888888' }}
+            >
+              Settings
             </button>
           </div>
           <div className="flex items-center">

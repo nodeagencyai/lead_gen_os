@@ -20,7 +20,7 @@ interface Campaign {
 }
 
 interface CampaignsOverviewProps {
-  onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations') => void;
+  onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
 }
 
 const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => {
@@ -107,11 +107,18 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               Campaigns
             </button>
             <button 
+              onClick={() => onNavigate('monitoring')}
+              className="transition-colors hover:opacity-80" 
+             style={{ color: '#888888' }}
+            >
+              Monitoring
+            </button>
+            <button 
               className="transition-colors hover:opacity-80" 
              style={{ color: '#888888' }}
               onClick={() => onNavigate('integrations')}
             >
-              Integrations
+              Settings
             </button>
           </div>
           <div className="flex items-center">
