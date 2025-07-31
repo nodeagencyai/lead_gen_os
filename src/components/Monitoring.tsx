@@ -51,10 +51,16 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
       ]);
 
       if (dashboardResult.error) {
-        throw new Error(`Dashboard API: ${dashboardResult.error}`);
+        const errorMessage = typeof dashboardResult.error === 'string' 
+          ? dashboardResult.error 
+          : JSON.stringify(dashboardResult.error);
+        throw new Error(`Dashboard API: ${errorMessage}`);
       }
       if (healthResult.error) {
-        throw new Error(`Health API: ${healthResult.error}`);
+        const errorMessage = typeof healthResult.error === 'string' 
+          ? healthResult.error 
+          : JSON.stringify(healthResult.error);
+        throw new Error(`Health API: ${errorMessage}`);
       }
 
       setDashboardData(dashboardResult.data);
