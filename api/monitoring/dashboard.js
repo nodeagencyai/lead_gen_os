@@ -1,8 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Check for required environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Missing Supabase environment variables');
+}
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
+  supabaseUrl || 'https://efpwtvlgnftlabmliguf.supabase.co',
+  supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmcHd0dmxnbmZ0bGFibWxpZ3VmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Mzc4NjI2NywiZXhwIjoyMDY5MzYyMjY3fQ.jd7hbkp38CxkW05eSDcyJMwkidkE4REqxzqb7Fa1U9c'
 );
 
 export default async function handler(req, res) {
@@ -27,25 +35,56 @@ export default async function handler(req, res) {
     const hours = timeRange === '7d' ? 168 : timeRange === '30d' ? 720 : 24;
     const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
 
-    // Fetch data in parallel
-    const [executionsResult, errorsResult, leadsResult] = await Promise.all([
-      supabase
+    // Initialize default values
+    let executions = [];
+    let errors = [];
+    let leads = [];
+
+    // Try to fetch data from each table, but continue if tables don't exist
+    try {
+      const executionsResult = await supabase
         .from('workflow_executions')
         .select('*')
-        .gte('started_at', startTime.toISOString()),
-      supabase
+        .gte('started_at', startTime.toISOString());
+      
+      if (executionsResult.error) {
+        console.warn('workflow_executions table error:', executionsResult.error);
+      } else {
+        executions = executionsResult.data || [];
+      }
+    } catch (e) {
+      console.warn('Failed to fetch executions:', e.message);
+    }
+
+    try {
+      const errorsResult = await supabase
         .from('workflow_errors')
         .select('*')
-        .gte('occurred_at', startTime.toISOString()),
-      supabase
+        .gte('occurred_at', startTime.toISOString());
+      
+      if (errorsResult.error) {
+        console.warn('workflow_errors table error:', errorsResult.error);
+      } else {
+        errors = errorsResult.data || [];
+      }
+    } catch (e) {
+      console.warn('Failed to fetch errors:', e.message);
+    }
+
+    try {
+      const leadsResult = await supabase
         .from('lead_processing_status')
         .select('*')
-        .gte('created_at', startTime.toISOString())
-    ]);
-
-    const executions = executionsResult.data || [];
-    const errors = errorsResult.data || [];
-    const leads = leadsResult.data || [];
+        .gte('created_at', startTime.toISOString());
+      
+      if (leadsResult.error) {
+        console.warn('lead_processing_status table error:', leadsResult.error);
+      } else {
+        leads = leadsResult.data || [];
+      }
+    } catch (e) {
+      console.warn('Failed to fetch leads:', e.message);
+    }
 
     // Calculate metrics
     const executionStats = {

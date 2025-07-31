@@ -66,6 +66,11 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
       setDashboardData(dashboardResult.data);
       setHealthData(healthResult.data);
       
+      // Check if setup is required
+      if (healthResult.data?.status === 'setup_required') {
+        setError('Database setup required. Please run the monitoring setup SQL script in your Supabase dashboard.');
+      }
+      
       // Transform recent activity to workflow format
       if (dashboardResult.data?.recent_activity) {
         const transformedWorkflows = transformRecentActivity(dashboardResult.data.recent_activity);
@@ -361,8 +366,16 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #ef4444', color: '#ef4444' }}>
-            Error loading monitoring data: {error}
+          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #ef4444' }}>
+            <div className="font-semibold mb-2" style={{ color: '#ef4444' }}>Error loading monitoring data</div>
+            <div className="text-sm" style={{ color: '#ff6b6b' }}>{error}</div>
+            {error.includes('500') && (
+              <div className="mt-3 text-sm" style={{ color: '#ffa94d' }}>
+                <strong>This usually means the monitoring tables haven't been created yet.</strong>
+                <br />
+                Please run the <code style={{ backgroundColor: '#2a2a2a', padding: '2px 6px', borderRadius: '3px' }}>supabase-monitoring-setup.sql</code> script in your Supabase SQL Editor.
+              </div>
+            )}
           </div>
         )}
 
