@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, AlertCircle, CheckCircle, Clock, TrendingUp, TrendingDown, RefreshCw, Filter, Search } from 'lucide-react';
+import { Activity, AlertCircle, CheckCircle, Clock, RefreshCw, Filter, Search } from 'lucide-react';
 import CampaignToggle from './CampaignToggle';
 import { apiClient } from '../utils/apiClient';
 
@@ -148,72 +148,56 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
   const systemHealthMetrics = dashboardData ? [
     { 
       title: 'Total Workflows Run', 
-      value: (dashboardData.executions?.total || 0).toLocaleString(), 
-      change: '+23%', // Would need historical data for real calculation
-      positive: true 
+      value: (dashboardData.executions?.total || 0).toLocaleString()
     },
     { 
       title: 'System Uptime', 
-      value: healthData?.uptime || '99.8%', 
-      change: '+0.2%', 
-      positive: true 
+      value: healthData?.uptime || '99.8%'
     },
     { 
       title: 'Error Rate', 
       value: dashboardData.executions?.total > 0 
         ? `${Math.round((dashboardData.errors?.total / dashboardData.executions.total) * 100 * 100) / 100}%`
-        : '0%', 
-      change: dashboardData.errors?.total > 0 ? '+0.8%' : '-0.8%', 
-      positive: dashboardData.errors?.total === 0
+        : '0%'
     }
   ] : [
-    { title: 'Total Workflows Run', value: '0', change: '0%', positive: true },
-    { title: 'System Uptime', value: '100%', change: '0%', positive: true },
-    { title: 'Error Rate', value: '0%', change: '0%', positive: true }
+    { title: 'Total Workflows Run', value: '0' },
+    { title: 'System Uptime', value: '100%' },
+    { title: 'Error Rate', value: '0%' }
   ];
 
   const workflowMetrics = dashboardData ? [
     { 
       title: 'Apollo Workflows', 
-      value: (dashboardData.health?.apollo?.totalExecutions || 0).toLocaleString(), 
-      change: '+18%', 
-      positive: true 
+      value: (dashboardData.health?.apollo?.totalExecutions || 0).toLocaleString()
     },
     { 
       title: 'Apollo Success Rate', 
       value: dashboardData.health?.apollo?.totalExecutions > 0
         ? `${Math.round((dashboardData.health.apollo.successfulExecutions / dashboardData.health.apollo.totalExecutions) * 100 * 100) / 100}%`
-        : '0%', 
-      change: '+2.1%', 
-      positive: true 
+        : '0%'
     },
     { 
       title: 'LinkedIn Workflows', 
-      value: (dashboardData.health?.linkedin?.totalExecutions || 0).toLocaleString(), 
-      change: '+25%', 
-      positive: true 
+      value: (dashboardData.health?.linkedin?.totalExecutions || 0).toLocaleString()
     },
     { 
       title: 'LinkedIn Success Rate', 
       value: dashboardData.health?.linkedin?.totalExecutions > 0
         ? `${Math.round((dashboardData.health.linkedin.successfulExecutions / dashboardData.health.linkedin.totalExecutions) * 100 * 100) / 100}%`
-        : '0%', 
-      change: '+1.5%', 
-      positive: true 
+        : '0%'
     },
     { 
       title: 'Active Errors', 
       value: (dashboardData.errors?.bySeverity?.critical || 0).toString(), 
-      change: dashboardData.errors?.bySeverity?.critical > 0 ? '+2' : '-2', 
-      positive: dashboardData.errors?.bySeverity?.critical === 0, 
       isError: true 
     }
   ] : [
-    { title: 'Apollo Workflows', value: '0', change: '0%', positive: true },
-    { title: 'Apollo Success Rate', value: '0%', change: '0%', positive: true },
-    { title: 'LinkedIn Workflows', value: '0', change: '0%', positive: true },
-    { title: 'LinkedIn Success Rate', value: '0%', change: '0%', positive: true },
-    { title: 'Active Errors', value: '0', change: '0', positive: true, isError: true }
+    { title: 'Apollo Workflows', value: '0' },
+    { title: 'Apollo Success Rate', value: '0%' },
+    { title: 'LinkedIn Workflows', value: '0' },
+    { title: 'LinkedIn Success Rate', value: '0%' },
+    { title: 'Active Errors', value: '0', isError: true }
   ];
 
   // Initial data fetch and auto-refresh setup
@@ -403,11 +387,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                 }}
               >
                 <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{metric.title}</div>
-                <div className="text-2xl font-bold mb-2 text-white">{metric.value}</div>
-                <div className={`text-sm flex items-center`} style={{ color: metric.positive ? '#10b981' : '#ef4444' }}>
-                  {metric.positive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {metric.change}
-                </div>
+                <div className="text-2xl font-bold text-white">{metric.value}</div>
               </div>
             ))}
           </div>
@@ -437,14 +417,10 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                 }}
               >
                 <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{metric.title}</div>
-                <div className="text-2xl font-bold mb-2" style={{ 
+                <div className="text-2xl font-bold" style={{ 
                   color: metric.isError && parseInt(metric.value) > 0 ? '#ef4444' : '#ffffff' 
                 }}>
                   {metric.value}
-                </div>
-                <div className={`text-sm flex items-center`} style={{ color: metric.positive ? '#10b981' : '#ef4444' }}>
-                  {metric.positive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {metric.change}
                 </div>
               </div>
             ))}
