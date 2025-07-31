@@ -23,6 +23,42 @@
     },
     "api/test.js": {
       "maxDuration": 10
+    },
+    "api/monitoring/dashboard.js": {
+      "maxDuration": 60
+    },
+    "api/monitoring/health.js": {
+      "maxDuration": 10
+    },
+    "api/monitoring/leads/index.js": {
+      "maxDuration": 30
+    },
+    "api/monitoring/leads/[leadId].js": {
+      "maxDuration": 30
+    },
+    "api/monitoring/costs.js": {
+      "maxDuration": 30
+    },
+    "api/monitoring/retry.js": {
+      "maxDuration": 30
+    },
+    "api/monitoring/workflows/[workflow].js": {
+      "maxDuration": 60
+    },
+    "api/monitoring/refresh.js": {
+      "maxDuration": 120
+    },
+    "api/webhooks/workflow-status.js": {
+      "maxDuration": 30
+    },
+    "api/webhooks/error-report.js": {
+      "maxDuration": 30
+    },
+    "api/webhooks/lead-processing.js": {
+      "maxDuration": 30
+    },
+    "api/webhooks/api-usage.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
