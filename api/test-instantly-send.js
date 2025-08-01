@@ -11,8 +11,9 @@ export default async function handler(req, res) {
 
   const instantlyApiKey = process.env.INSTANTLY_API_KEY;
   const campaignIds = [
-    'afe7fbea-9d4e-491f-88e4-8f75985b9c07', // beta campaign
-    '2e3519c8-ac6f-4961-b803-e28c7423d080'  // sales development representative
+    '4bde0574-609a-409d-86cc-52b233699a2b', // Digital Marketing Agencies
+    '2e3519c8-ac6f-4961-b803-e28c7423d080', // Sales Development Representative
+    'afe7fbea-9d4e-491f-88e4-8f75985b9c07'  // Beta
   ];
   const campaignId = req.query.campaignId || campaignIds[0];
   
