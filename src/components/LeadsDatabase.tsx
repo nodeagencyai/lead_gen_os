@@ -55,7 +55,6 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
-  const [lastUsedCampaigns, setLastUsedCampaigns] = useState<{[key: string]: string}>({});
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -212,66 +211,12 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       const campaigns = data.items || data.campaigns || [];
       setAvailableCampaigns(campaigns);
       
-      // Auto-select based on niche intelligence
-      autoSelectCampaign(campaigns);
-      
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       setSendingMessage(`Failed to load campaigns: ${error instanceof Error ? error.message : 'Unknown error'}`);
       setSendingStatus('error');
     } finally {
       setCampaignsLoading(false);
-    }
-  };
-
-  // Smart campaign auto-selection based on lead niches
-  const autoSelectCampaign = (campaigns: any[]) => {
-    if (campaigns.length === 0) return;
-
-    // Get niches from selected leads
-    const selectedLeadNiches = selectedLeads
-      .map(leadId => {
-        const lead = filteredLeads.find(l => l.id.toString() === leadId);
-        return lead?.niche?.toLowerCase();
-      })
-      .filter(Boolean);
-
-    // Find most common niche
-    const nicheCount: {[key: string]: number} = {};
-    selectedLeadNiches.forEach(niche => {
-      if (niche) nicheCount[niche] = (nicheCount[niche] || 0) + 1;
-    });
-    
-    const dominantNiche = Object.keys(nicheCount).reduce((a, b) => 
-      nicheCount[a] > nicheCount[b] ? a : b, ''
-    );
-
-    // Try to find matching campaign by niche
-    let bestCampaign = null;
-    
-    if (dominantNiche) {
-      // Look for campaigns with niche in name
-      bestCampaign = campaigns.find(campaign => 
-        campaign.name?.toLowerCase().includes(dominantNiche)
-      );
-    }
-    
-    // Fallback to last used campaign for this niche
-    if (!bestCampaign && dominantNiche && lastUsedCampaigns[dominantNiche]) {
-      bestCampaign = campaigns.find(campaign => 
-        campaign.id === lastUsedCampaigns[dominantNiche]
-      );
-    }
-    
-    // Final fallback to first campaign
-    if (!bestCampaign) {
-      bestCampaign = campaigns[0];
-    }
-
-    if (bestCampaign) {
-      setSelectedCampaign(bestCampaign);
-      setCampaignId(bestCampaign.id || bestCampaign.campaignId || '');
-      setCampaignName(bestCampaign.name || bestCampaign.campaignName || '');
     }
   };
 
@@ -309,32 +254,6 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
       setSendingStatus('success');
       setSendingMessage(`Successfully sent ${selectedLeads.length} leads to ${campaignName}!`);
-      
-      // Remember this campaign for the dominant niche
-      if (selectedCampaign) {
-        const selectedLeadNiches = selectedLeads
-          .map(leadId => {
-            const lead = filteredLeads.find(l => l.id.toString() === leadId);
-            return lead?.niche?.toLowerCase();
-          })
-          .filter(Boolean);
-
-        const nicheCount: {[key: string]: number} = {};
-        selectedLeadNiches.forEach(niche => {
-          if (niche) nicheCount[niche] = (nicheCount[niche] || 0) + 1;
-        });
-        
-        const dominantNiche = Object.keys(nicheCount).reduce((a, b) => 
-          nicheCount[a] > nicheCount[b] ? a : b, ''
-        );
-
-        if (dominantNiche) {
-          setLastUsedCampaigns(prev => ({
-            ...prev,
-            [dominantNiche]: selectedCampaign.id || selectedCampaign.campaignId
-          }));
-        }
-      }
       
       // Clear selections and form
       setSelectedLeads([]);
@@ -642,9 +561,29 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
           </div>
         )}
 
-        {/* Smart Campaign Selection Bar */}
+        {/* Campaign Selection Panel */}
         {showCampaignSend && (
           <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #10b981' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold" style={{ color: '#10b981' }}>
+                Send {selectedLeads.length} leads to {mode === 'email' ? 'Instantly' : 'HeyReach'} Campaign
+              </h3>
+              <button
+                onClick={() => {
+                  setShowCampaignSend(false);
+                  setSendingStatus('idle');
+                  setSendingMessage('');
+                  setSelectedCampaign(null);
+                  setCampaignId('');
+                  setCampaignName('');
+                }}
+                className="text-sm px-3 py-1 rounded transition-colors hover:opacity-80"
+                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+              >
+                Cancel
+              </button>
+            </div>
+
             {/* Status Message */}
             {sendingMessage && (
               <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
@@ -659,118 +598,100 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
               </div>
             )}
 
-            {/* Inline Campaign Selection */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                {/* Selection Count */}
-                <div className="flex items-center space-x-2 px-3 py-2 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-                  <CheckCircle size={16} style={{ color: '#10b981' }} />
-                  <span className="text-sm font-medium" style={{ color: '#10b981' }}>
-                    {selectedLeads.length} selected
-                  </span>
+            {/* Campaign Selection */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-3" style={{ color: '#cccccc' }}>
+                Choose Campaign *
+              </label>
+              
+              {campaignsLoading ? (
+                <div className="flex items-center space-x-2 px-4 py-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                  <Loader className="w-5 h-5 animate-spin" style={{ color: '#888888' }} />
+                  <span className="text-sm" style={{ color: '#888888' }}>Loading available campaigns...</span>
                 </div>
-
-                {/* Campaign Dropdown */}
-                <div className="relative">
-                  {campaignsLoading ? (
-                    <div className="flex items-center space-x-2 px-4 py-2 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-                      <Loader className="w-4 h-4 animate-spin" style={{ color: '#888888' }} />
-                      <span className="text-sm" style={{ color: '#888888' }}>Loading campaigns...</span>
-                    </div>
-                  ) : availableCampaigns.length > 0 ? (
-                    <select
-                      value={selectedCampaign?.id || selectedCampaign?.campaignId || ''}
-                      onChange={(e) => {
-                        const campaign = availableCampaigns.find(c => 
-                          (c.id || c.campaignId) === e.target.value
-                        );
-                        if (campaign) {
-                          setSelectedCampaign(campaign);
-                          setCampaignId(campaign.id || campaign.campaignId || '');
-                          setCampaignName(campaign.name || campaign.campaignName || '');
-                        }
-                      }}
-                      className="px-4 py-2 rounded-lg focus:outline-none transition-all duration-300 min-w-[200px]"
-                      style={{
-                        backgroundColor: '#0f0f0f',
-                        border: '1px solid #333333',
-                        color: '#ffffff'
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = '#10b981';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#333333';
-                      }}
-                    >
-                      <option value="" disabled>Select Campaign</option>
-                      {availableCampaigns.map((campaign) => (
-                        <option 
-                          key={campaign.id || campaign.campaignId} 
-                          value={campaign.id || campaign.campaignId}
-                          style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}
-                        >
-                          {campaign.name || campaign.campaignName} 
-                          {campaign.leadCount ? ` (${campaign.leadCount} leads)` : ''}
-                          {campaign.status ? ` - ${campaign.status}` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: '#1a0f0f', border: '1px solid #ef4444', color: '#ef4444' }}>
-                      No campaigns available
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-                    setShowCampaignSend(false);
-                    setSendingStatus('idle');
-                    setSendingMessage('');
+              ) : availableCampaigns.length > 0 ? (
+                <select
+                  value={selectedCampaign?.id || selectedCampaign?.campaignId || ''}
+                  onChange={(e) => {
+                    const campaign = availableCampaigns.find(c => 
+                      (c.id || c.campaignId) === e.target.value
+                    );
+                    if (campaign) {
+                      setSelectedCampaign(campaign);
+                      setCampaignId(campaign.id || campaign.campaignId || '');
+                      setCampaignName(campaign.name || campaign.campaignName || '');
+                    }
                   }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-80"
-                  style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
-                >
-                  Cancel
-                </button>
-                
-                <button
-                  onClick={handleSendToCampaign}
-                  disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
-                  className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none transition-all duration-300"
                   style={{
-                    backgroundColor: '#10b981',
-                    border: '1px solid #059669',
-                    color: '#ffffff'
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#10b981';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
                   }}
                 >
-                  {sendingStatus === 'loading' ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader className="w-4 h-4 animate-spin" />
-                      <span>Sending...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Send size={16} />
-                      <span>Send to {mode === 'email' ? 'Instantly' : 'HeyReach'}</span>
-                    </div>
-                  )}
-                </button>
-              </div>
+                  <option value="" disabled style={{ backgroundColor: '#1a1a1a', color: '#888888' }}>
+                    Select a campaign to send leads to...
+                  </option>
+                  {availableCampaigns.map((campaign) => (
+                    <option 
+                      key={campaign.id || campaign.campaignId} 
+                      value={campaign.id || campaign.campaignId}
+                      style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}
+                    >
+                      {campaign.name || campaign.campaignName}
+                      {campaign.leadCount ? ` (${campaign.leadCount} leads)` : ''}
+                      {campaign.status ? ` - ${campaign.status}` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="px-4 py-3 rounded-lg text-sm flex items-center space-x-2" style={{ backgroundColor: '#1a0f0f', border: '1px solid #ef4444', color: '#ef4444' }}>
+                  <AlertCircle size={16} />
+                  <span>No campaigns available. Please check your {mode === 'email' ? 'Instantly' : 'HeyReach'} account.</span>
+                </div>
+              )}
+              
+              {selectedCampaign && (
+                <div className="mt-2 text-xs" style={{ color: '#888888' }}>
+                  Selected: <span style={{ color: '#10b981' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
+                  {selectedCampaign.status && <span> • Status: {selectedCampaign.status}</span>}
+                  {selectedCampaign.leadCount && <span> • Current leads: {selectedCampaign.leadCount}</span>}
+                </div>
+              )}
             </div>
 
-            {/* Campaign Info */}
-            {selectedCampaign && (
-              <div className="mt-3 text-xs" style={{ color: '#888888' }}>
-                Sending to: <span style={{ color: '#10b981' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
-                {selectedCampaign.status && <span> • Status: {selectedCampaign.status}</span>}
-                {selectedCampaign.leadCount && <span> • Current leads: {selectedCampaign.leadCount}</span>}
-              </div>
-            )}
+            {/* Send Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleSendToCampaign}
+                disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
+                className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: '#10b981',
+                  border: '1px solid #059669',
+                  color: '#ffffff'
+                }}
+              >
+                {sendingStatus === 'loading' ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader className="w-4 h-4 animate-spin" />
+                    <span>Sending {selectedLeads.length} leads...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Send size={16} />
+                    <span>Send {selectedLeads.length} Leads to Campaign</span>
+                  </div>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
