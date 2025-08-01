@@ -15,6 +15,12 @@
     },
     "api/heyreach/check-lead.js": {
       "maxDuration": 30
+    },
+    "api/debug-supabase.js": {
+      "maxDuration": 30
+    },
+    "api/debug-campaign-send.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
