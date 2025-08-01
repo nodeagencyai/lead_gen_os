@@ -172,9 +172,12 @@ class ApiClient {
   }
 
   // Specialized methods for different APIs - FORCE proxy routes only
-  async instantly<T>(endpoint: string): Promise<ApiResponse<T>> {
+  async instantly<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     // ALWAYS use serverless proxy - NO direct external API calls
     console.log(`📡 FORCED PROXY: /api/instantly${endpoint}`);
+    if (data) {
+      return this.post<T>(`/api/instantly${endpoint}`, data);
+    }
     return this.get<T>(`/api/instantly${endpoint}`);
   }
 

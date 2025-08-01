@@ -30,9 +30,18 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('🔄 Fetching analytics from Instantly...');
+    // Get campaign_id from query params for specific campaign analytics
+    const { campaign_id } = req.query;
+    
+    console.log(`🔄 Fetching analytics from Instantly${campaign_id ? ` for campaign ${campaign_id}` : ' (all campaigns)'}...`);
 
-    const response = await fetch('https://api.instantly.ai/api/v2/campaigns/analytics', {
+    // Build URL with proper query parameters per API v2 docs
+    let url = 'https://api.instantly.ai/api/v2/campaigns/analytics';
+    if (campaign_id) {
+      url += `?id=${campaign_id}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${INSTANTLY_API_KEY}`,
@@ -53,6 +62,13 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Fetched analytics from Instantly');
+    console.log('📊 Analytics data structure:', {
+      hasItems: !!data.items,
+      isArray: Array.isArray(data),
+      keys: Object.keys(data),
+      firstItemKeys: data.items?.[0] ? Object.keys(data.items[0]) : 'no items'
+    });
+    
     res.status(200).json(data);
 
   } catch (error) {
