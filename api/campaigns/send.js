@@ -58,12 +58,26 @@ export default async function handler(req, res) {
     console.log('Supabase query result:', { leadsCount: leads?.length, error: fetchError });
 
     if (fetchError) {
-      console.error('Error fetching leads:', fetchError);
+      console.error('Error fetching leads:', {
+        error: fetchError,
+        message: fetchError.message,
+        code: fetchError.code,
+        details: fetchError.details,
+        hint: fetchError.hint,
+        table: tableName,
+        leadIds: leadIds
+      });
+      
       return res.status(500).json({ 
         error: 'Database error', 
-        details: fetchError.message,
+        message: fetchError.message,
+        code: fetchError.code,
+        details: fetchError.details,
+        hint: fetchError.hint,
         table: tableName,
-        leadIds 
+        leadIds,
+        supabase_url_exists: !!supabaseUrl,
+        supabase_key_exists: !!supabaseKey
       });
     }
 
