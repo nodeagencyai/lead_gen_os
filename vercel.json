@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "functions": {
     "api/heyreach/auth.js": {
       "maxDuration": 30
