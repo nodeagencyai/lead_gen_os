@@ -59,6 +59,21 @@
     },
     "api/webhooks/api-usage.js": {
       "maxDuration": 30
+    },
+    "api/campaigns/send.js": {
+      "maxDuration": 60
+    },
+    "api/instantly/check-lead.js": {
+      "maxDuration": 30
+    },
+    "api/heyreach/check-lead.js": {
+      "maxDuration": 30
+    },
+    "api/test-campaign-send.js": {
+      "maxDuration": 30
+    },
+    "api/test-instantly-send.js": {
+      "maxDuration": 30
     }
   },
   "headers": [
