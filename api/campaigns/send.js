@@ -16,40 +16,67 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  console.log('=== CAMPAIGN SEND REQUEST START ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', JSON.stringify(req.body, null, 2));
+
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight');
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { leadIds, leadSource, campaignId, campaignName, platform } = req.body;
 
+  console.log('Extracted fields:', { leadIds, leadSource, campaignId, campaignName, platform });
+
   if (!leadIds || !leadSource || !campaignId || !platform) {
+    console.log('Missing required fields validation failed');
     return res.status(400).json({ 
-      error: 'Missing required fields: leadIds, leadSource, campaignId, platform' 
+      error: 'Missing required fields: leadIds, leadSource, campaignId, platform',
+      received: { leadIds: !!leadIds, leadSource: !!leadSource, campaignId: !!campaignId, platform: !!platform }
     });
   }
 
   try {
     // Map lead source to correct table name
     const tableName = leadSource === 'linkedin' ? 'LinkedIn' : 'Apollo';
+    console.log('Using table name:', tableName);
     
     // Fetch leads data
+    console.log('Fetching leads from Supabase...');
     const { data: leads, error: fetchError } = await supabase
       .from(tableName)
       .select('*')
       .in('id', leadIds);
 
+    console.log('Supabase query result:', { leadsCount: leads?.length, error: fetchError });
+
     if (fetchError) {
       console.error('Error fetching leads:', fetchError);
-      throw fetchError;
+      return res.status(500).json({ 
+        error: 'Database error', 
+        details: fetchError.message,
+        table: tableName,
+        leadIds 
+      });
     }
 
     if (!leads || leads.length === 0) {
-      return res.status(404).json({ error: 'No leads found with provided IDs' });
+      console.log('No leads found with provided IDs');
+      return res.status(404).json({ 
+        error: 'No leads found with provided IDs',
+        table: tableName,
+        leadIds 
+      });
     }
+
+    console.log('Found leads:', leads.map(l => ({ id: l.id, email: l.email, name: l.full_name })));
 
     // Send to external platform
     let sendResult;
