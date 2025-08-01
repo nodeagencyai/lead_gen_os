@@ -59,12 +59,15 @@ export default async function handler(req, res) {
     const tableName = leadSource === 'linkedin' ? 'LinkedIn' : 'Apollo';
     console.log('Using table name:', tableName);
     
-    // Fetch leads data
+    // Fetch leads data - convert string IDs to integers
     console.log('Fetching leads from Supabase...');
+    const numericLeadIds = leadIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    console.log('Converted lead IDs:', { original: leadIds, converted: numericLeadIds });
+    
     const { data: leads, error: fetchError } = await supabase
       .from(tableName)
       .select('*')
-      .in('id', leadIds);
+      .in('id', numericLeadIds);
 
     console.log('Supabase query result:', { leadsCount: leads?.length, error: fetchError });
 
@@ -124,7 +127,7 @@ export default async function handler(req, res) {
     }
 
     // Record campaign sends in database
-    const campaignSends = leadIds.map(leadId => ({
+    const campaignSends = numericLeadIds.map(leadId => ({
       lead_id: leadId,
       lead_source: tableName,
       campaign_id: campaignId,
@@ -153,7 +156,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      count: leadIds.length,
+      count: numericLeadIds.length,
       campaign: campaignName || campaignId,
       platform: platform,
       sendResult: sendResult
