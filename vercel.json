@@ -10,6 +10,12 @@
     "api/instantly/check-lead.js": {
       "maxDuration": 30
     },
+    "api/instantly/leads.js": {
+      "maxDuration": 30
+    },
+    "api/instantly/analytics.js": {
+      "maxDuration": 30
+    },
     "api/heyreach/campaigns.js": {
       "maxDuration": 30
     },
