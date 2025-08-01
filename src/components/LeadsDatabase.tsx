@@ -153,9 +153,14 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       
       setSyncLoading(true);
       try {
-        const emails = leadsWithEmail.map(lead => lead.email!);
-        const uniqueEmails = [...new Set(emails)];
-        const statuses = await SyncService.checkMultipleLeads(uniqueEmails);
+        // Pass lead data including ID and source for accurate sync checking
+        const leadData = leadsWithEmail.map(lead => ({
+          email: lead.email!,
+          id: lead.id,
+          source: apolloLeads.includes(lead) ? 'Apollo' : 'LinkedIn'
+        }));
+        
+        const statuses = await SyncService.checkMultipleLeads(leadData);
         setSyncStatuses(statuses);
       } catch (error) {
         console.error('Error checking sync statuses:', error);
@@ -314,6 +319,25 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       setCampaignId('');
       setCampaignName('');
       setSelectedCampaign(null);
+      
+      // Clear sync cache to force refresh of sync status
+      SyncService.clearCache();
+      
+      // Re-check sync status for all leads
+      const allLeads = [...apolloLeads, ...linkedinLeads];
+      const leadsWithEmail = allLeads.filter(lead => lead.email);
+      if (leadsWithEmail.length > 0) {
+        const leadData = leadsWithEmail.map(lead => ({
+          email: lead.email!,
+          id: lead.id,
+          source: apolloLeads.includes(lead) ? 'Apollo' : 'LinkedIn'
+        }));
+        
+        // Trigger sync status update
+        SyncService.checkMultipleLeads(leadData).then(statuses => {
+          setSyncStatuses(statuses);
+        });
+      }
       
       // Auto-hide after success
       setTimeout(() => {

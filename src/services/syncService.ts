@@ -24,7 +24,7 @@ export class SyncService {
   private static cache = new Map<string, SyncStatus>();
   private static cacheTimeout = 5 * 60 * 1000; // 5 minutes cache
 
-  static async checkLeadSync(email: string): Promise<SyncStatus> {
+  static async checkLeadSync(email: string, leadId?: number, leadSource?: string): Promise<SyncStatus> {
     // Check cache first
     const cached = this.cache.get(email);
     if (cached) {
@@ -33,7 +33,7 @@ export class SyncService {
 
     // Check both platforms in parallel
     const [instantlyResult, heyreachResult] = await Promise.all([
-      this.checkInstantly(email),
+      this.checkInstantly(email, leadId, leadSource),
       this.checkHeyReach(email)
     ]);
 
@@ -53,14 +53,15 @@ export class SyncService {
     return syncStatus;
   }
 
-  static async checkInstantly(email: string): Promise<SyncStatus['instantly']> {
+  static async checkInstantly(email: string, leadId?: number, leadSource?: string): Promise<SyncStatus['instantly']> {
     try {
-      const response = await fetch('/api/instantly/check-lead', {
+      // Use the new database-based endpoint for more reliable sync status
+      const response = await fetch('/api/instantly/check-lead-db', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, leadId, leadSource })
       });
 
       if (!response.ok) {
@@ -105,15 +106,23 @@ export class SyncService {
     }
   }
 
-  static async checkMultipleLeads(emails: string[]): Promise<Map<string, SyncStatus>> {
+  static async checkMultipleLeads(
+    leads: Array<{ email: string; id?: number; source?: string }> | string[]
+  ): Promise<Map<string, SyncStatus>> {
     const results = new Map<string, SyncStatus>();
     
     // Process in batches to avoid overwhelming the APIs
     const batchSize = 10;
-    for (let i = 0; i < emails.length; i += batchSize) {
-      const batch = emails.slice(i, i + batchSize);
+    for (let i = 0; i < leads.length; i += batchSize) {
+      const batch = leads.slice(i, i + batchSize);
       const batchResults = await Promise.all(
-        batch.map(email => this.checkLeadSync(email))
+        batch.map(lead => {
+          if (typeof lead === 'string') {
+            return this.checkLeadSync(lead);
+          } else {
+            return this.checkLeadSync(lead.email, lead.id, lead.source);
+          }
+        })
       );
       
       batchResults.forEach(result => {
