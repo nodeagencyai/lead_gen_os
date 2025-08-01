@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle, X, RefreshCw } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
+import { SyncService, type SyncStatus } from '../services/syncService';
 
 interface DisplayLead {
   id: number;
@@ -21,6 +22,7 @@ interface DisplayLead {
   niche?: string;
   tags?: string[];
   selected: boolean;
+  syncStatus?: SyncStatus;
   [key: string]: any;
 }
 
@@ -55,6 +57,11 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([]);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  
+  // Sync status states
+  const [syncStatuses, setSyncStatuses] = useState<Map<string, SyncStatus>>(new Map());
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [showSyncedFilter, setShowSyncedFilter] = useState<'all' | 'synced' | 'not-synced'>('all');
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -136,6 +143,30 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     };
   }, []);
 
+  // Check sync status for all leads with emails
+  useEffect(() => {
+    const checkSyncStatus = async () => {
+      const allLeads = [...apolloLeads, ...linkedinLeads];
+      const leadsWithEmail = allLeads.filter(lead => lead.email);
+      
+      if (leadsWithEmail.length === 0) return;
+      
+      setSyncLoading(true);
+      try {
+        const emails = leadsWithEmail.map(lead => lead.email!);
+        const uniqueEmails = [...new Set(emails)];
+        const statuses = await SyncService.checkMultipleLeads(uniqueEmails);
+        setSyncStatuses(statuses);
+      } catch (error) {
+        console.error('Error checking sync statuses:', error);
+      } finally {
+        setSyncLoading(false);
+      }
+    };
+    
+    checkSyncStatus();
+  }, [apolloLeads, linkedinLeads]);
+
   const currentLeads = mode === 'email' ? apolloLeads : linkedinLeads;
   
   // Enhanced filtering logic
@@ -162,7 +193,13 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       (!dateRange.end || !lead.created_at || 
        new Date(lead.created_at) <= new Date(dateRange.end));
     
-    return matchesSearch && matchesNiche && matchesTag && matchesDateRange;
+    // Sync status filter
+    const syncStatus = lead.email ? syncStatuses.get(lead.email) : null;
+    const matchesSyncFilter = showSyncedFilter === 'all' ||
+      (showSyncedFilter === 'synced' && syncStatus?.overallSynced) ||
+      (showSyncedFilter === 'not-synced' && !syncStatus?.overallSynced);
+    
+    return matchesSearch && matchesNiche && matchesTag && matchesDateRange && matchesSyncFilter;
   });
 
   const handleSelectAll = (checked: boolean) => {
@@ -551,12 +588,68 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   setNicheFilter('');
                   setTagFilter('');
                   setDateRange({ start: '', end: '' });
+                  setShowSyncedFilter('all');
                 }}
                 className="text-xs px-3 py-1 rounded transition-colors hover:opacity-80"
                 style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
               >
                 Clear Filters
               </button>
+            </div>
+            
+            {/* Sync Status Filter */}
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid #333333' }}>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#cccccc' }}>
+                Filter by Sync Status
+              </label>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowSyncedFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showSyncedFilter === 'all' ? 'text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                  style={{
+                    backgroundColor: showSyncedFilter === 'all' ? '#333333' : '#0f0f0f',
+                    border: showSyncedFilter === 'all' ? '1px solid #555555' : '1px solid #333333'
+                  }}
+                >
+                  All Leads
+                </button>
+                <button
+                  onClick={() => setShowSyncedFilter('synced')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showSyncedFilter === 'synced' ? '' : 'hover:opacity-80'
+                  }`}
+                  style={{
+                    backgroundColor: showSyncedFilter === 'synced' ? '#10b98120' : '#0f0f0f',
+                    border: showSyncedFilter === 'synced' ? '1px solid #10b981' : '1px solid #333333',
+                    color: showSyncedFilter === 'synced' ? '#10b981' : '#888888'
+                  }}
+                >
+                  <CheckCircle size={14} />
+                  <span>Synced</span>
+                </button>
+                <button
+                  onClick={() => setShowSyncedFilter('not-synced')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showSyncedFilter === 'not-synced' ? '' : 'hover:opacity-80'
+                  }`}
+                  style={{
+                    backgroundColor: showSyncedFilter === 'not-synced' ? '#ef444420' : '#0f0f0f',
+                    border: showSyncedFilter === 'not-synced' ? '1px solid #ef4444' : '1px solid #333333',
+                    color: showSyncedFilter === 'not-synced' ? '#ef4444' : '#888888'
+                  }}
+                >
+                  <X size={14} />
+                  <span>Not Synced</span>
+                </button>
+                {syncLoading && (
+                  <div className="flex items-center space-x-2 px-4 py-2">
+                    <RefreshCw size={14} className="animate-spin" style={{ color: '#888888' }} />
+                    <span className="text-sm" style={{ color: '#888888' }}>Checking sync status...</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -800,6 +893,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Niche</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Tags</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Email</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Sync Status</th>
                   <th className="text-left p-4 w-12"></th>
                 </tr>
               </thead>
@@ -863,6 +957,57 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                       )}
                     </td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.email)}</td>
+                    <td className="p-4">
+                      {(() => {
+                        const syncStatus = lead.email ? syncStatuses.get(lead.email) : null;
+                        
+                        if (!lead.email) {
+                          return <span className="text-xs" style={{ color: '#666666' }}>No email</span>;
+                        }
+                        
+                        if (syncLoading && !syncStatus) {
+                          return (
+                            <div className="flex items-center space-x-1">
+                              <RefreshCw size={12} className="animate-spin" style={{ color: '#888888' }} />
+                              <span className="text-xs" style={{ color: '#888888' }}>Checking...</span>
+                            </div>
+                          );
+                        }
+                        
+                        if (syncStatus?.overallSynced) {
+                          const platforms = [];
+                          if (syncStatus.instantly.synced) platforms.push('Instantly');
+                          if (syncStatus.heyreach.synced) platforms.push('HeyReach');
+                          
+                          return (
+                            <div className="flex items-center space-x-2">
+                              <span className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs" style={{ 
+                                backgroundColor: '#10b98120', 
+                                color: '#10b981',
+                                border: '1px solid #10b98140'
+                              }}>
+                                <CheckCircle size={12} />
+                                <span>Synced</span>
+                              </span>
+                              <span className="text-xs" style={{ color: '#888888' }}>
+                                {platforms.join(', ')}
+                              </span>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <span className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs" style={{ 
+                              backgroundColor: '#ef444420', 
+                              color: '#ef4444',
+                              border: '1px solid #ef444440'
+                            }}>
+                              <X size={12} />
+                              <span>Not Synced</span>
+                            </span>
+                          );
+                        }
+                      })()}
+                    </td>
                     <td className="p-4">
                       <button className="p-1 rounded hover:bg-gray-700 transition-colors">
                         <MoreHorizontal size={16} style={{ color: '#888888' }} />
