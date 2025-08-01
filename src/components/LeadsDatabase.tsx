@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle, X, RefreshCw } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
@@ -68,44 +68,45 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     return String(value);
   };
 
-  useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch both Apollo and LinkedIn leads
-        const [apolloData, linkedinData] = await Promise.all([
-          LeadsService.getApolloLeads(searchTerm || undefined),
-          LeadsService.getLinkedInLeads(searchTerm || undefined)
-        ]);
-        
-        const apolloDisplayLeads: DisplayLead[] = apolloData.map(lead => ({
-          ...lead,
-          id: lead.id || 0,
-          selected: false
-        }));
-        
-        const linkedinDisplayLeads: DisplayLead[] = linkedinData.map(lead => ({
-          ...lead,
-          id: lead.id || 0,
-          selected: false
-        }));
-        
-        setApolloLeads(apolloDisplayLeads);
-        setLinkedinLeads(linkedinDisplayLeads);
-      } catch (err) {
-        console.error('Failed to fetch leads:', err);
-        setError(`Database connection error: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        setApolloLeads([]);
-        setLinkedinLeads([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLeads();
+  // Move fetchLeads to component scope so it can be called from anywhere
+  const fetchLeads = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch both Apollo and LinkedIn leads
+      const [apolloData, linkedinData] = await Promise.all([
+        LeadsService.getApolloLeads(searchTerm || undefined),
+        LeadsService.getLinkedInLeads(searchTerm || undefined)
+      ]);
+      
+      const apolloDisplayLeads: DisplayLead[] = apolloData.map(lead => ({
+        ...lead,
+        id: lead.id || 0,
+        selected: false
+      }));
+      
+      const linkedinDisplayLeads: DisplayLead[] = linkedinData.map(lead => ({
+        ...lead,
+        id: lead.id || 0,
+        selected: false
+      }));
+      
+      setApolloLeads(apolloDisplayLeads);
+      setLinkedinLeads(linkedinDisplayLeads);
+    } catch (err) {
+      console.error('Failed to fetch leads:', err);
+      setError(`Database connection error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setApolloLeads([]);
+      setLinkedinLeads([]);
+    } finally {
+      setLoading(false);
+    }
   }, [searchTerm]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [searchTerm, fetchLeads]);
 
   // Real-time subscriptions for live updates
   useEffect(() => {
