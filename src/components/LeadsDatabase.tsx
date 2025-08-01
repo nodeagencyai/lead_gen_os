@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle, X, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, Check, X, RefreshCw } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
@@ -994,7 +994,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                               color: '#10b981',
                               border: '1px solid #10b98140'
                             }}>
-                              <CheckCircle size={14} strokeWidth={2} />
+                              <Check size={14} strokeWidth={2} />
                               <span>Synced</span>
                             </span>
                           );
@@ -1005,7 +1005,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                               color: '#ef4444',
                               border: '1px solid #ef444440'
                             }}>
-                              <X size={14} strokeWidth={2.5} />
+                              <X size={14} strokeWidth={2} />
                               <span>Not Synced</span>
                             </span>
                           );
