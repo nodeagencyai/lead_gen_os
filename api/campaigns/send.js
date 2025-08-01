@@ -170,57 +170,134 @@ async function sendToInstantly(leads, campaignId) {
     }
   }));
 
-  // Use correct Instantly API v2 endpoint from official documentation
-  // Note: v2 API creates leads one by one, not in batches
+  // Use proper batch processing with concurrency control
+  const maxConcurrent = 3; // Conservative limit to avoid rate limiting
   const results = [];
   
-  for (const lead of instantlyLeads) {
-    console.log(`Sending individual lead: ${lead.email}`);
+  console.log(`Processing ${instantlyLeads.length} leads with max ${maxConcurrent} concurrent requests`);
+  
+  // Simple semaphore for concurrency control
+  class Semaphore {
+    constructor(max) {
+      this.max = max;
+      this.current = 0;
+      this.queue = [];
+    }
+
+    async acquire() {
+      if (this.current < this.max) {
+        this.current++;
+        return;
+      }
+      return new Promise(resolve => this.queue.push(resolve));
+    }
+
+    release() {
+      this.current--;
+      if (this.queue.length > 0) {
+        const resolve = this.queue.shift();
+        this.current++;
+        resolve();
+      }
+    }
+  }
+
+  const semaphore = new Semaphore(maxConcurrent);
+  
+  // Upload single lead with retry logic
+  const uploadSingleLead = async (lead, retryAttempts = 2) => {
+    await semaphore.acquire();
     
-    const response = await fetch(`https://api.instantly.ai/api/v2/leads`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${instantlyApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        campaign: campaignId,  // Required field
-        email: lead.email,     // Required field
+    try {
+      const payload = {
+        campaign: campaignId,
+        email: lead.email,
         first_name: lead.first_name,
         last_name: lead.last_name,
         company_name: lead.company_name,
         website: lead.website,
         phone: lead.phone,
         custom_variables: lead.custom_variables
-      })
-    });
+      };
 
-    const result = await response.json();
-    console.log(`Lead ${lead.email} result:`, response.status, result);
-    
-    if (!response.ok) {
-      console.error(`Failed to add lead ${lead.email}:`, result);
-      results.push({ email: lead.email, success: false, error: result });
-    } else {
-      results.push({ email: lead.email, success: true, id: result.id });
+      console.log(`Uploading lead: ${lead.email}`);
+
+      for (let attempt = 1; attempt <= retryAttempts; attempt++) {
+        try {
+          const response = await fetch(`https://api.instantly.ai/api/v2/leads`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${instantlyApiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          const result = await response.json();
+          
+          if (!response.ok) {
+            // Handle specific errors
+            if (response.status === 429) {
+              console.log(`Rate limited for ${lead.email}, waiting...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              continue; // Retry
+            }
+            
+            throw new Error(`API Error ${response.status}: ${JSON.stringify(result)}`);
+          }
+
+          console.log(`✅ Successfully uploaded: ${lead.email}`);
+          return { email: lead.email, success: true, id: result.id, result };
+
+        } catch (error) {
+          if (attempt === retryAttempts) {
+            console.error(`❌ Failed to upload ${lead.email} after ${retryAttempts} attempts:`, error.message);
+            return { email: lead.email, success: false, error: error.message };
+          }
+          
+          // Exponential backoff
+          const delay = Math.pow(2, attempt) * 1000;
+          console.log(`Retry ${attempt} for ${lead.email} in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    } finally {
+      semaphore.release();
     }
+  };
+
+  // Process all leads concurrently with semaphore control
+  const uploadPromises = instantlyLeads.map(lead => uploadSingleLead(lead));
+  const uploadResults = await Promise.all(uploadPromises);
+  
+  // Analyze results
+  const successful = uploadResults.filter(r => r.success);
+  const failed = uploadResults.filter(r => !r.success);
+  
+  console.log(`\n=== Upload Summary ===`);
+  console.log(`Total leads: ${instantlyLeads.length}`);
+  console.log(`Successful: ${successful.length}`);
+  console.log(`Failed: ${failed.length}`);
+  console.log(`Success rate: ${((successful.length / instantlyLeads.length) * 100).toFixed(1)}%`);
+  
+  if (failed.length > 0) {
+    console.log(`\nFailed leads:`);
+    failed.forEach(f => console.log(`- ${f.email}: ${f.error}`));
   }
   
-  // Check if any leads were successful
-  const successful = results.filter(r => r.success);
-  const failed = results.filter(r => !r.success);
-  
-  console.log(`Campaign send complete: ${successful.length} successful, ${failed.length} failed`);
-  
+  // Return results in expected format
   if (failed.length > 0 && successful.length === 0) {
-    // All failed
-    throw new Error(`All leads failed: ${failed.map(f => f.error?.message || 'Unknown error').join(', ')}`);
+    throw new Error(`All ${failed.length} leads failed to upload`);
   }
   
   return {
     successful: successful.length,
     failed: failed.length,
-    results: results
+    results: uploadResults,
+    details: {
+      successful_emails: successful.map(s => s.email),
+      failed_emails: failed.map(f => ({ email: f.email, error: f.error }))
+    }
   };
 }
 
