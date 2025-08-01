@@ -1,70 +1,16 @@
 {
   "version": 2,
   "functions": {
-    "api/heyreach/auth.js": {
-      "maxDuration": 30
-    },
-    "api/heyreach/accounts.js": {
-      "maxDuration": 30
-    },
-    "api/heyreach/campaigns.js": {
-      "maxDuration": 30
-    },
-    "api/heyreach/conversations.js": {
-      "maxDuration": 30
+    "api/campaigns/send.js": {
+      "maxDuration": 60
     },
     "api/instantly/campaigns.js": {
       "maxDuration": 30
     },
-    "api/instantly/analytics.js": {
-      "maxDuration": 30
-    },
-    "api/debug/env.js": {
-      "maxDuration": 10
-    },
-    "api/test.js": {
-      "maxDuration": 10
-    },
-    "api/monitoring/dashboard.js": {
-      "maxDuration": 60
-    },
-    "api/monitoring/health.js": {
-      "maxDuration": 10
-    },
-    "api/monitoring/leads/index.js": {
-      "maxDuration": 30
-    },
-    "api/monitoring/leads/[leadId].js": {
-      "maxDuration": 30
-    },
-    "api/monitoring/costs.js": {
-      "maxDuration": 30
-    },
-    "api/monitoring/retry.js": {
-      "maxDuration": 30
-    },
-    "api/monitoring/workflows/[workflow].js": {
-      "maxDuration": 60
-    },
-    "api/monitoring/refresh.js": {
-      "maxDuration": 120
-    },
-    "api/webhooks/workflow-status.js": {
-      "maxDuration": 30
-    },
-    "api/webhooks/error-report.js": {
-      "maxDuration": 30
-    },
-    "api/webhooks/lead-processing.js": {
-      "maxDuration": 30
-    },
-    "api/webhooks/api-usage.js": {
-      "maxDuration": 30
-    },
-    "api/campaigns/send.js": {
-      "maxDuration": 60
-    },
     "api/instantly/check-lead.js": {
+      "maxDuration": 30
+    },
+    "api/heyreach/campaigns.js": {
       "maxDuration": 30
     },
     "api/heyreach/check-lead.js": {
