@@ -994,7 +994,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                               color: '#10b981',
                               border: '1px solid #10b98140'
                             }}>
-                              <CheckCircle size={12} strokeWidth={2} />
+                              <CheckCircle size={14} strokeWidth={2} />
                               <span>Synced</span>
                             </span>
                           );
@@ -1005,7 +1005,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                               color: '#ef4444',
                               border: '1px solid #ef444440'
                             }}>
-                              <X size={12} strokeWidth={2} />
+                              <X size={14} strokeWidth={2.5} />
                               <span>Not Synced</span>
                             </span>
                           );
