@@ -18,6 +18,8 @@ interface DisplayLead {
   company_size?: string;
   location?: string;
   created_at?: string;
+  niche?: string;
+  tags?: string[];
   selected: boolean;
   [key: string]: any;
 }
@@ -36,6 +38,11 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [linkedinLeads, setLinkedinLeads] = useState<DisplayLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // New filter states
+  const [nicheFilter, setNicheFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -118,7 +125,33 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   }, []);
 
   const currentLeads = mode === 'email' ? apolloLeads : linkedinLeads;
-  const filteredLeads = currentLeads;
+  
+  // Enhanced filtering logic
+  const filteredLeads = currentLeads.filter(lead => {
+    // Search term filter (existing)
+    const matchesSearch = !searchTerm || 
+      lead.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Niche filter
+    const matchesNiche = !nicheFilter || 
+      (lead.niche && lead.niche.toLowerCase().includes(nicheFilter.toLowerCase()));
+    
+    // Tag filter
+    const matchesTag = !tagFilter || 
+      (lead.tags && Array.isArray(lead.tags) && 
+       lead.tags.some(tag => tag.toLowerCase().includes(tagFilter.toLowerCase())));
+    
+    // Date range filter
+    const matchesDateRange = (!dateRange.start || !lead.created_at || 
+      new Date(lead.created_at) >= new Date(dateRange.start)) &&
+      (!dateRange.end || !lead.created_at || 
+       new Date(lead.created_at) <= new Date(dateRange.end));
+    
+    return matchesSearch && matchesNiche && matchesTag && matchesDateRange;
+  });
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -269,6 +302,133 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Enhanced Filters Panel */}
+        {showFilters && (
+          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Niche Filter */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#cccccc' }}>
+                  Filter by Niche/Industry
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., SaaS, Fintech..."
+                  value={nicheFilter}
+                  onChange={(e) => setNicheFilter(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '14px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                  }}
+                />
+              </div>
+
+              {/* Tag Filter */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#cccccc' }}>
+                  Filter by Tags
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., enterprise, series-a..."
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '14px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                  }}
+                />
+              </div>
+
+              {/* Date Range Start */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#cccccc' }}>
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '14px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                  }}
+                />
+              </div>
+
+              {/* Date Range End */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: '#cccccc' }}>
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '14px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Filter Actions */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-xs" style={{ color: '#888888' }}>
+                {filteredLeads.length} leads match your filters
+              </div>
+              <button
+                onClick={() => {
+                  setNicheFilter('');
+                  setTagFilter('');
+                  setDateRange({ start: '', end: '' });
+                }}
+                className="text-xs px-3 py-1 rounded transition-colors hover:opacity-80"
+                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Leads Table */}
         <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
           {loading ? (
@@ -307,7 +467,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Full Name</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Title</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Company</th>
-                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>City</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Niche</th>
+                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Tags</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Email</th>
                   <th className="text-left p-4 w-12"></th>
                 </tr>
@@ -336,7 +497,41 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     <td className="p-4 text-sm" style={{ color: '#ffffff' }}>{formatFieldValue(lead.full_name)}</td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.title)}</td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.company)}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.city)}</td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
+                      {lead.niche ? (
+                        <span className="px-2 py-1 rounded-full text-xs" style={{ 
+                          backgroundColor: '#333333', 
+                          color: '#ffffff',
+                          border: '1px solid #555555'
+                        }}>
+                          {lead.niche}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#666666' }}>N/A</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
+                      {lead.tags && Array.isArray(lead.tags) && lead.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {lead.tags.slice(0, 2).map((tag, index) => (
+                            <span key={index} className="px-2 py-1 rounded-full text-xs" style={{ 
+                              backgroundColor: '#1a1a1a', 
+                              color: '#cccccc',
+                              border: '1px solid #333333'
+                            }}>
+                              {tag}
+                            </span>
+                          ))}
+                          {lead.tags.length > 2 && (
+                            <span className="text-xs" style={{ color: '#888888' }}>
+                              +{lead.tags.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#666666' }}>N/A</span>
+                      )}
+                    </td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.email)}</td>
                     <td className="p-4">
                       <button className="p-1 rounded hover:bg-gray-700 transition-colors">

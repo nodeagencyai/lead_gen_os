@@ -14,6 +14,10 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
   
+  // New niche/tag states
+  const [niche, setNiche] = useState('');
+  const [tags, setTags] = useState('');
+  
   const { mode } = useCampaignStore();
 
   // Get the correct webhook URL based on mode and action type
@@ -56,6 +60,8 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
         ? {
             url: targetUrl,
             limit: leadsLimit,
+            niche: niche || 'uncategorized',
+            tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
             timestamp: new Date().toISOString(),
             action: 'scrape',
             source: mode === 'email' ? 'apollo' : 'sales_navigator'
@@ -91,6 +97,8 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
       // Clear form on success for scraping
       if (actionType === 'scrape') {
         setTargetUrl('');
+        setNiche('');
+        setTags('');
       }
       
     } catch (error) {
@@ -296,6 +304,71 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                     e.target.style.backgroundColor = '#0f0f0f';
                   }}
                 />
+              </div>
+
+              {/* Niche/Industry Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
+                  Industry/Niche (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={niche}
+                  onChange={(e) => setNiche(e.target.value)}
+                  placeholder={mode === 'email' 
+                    ? "e.g., SaaS, Fintech, Healthcare, E-commerce..."
+                    : "e.g., Technology, Finance, Marketing, Consulting..."
+                  }
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                    e.target.style.backgroundColor = '#1a1a1a';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.backgroundColor = '#0f0f0f';
+                  }}
+                />
+                <div className="text-xs mt-2" style={{ color: '#888888' }}>
+                  Categorize leads by industry for better organization and targeting
+                </div>
+              </div>
+
+              {/* Tags Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
+                  Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="e.g., enterprise, series-a, remote-first, high-priority (comma-separated)"
+                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '16px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                    e.target.style.backgroundColor = '#1a1a1a';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.backgroundColor = '#0f0f0f';
+                  }}
+                />
+                <div className="text-xs mt-2" style={{ color: '#888888' }}>
+                  Add custom tags separated by commas to organize and filter leads
+                </div>
               </div>
 
               {/* Leads Limit for Scraping */}
