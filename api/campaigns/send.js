@@ -1,11 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Check for required environment variables  
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Check for required environment variables with multiple fallbacks
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
+
+console.log('Environment variables check:', {
+  supabase_url_exists: !!supabaseUrl,
+  supabase_url_source: supabaseUrl ? 'found' : 'missing',
+  supabase_key_exists: !!supabaseKey,
+  available_env_vars: Object.keys(process.env).filter(key => key.includes('SUPABASE'))
+});
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing required Supabase environment variables');
+  console.error('Missing required Supabase environment variables:', {
+    url_missing: !supabaseUrl,
+    key_missing: !supabaseKey,
+    available_vars: Object.keys(process.env).filter(key => key.includes('SUPABASE'))
+  });
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -157,7 +168,7 @@ export default async function handler(req, res) {
 }
 
 async function sendToInstantly(leads, campaignId) {
-  const instantlyApiKey = process.env.INSTANTLY_API_KEY || process.env.VITE_INSTANTLY_API_KEY;
+  const instantlyApiKey = process.env.VITE_INSTANTLY_API_KEY || process.env.INSTANTLY_API_KEY;
   
   if (!instantlyApiKey) {
     throw new Error('Instantly API key not configured');
@@ -316,7 +327,7 @@ async function sendToInstantly(leads, campaignId) {
 }
 
 async function sendToHeyReach(leads, campaignId) {
-  const heyreachApiKey = process.env.HEYREACH_API_KEY || process.env.VITE_HEYREACH_API_KEY;
+  const heyreachApiKey = process.env.VITE_HEYREACH_API_KEY || process.env.HEYREACH_API_KEY;
   
   if (!heyreachApiKey) {
     throw new Error('HeyReach API key not configured');

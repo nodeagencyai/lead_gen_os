@@ -1,8 +1,8 @@
 // Debug endpoint to test campaign send step by step
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
@@ -28,10 +28,10 @@ export default async function handler(req, res) {
     debug.environment = {
       supabase_url_exists: !!supabaseUrl,
       supabase_key_exists: !!supabaseKey,
-      instantly_key_exists: !!process.env.INSTANTLY_API_KEY,
-      heyreach_key_exists: !!process.env.HEYREACH_API_KEY,
+      instantly_key_exists: !!(process.env.VITE_INSTANTLY_API_KEY || process.env.INSTANTLY_API_KEY),
+      heyreach_key_exists: !!(process.env.VITE_HEYREACH_API_KEY || process.env.HEYREACH_API_KEY),
       supabase_url_length: supabaseUrl?.length || 0,
-      instantly_key_length: process.env.INSTANTLY_API_KEY?.length || 0
+      instantly_key_length: (process.env.VITE_INSTANTLY_API_KEY || process.env.INSTANTLY_API_KEY)?.length || 0
     };
 
     // Step 2: Test Supabase connection
@@ -54,12 +54,13 @@ export default async function handler(req, res) {
 
     // Step 3: Test Instantly API
     debug.steps.push('3. Testing Instantly API...');
-    if (process.env.INSTANTLY_API_KEY) {
+    const instantlyApiKey = process.env.VITE_INSTANTLY_API_KEY || process.env.INSTANTLY_API_KEY;
+    if (instantlyApiKey) {
       try {
         const instantlyResponse = await fetch('https://api.instantly.ai/api/v2/campaigns', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
+            'Authorization': `Bearer ${instantlyApiKey}`,
             'Content-Type': 'application/json',
           }
         });
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && req.body.testSend) {
       const { campaignId, testEmail } = req.body;
       
-      if (campaignId && process.env.INSTANTLY_API_KEY) {
+      if (campaignId && instantlyApiKey) {
         try {
           const testLead = {
             email: testEmail || 'test@example.com',
@@ -96,7 +97,7 @@ export default async function handler(req, res) {
           const sendResponse = await fetch('https://api.instantly.ai/api/v2/leads', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
+              'Authorization': `Bearer ${instantlyApiKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
