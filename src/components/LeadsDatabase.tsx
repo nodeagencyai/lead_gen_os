@@ -401,7 +401,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   }
                 }}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-                style={{ backgroundColor: '#10b981', border: '1px solid #059669', color: '#ffffff' }}
+                style={{ backgroundColor: '#3b82f6', border: '1px solid #2563eb', color: '#ffffff' }}
               >
                 <Send size={16} />
                 <span>Send to Campaign ({selectedLeads.length})</span>
@@ -563,9 +563,9 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
         {/* Campaign Selection Panel */}
         {showCampaignSend && (
-          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #10b981' }}>
+          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #3b82f6' }}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: '#10b981' }}>
+              <h3 className="text-lg font-semibold" style={{ color: '#3b82f6' }}>
                 Send {selectedLeads.length} leads to {mode === 'email' ? 'Instantly' : 'HeyReach'} Campaign
               </h3>
               <button
@@ -587,9 +587,9 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             {/* Status Message */}
             {sendingMessage && (
               <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
-                backgroundColor: sendingStatus === 'error' ? '#1a0f0f' : sendingStatus === 'success' ? '#0f1a0f' : '#1a1a1a',
-                border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#10b981' : '#333333'}`,
-                color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#10b981' : '#ffffff'
+                backgroundColor: sendingStatus === 'error' ? '#1a0f0f' : sendingStatus === 'success' ? '#0f1a1a' : '#1a1a1a',
+                border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#333333'}`,
+                color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#ffffff'
               }}>
                 {sendingStatus === 'error' && <AlertCircle className="w-5 h-5" />}
                 {sendingStatus === 'success' && <CheckCircle className="w-5 h-5" />}
@@ -630,7 +630,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     fontSize: '16px'
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = '#10b981';
+                    e.target.style.borderColor = '#3b82f6';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#333333';
@@ -660,7 +660,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
               
               {selectedCampaign && (
                 <div className="mt-2 text-xs" style={{ color: '#888888' }}>
-                  Selected: <span style={{ color: '#10b981' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
+                  Selected: <span style={{ color: '#3b82f6' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
                   {selectedCampaign.status && <span> • Status: {selectedCampaign.status}</span>}
                   {selectedCampaign.leadCount && <span> • Current leads: {selectedCampaign.leadCount}</span>}
                 </div>
@@ -674,8 +674,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                 disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
                 className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
-                  backgroundColor: '#10b981',
-                  border: '1px solid #059669',
+                  backgroundColor: '#3b82f6',
+                  border: '1px solid #2563eb',
                   color: '#ffffff'
                 }}
               >
