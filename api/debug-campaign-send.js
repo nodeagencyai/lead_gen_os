@@ -93,16 +93,18 @@ export default async function handler(req, res) {
             company_name: 'Test Company'
           };
 
-          const sendResponse = await fetch('https://api.instantly.ai/api/v2/lead/add', {
+          const sendResponse = await fetch('https://api.instantly.ai/api/v2/leads', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${process.env.INSTANTLY_API_KEY}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              campaign_id: campaignId,
-              leads: [testLead],
-              skip_if_in_workspace: true
+              campaign: campaignId,
+              email: testLead.email,
+              first_name: testLead.first_name,
+              last_name: testLead.last_name,
+              company_name: testLead.company_name
             })
           });
 

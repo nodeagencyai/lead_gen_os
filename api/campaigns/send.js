@@ -170,38 +170,58 @@ async function sendToInstantly(leads, campaignId) {
     }
   }));
 
-  // Use Instantly API v2 endpoint - correct format
-  const response = await fetch(`https://api.instantly.ai/api/v2/lead/add`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${instantlyApiKey}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    body: JSON.stringify({
-      campaign_id: campaignId,
-      leads: instantlyLeads,
-      skip_if_in_workspace: true // Avoid duplicates
-    })
-  });
-
-  console.log('Formatted leads for Instantly:', JSON.stringify(instantlyLeads[0], null, 2)); // Log formatted lead
-  console.log('API request payload:', JSON.stringify({
-    campaign_id: campaignId,
-    leads: instantlyLeads.slice(0, 1), // Just first lead for logging
-    skip_if_in_workspace: true
-  }, null, 2));
-
-  const result = await response.json();
+  // Use correct Instantly API v2 endpoint from official documentation
+  // Note: v2 API creates leads one by one, not in batches
+  const results = [];
   
-  console.log('Instantly API response:', response.status, result);
-  
-  if (!response.ok) {
-    console.error('Instantly API error:', result);
-    throw new Error(`Instantly API error: ${result.error || result.message || response.statusText}`);
+  for (const lead of instantlyLeads) {
+    console.log(`Sending individual lead: ${lead.email}`);
+    
+    const response = await fetch(`https://api.instantly.ai/api/v2/leads`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${instantlyApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        campaign: campaignId,  // Required field
+        email: lead.email,     // Required field
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        company_name: lead.company_name,
+        website: lead.website,
+        phone: lead.phone,
+        custom_variables: lead.custom_variables
+      })
+    });
+
+    const result = await response.json();
+    console.log(`Lead ${lead.email} result:`, response.status, result);
+    
+    if (!response.ok) {
+      console.error(`Failed to add lead ${lead.email}:`, result);
+      results.push({ email: lead.email, success: false, error: result });
+    } else {
+      results.push({ email: lead.email, success: true, id: result.id });
+    }
   }
-
-  return result;
+  
+  // Check if any leads were successful
+  const successful = results.filter(r => r.success);
+  const failed = results.filter(r => !r.success);
+  
+  console.log(`Campaign send complete: ${successful.length} successful, ${failed.length} failed`);
+  
+  if (failed.length > 0 && successful.length === 0) {
+    // All failed
+    throw new Error(`All leads failed: ${failed.map(f => f.error?.message || 'Unknown error').join(', ')}`);
+  }
+  
+  return {
+    successful: successful.length,
+    failed: failed.length,
+    results: results
+  };
 }
 
 async function sendToHeyReach(leads, campaignId) {
