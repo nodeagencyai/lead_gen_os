@@ -59,17 +59,43 @@ export default async function handler(req, res) {
     const tableName = leadSource === 'linkedin' ? 'LinkedIn' : 'Apollo';
     console.log('Using table name:', tableName);
     
-    // Fetch leads data - convert string IDs to integers
+    // Fetch leads data - handle both integer and UUID IDs
     console.log('Fetching leads from Supabase...');
+    
+    // ENHANCED DEBUG: Check what IDs actually exist in the table
+    console.log('🔍 DEBUG: Checking actual IDs in table...');
+    const { data: sampleLeads, error: sampleError } = await supabase
+      .from(tableName)
+      .select('id, full_name, email')
+      .limit(10);
+    
+    console.log('🔍 Sample IDs in table:', sampleLeads?.map(l => ({ id: l.id, type: typeof l.id, name: l.full_name })));
+    
+    // Smart ID conversion: try integer first, then use original strings for UUIDs
+    let queryIds;
     const numericLeadIds = leadIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
-    console.log('Converted lead IDs:', { original: leadIds, converted: numericLeadIds });
+    
+    // If all IDs converted successfully to integers, use integers
+    if (numericLeadIds.length === leadIds.length) {
+      queryIds = numericLeadIds;
+      console.log('Using integer IDs:', queryIds);
+    } else {
+      // Otherwise, use original string IDs (for UUIDs)
+      queryIds = leadIds;
+      console.log('Using string IDs (UUIDs):', queryIds);
+    }
     
     const { data: leads, error: fetchError } = await supabase
       .from(tableName)
       .select('*')
-      .in('id', numericLeadIds);
+      .in('id', queryIds);
 
-    console.log('Supabase query result:', { leadsCount: leads?.length, error: fetchError });
+    console.log('Supabase query result:', { 
+      leadsCount: leads?.length, 
+      error: fetchError,
+      requestedIds: queryIds,
+      foundLeads: leads?.map(l => ({ id: l.id, name: l.full_name }))
+    });
 
     if (fetchError) {
       console.error('Error fetching leads:', {
@@ -127,7 +153,7 @@ export default async function handler(req, res) {
     }
 
     // Record campaign sends in database
-    const campaignSends = numericLeadIds.map(leadId => ({
+    const campaignSends = queryIds.map(leadId => ({
       lead_id: leadId,
       lead_source: tableName,
       campaign_id: campaignId,
@@ -156,7 +182,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      count: numericLeadIds.length,
+      count: queryIds.length,
       campaign: campaignName || campaignId,
       platform: platform,
       sendResult: sendResult

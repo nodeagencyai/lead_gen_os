@@ -276,6 +276,16 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       platform: mode === 'email' ? 'instantly' : 'heyreach'
     };
 
+    console.log('🔍 FRONTEND DEBUG: Selected lead details:', {
+      selectedLeadsRaw: selectedLeads,
+      selectedLeadsCount: selectedLeads.length,
+      actualLeadObjects: selectedLeads.map(id => {
+        const lead = filteredLeads.find(l => l.id.toString() === id);
+        return lead ? { id: lead.id, idType: typeof lead.id, name: lead.full_name, email: lead.email } : null;
+      }).filter(Boolean),
+      payload
+    });
+
     console.log('Sending leads with payload:', payload);
 
     try {
