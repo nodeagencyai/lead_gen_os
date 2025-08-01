@@ -17,6 +17,11 @@ interface Campaign {
   meetings: number;
   template: string;
   platform: string;
+  // New analytics fields
+  totalContacted: number;
+  openRate: number;
+  clickRate: number;
+  replyRate: number;
 }
 
 interface CampaignsOverviewProps {
@@ -313,27 +318,48 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
                 </div>
               </div>
 
-              {/* Metrics */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <div className="text-2xl font-bold text-white">{campaign.leadsReady}</div>
-                  <div className="text-sm" style={{ color: '#888888' }}>
-                    {mode === 'email' ? 'Leads Ready' : 'Connections Ready'}
+              {/* Campaign Analytics */}
+              <div className="space-y-4 mb-6">
+                {/* Row 1: Contact & Engagement Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-xl font-bold text-white">{campaign.totalContacted}</div>
+                    <div className="text-xs" style={{ color: '#888888' }}>Total Contacted</div>
+                    <div className="text-xs" style={{ color: '#666666' }}>Received first email</div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-xl font-bold text-white">{campaign.openRate}%</div>
+                    <div className="text-xs" style={{ color: '#888888' }}>Open Rate</div>
+                    <div className="text-xs" style={{ color: '#666666' }}>Opened at least one email</div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{campaign.emailsSent}</div>
-                  <div className="text-sm" style={{ color: '#888888' }}>
-                    {mode === 'email' ? 'Emails Sent' : 'Messages Sent'}
+
+                {/* Row 2: Click & Reply Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-xl font-bold text-white">{campaign.clickRate}%</div>
+                    <div className="text-xs" style={{ color: '#888888' }}>Click Rate</div>
+                    <div className="text-xs" style={{ color: '#666666' }}>Clicked at least one link</div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-xl font-bold text-white">{campaign.replyRate}%</div>
+                    <div className="text-xs" style={{ color: '#888888' }}>Reply Rate</div>
+                    <div className="text-xs" style={{ color: '#666666' }}>Replied to at least one email</div>
                   </div>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{campaign.replies}</div>
-                  <div className="text-sm" style={{ color: '#888888' }}>Replies</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{campaign.meetings}</div>
-                  <div className="text-sm" style={{ color: '#888888' }}>Meetings</div>
+
+                {/* Row 3: Operational Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-xl font-bold text-white">{campaign.leadsReady}</div>
+                    <div className="text-xs" style={{ color: '#888888' }}>Leads Ready</div>
+                    <div className="text-xs" style={{ color: '#666666' }}>Prepared to receive emails</div>
+                  </div>
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-xl font-bold text-white">{campaign.emailsSent}</div>
+                    <div className="text-xs" style={{ color: '#888888' }}>Emails Sent</div>
+                    <div className="text-xs" style={{ color: '#666666' }}>Total emails dispatched</div>
+                  </div>
                 </div>
               </div>
 

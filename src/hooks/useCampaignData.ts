@@ -14,6 +14,11 @@ interface CampaignData {
   meetings: number;
   template: string;
   platform: string;
+  // New analytics fields
+  totalContacted: number;
+  openRate: number;
+  clickRate: number;
+  replyRate: number;
 }
 
 export const useCampaignData = (mode: 'email' | 'linkedin') => {
@@ -53,7 +58,12 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
               replies: 0,
               meetings: 0,
               template: 'General Outreach',
-              platform: 'Instantly'
+              platform: 'Instantly',
+              // New analytics fields with default values
+              totalContacted: 0,
+              openRate: 0,
+              clickRate: 0,
+              replyRate: 0
             })) || [];
             setCampaigns(mappedCampaigns);
           }
@@ -72,7 +82,12 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
             replies: 0,
             meetings: 0,
             template: 'General Outreach',
-            platform: 'Instantly'
+            platform: 'Instantly',
+            // New analytics fields with default values
+            totalContacted: 0,
+            openRate: 0,
+            clickRate: 0,
+            replyRate: 0
           })) || [];
           setCampaigns(mappedCampaigns);
         }
