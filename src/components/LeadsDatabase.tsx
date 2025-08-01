@@ -578,15 +578,15 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             />
             
             {/* Modal */}
-            <div className="relative bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 transform transition-all duration-300">
+            <div className="relative rounded-xl shadow-xl max-w-md w-full mx-4 transform transition-all duration-300" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
               <div className="p-6">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-white mb-2">
+                    <h2 className="text-xl font-semibold mb-2" style={{ color: '#ffffff' }}>
                       Send to Campaign
                     </h2>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-sm" style={{ color: '#888888' }}>
                       Add {selectedLeads.length} selected {selectedLeads.length === 1 ? 'lead' : 'leads'} to a {mode === 'email' ? 'email' : 'LinkedIn'} campaign
                     </p>
                   </div>
@@ -599,9 +599,10 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                       setCampaignId('');
                       setCampaignName('');
                     }}
-                    className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                    className="p-2 rounded-lg transition-colors hover:opacity-80"
+                    style={{ backgroundColor: '#333333', border: '1px solid #555555' }}
                   >
-                    <X size={20} className="text-gray-400" />
+                    <X size={20} style={{ color: '#888888' }} />
                   </button>
                 </div>
 
@@ -620,15 +621,15 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                 )}
 
                 {/* Campaign Selection */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2" style={{ color: '#cccccc' }}>
                     Select Campaign *
                   </label>
                   
                   {campaignsLoading ? (
-                    <div className="flex items-center space-x-2 px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg">
-                      <Loader className="w-5 h-5 animate-spin text-gray-400" />
-                      <span className="text-sm text-gray-400">Loading campaigns...</span>
+                    <div className="flex items-center space-x-2 px-4 py-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                      <Loader className="w-5 h-5 animate-spin" style={{ color: '#888888' }} />
+                      <span className="text-sm" style={{ color: '#888888' }}>Loading campaigns...</span>
                     </div>
                   ) : availableCampaigns.length > 0 ? (
                     <select
@@ -643,13 +644,26 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                           setCampaignName(campaign.name || campaign.campaignName || '');
                         }
                       }}
-                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                      className="w-full px-4 py-3 rounded-lg focus:outline-none transition-all duration-300"
+                      style={{
+                        backgroundColor: '#0f0f0f',
+                        border: '1px solid #333333',
+                        color: '#ffffff',
+                        fontSize: '16px'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#3b82f6';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#333333';
+                      }}
                     >
-                      <option value="" disabled>Choose a campaign...</option>
+                      <option value="" disabled style={{ backgroundColor: '#1a1a1a', color: '#888888' }}>Choose a campaign...</option>
                       {availableCampaigns.map((campaign) => (
                         <option 
                           key={campaign.id || campaign.campaignId} 
                           value={campaign.id || campaign.campaignId}
+                          style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}
                         >
                           {campaign.name || campaign.campaignName}
                           {campaign.leadCount ? ` (${campaign.leadCount} leads)` : ''}
@@ -658,18 +672,18 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                       ))}
                     </select>
                   ) : (
-                    <div className="px-4 py-3 bg-red-900 bg-opacity-20 border border-red-600 rounded-lg text-sm flex items-center space-x-2">
-                      <AlertCircle size={16} className="text-red-400" />
-                      <span className="text-red-400">No campaigns available</span>
+                    <div className="px-4 py-3 rounded-lg text-sm flex items-center space-x-2" style={{ backgroundColor: '#1a0f0f', border: '1px solid #ef4444', color: '#ef4444' }}>
+                      <AlertCircle size={16} />
+                      <span>No campaigns available</span>
                     </div>
                   )}
                 </div>
 
                 {/* Selected leads preview */}
                 {selectedLeads.length > 0 && (
-                  <div className="mb-4 p-3 bg-gray-900 rounded-lg">
-                    <p className="text-sm text-gray-400 mb-1">Sending:</p>
-                    <p className="text-sm text-white">
+                  <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <p className="text-sm mb-1" style={{ color: '#888888' }}>Sending:</p>
+                    <p className="text-sm" style={{ color: '#ffffff' }}>
                       {(() => {
                         const selectedLeadNames = selectedLeads
                           .map(leadId => {
@@ -688,11 +702,11 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
                 {/* Selected campaign info */}
                 {selectedCampaign && (
-                  <div className="mb-4 p-3 bg-blue-900 bg-opacity-20 border border-blue-600 rounded-lg">
-                    <p className="text-sm text-blue-400">
-                      Campaign: <span className="text-white font-medium">{selectedCampaign.name || selectedCampaign.campaignName}</span>
-                      {selectedCampaign.status && <span className="text-blue-300"> • {selectedCampaign.status}</span>}
-                      {selectedCampaign.leadCount && <span className="text-blue-300"> • {selectedCampaign.leadCount} existing leads</span>}
+                  <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: '#0f1a1a', border: '1px solid #3b82f6' }}>
+                    <p className="text-sm" style={{ color: '#3b82f6' }}>
+                      Campaign: <span style={{ color: '#ffffff', fontWeight: '500' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
+                      {selectedCampaign.status && <span style={{ color: '#cccccc' }}> • {selectedCampaign.status}</span>}
+                      {selectedCampaign.leadCount && <span style={{ color: '#cccccc' }}> • {selectedCampaign.leadCount} existing leads</span>}
                     </p>
                   </div>
                 )}
@@ -708,14 +722,20 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                       setCampaignId('');
                       setCampaignName('');
                     }}
-                    className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                    className="px-6 py-2.5 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                    style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSendToCampaign}
                     disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    style={{
+                      backgroundColor: '#3b82f6',
+                      border: '1px solid #2563eb',
+                      color: '#ffffff'
+                    }}
                   >
                     {sendingStatus === 'loading' ? (
                       <>
