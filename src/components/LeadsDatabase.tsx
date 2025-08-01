@@ -986,23 +986,17 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                         const isSynced = mode === 'email' 
                           ? (lead as any).instantly_synced === true
                           : (lead as any).heyreach_synced === true;
-                        const platformName = mode === 'email' ? 'Instantly' : 'HeyReach';
                         
                         if (isSynced) {
                           return (
-                            <div className="flex items-center space-x-2">
-                              <span className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs" style={{ 
-                                backgroundColor: '#10b98120', 
-                                color: '#10b981',
-                                border: '1px solid #10b98140'
-                              }}>
-                                <CheckCircle size={12} />
-                                <span>Synced</span>
-                              </span>
-                              <span className="text-xs" style={{ color: '#888888' }}>
-                                {platformName}
-                              </span>
-                            </div>
+                            <span className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs" style={{ 
+                              backgroundColor: '#10b98120', 
+                              color: '#10b981',
+                              border: '1px solid #10b98140'
+                            }}>
+                              <CheckCircle size={12} />
+                              <span>Synced</span>
+                            </span>
                           );
                         } else {
                           return (
