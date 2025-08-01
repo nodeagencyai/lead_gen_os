@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
   try {
     // Use server-side environment variable (NO VITE_ prefix)
-    const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY;
+    const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY || process.env.VITE_INSTANTLY_API_KEY;
     
     if (!INSTANTLY_API_KEY) {
       console.error('❌ Instantly API key not found');

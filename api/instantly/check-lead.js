@@ -28,8 +28,8 @@ export default async function handler(req, res) {
       });
     }
 
-    // Use server-side environment variable (NO VITE_ prefix)
-    const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY;
+    // Use server-side environment variable (with fallback to VITE_ prefixed version)
+    const INSTANTLY_API_KEY = process.env.INSTANTLY_API_KEY || process.env.VITE_INSTANTLY_API_KEY;
     
     if (!INSTANTLY_API_KEY) {
       console.error('❌ Instantly API key not found');
