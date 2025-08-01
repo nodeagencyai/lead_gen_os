@@ -123,27 +123,28 @@ async function sendToInstantly(leads, campaignId) {
   }
 
   console.log(`Sending ${leads.length} leads to Instantly campaign ${campaignId}`);
+  console.log('Lead data before formatting:', leads[0]); // Log first lead for debugging
 
-  // Format leads for Instantly API v2
+  // Format leads for Instantly API v2 - correct field names
   const instantlyLeads = leads.map(lead => ({
     email: lead.email,
-    firstName: lead.first_name || lead.full_name?.split(' ')[0] || '',
-    lastName: lead.last_name || lead.full_name?.split(' ').slice(1).join(' ') || '',
-    companyName: lead.company || '',
-    title: lead.title || '',
+    first_name: lead.first_name || lead.full_name?.split(' ')[0] || '',
+    last_name: lead.last_name || lead.full_name?.split(' ').slice(1).join(' ') || '',
+    company_name: lead.company || '',
+    job_title: lead.title || '',
     website: lead.website || '',
     location: lead.city || lead.location || '',
     phone: lead.phone || '',
-    customVariables: {
+    custom_variables: {
       niche: lead.niche || '',
-      tags: Array.isArray(lead.tags) ? lead.tags.join(', ') : '',
-      linkedinUrl: lead.linkedin_url || '',
+      tags: Array.isArray(lead.tags) ? lead.tags.join(', ') : (lead.tags || ''),
+      linkedin_url: lead.linkedin_url || '',
       industry: lead.industry || ''
     }
   }));
 
-  // Use Instantly API v2 endpoint
-  const response = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}/leads`, {
+  // Use Instantly API v2 endpoint - correct format
+  const response = await fetch(`https://api.instantly.ai/api/v2/lead/add`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${instantlyApiKey}`,
@@ -151,10 +152,18 @@ async function sendToInstantly(leads, campaignId) {
       'Accept': 'application/json'
     },
     body: JSON.stringify({
+      campaign_id: campaignId,
       leads: instantlyLeads,
       skip_if_in_workspace: true // Avoid duplicates
     })
   });
+
+  console.log('Formatted leads for Instantly:', JSON.stringify(instantlyLeads[0], null, 2)); // Log formatted lead
+  console.log('API request payload:', JSON.stringify({
+    campaign_id: campaignId,
+    leads: instantlyLeads.slice(0, 1), // Just first lead for logging
+    skip_if_in_workspace: true
+  }, null, 2));
 
   const result = await response.json();
   
