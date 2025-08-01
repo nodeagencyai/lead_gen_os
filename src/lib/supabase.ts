@@ -115,7 +115,7 @@ export interface Integration {
 
 // Apollo table structure for email campaigns
 export interface ApolloLead {
-  id: string;
+  id: number;
   full_name: string;
   first_name?: string;
   last_name?: string;
@@ -157,7 +157,7 @@ export interface ApolloLead {
 
 // LinkedIn table structure for LinkedIn campaigns
 export interface LinkedInLead {
-  id: string;
+  id: number;
   name: string;
   linkedin_url?: string;
   company?: string;

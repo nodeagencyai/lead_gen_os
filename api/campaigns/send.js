@@ -59,41 +59,36 @@ export default async function handler(req, res) {
     const tableName = leadSource === 'linkedin' ? 'LinkedIn' : 'Apollo';
     console.log('Using table name:', tableName);
     
-    // Fetch leads data - handle both integer and UUID IDs
+    // Fetch leads data - convert string IDs to integers (all IDs are now integers)
     console.log('Fetching leads from Supabase...');
     
-    // ENHANCED DEBUG: Check what IDs actually exist in the table
-    console.log('🔍 DEBUG: Checking actual IDs in table...');
-    const { data: sampleLeads, error: sampleError } = await supabase
-      .from(tableName)
-      .select('id, full_name, email')
-      .limit(10);
-    
-    console.log('🔍 Sample IDs in table:', sampleLeads?.map(l => ({ id: l.id, type: typeof l.id, name: l.full_name })));
-    
-    // Smart ID conversion: try integer first, then use original strings for UUIDs
-    let queryIds;
+    // Convert string IDs to integers (simple and reliable now)
     const numericLeadIds = leadIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+    console.log('Converting lead IDs:', { original: leadIds, converted: numericLeadIds });
     
-    // If all IDs converted successfully to integers, use integers
-    if (numericLeadIds.length === leadIds.length) {
-      queryIds = numericLeadIds;
-      console.log('Using integer IDs:', queryIds);
-    } else {
-      // Otherwise, use original string IDs (for UUIDs)
-      queryIds = leadIds;
-      console.log('Using string IDs (UUIDs):', queryIds);
+    // Validation: ensure all IDs converted successfully
+    if (numericLeadIds.length !== leadIds.length) {
+      console.error('❌ Invalid lead IDs detected:', {
+        original: leadIds,
+        converted: numericLeadIds,
+        failed: leadIds.filter(id => isNaN(parseInt(id, 10)))
+      });
+      return res.status(400).json({
+        error: 'Invalid lead IDs provided',
+        details: 'All lead IDs must be valid integers',
+        invalidIds: leadIds.filter(id => isNaN(parseInt(id, 10)))
+      });
     }
     
     const { data: leads, error: fetchError } = await supabase
       .from(tableName)
       .select('*')
-      .in('id', queryIds);
+      .in('id', numericLeadIds);
 
     console.log('Supabase query result:', { 
       leadsCount: leads?.length, 
       error: fetchError,
-      requestedIds: queryIds,
+      requestedIds: numericLeadIds,
       foundLeads: leads?.map(l => ({ id: l.id, name: l.full_name }))
     });
 
@@ -153,7 +148,7 @@ export default async function handler(req, res) {
     }
 
     // Record campaign sends in database
-    const campaignSends = queryIds.map(leadId => ({
+    const campaignSends = numericLeadIds.map(leadId => ({
       lead_id: leadId,
       lead_source: tableName,
       campaign_id: campaignId,
@@ -182,7 +177,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      count: queryIds.length,
+      count: numericLeadIds.length,
       campaign: campaignName || campaignId,
       platform: platform,
       sendResult: sendResult

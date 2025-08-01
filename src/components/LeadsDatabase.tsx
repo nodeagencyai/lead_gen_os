@@ -281,7 +281,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       selectedLeadsCount: selectedLeads.length,
       actualLeadObjects: selectedLeads.map(id => {
         const lead = filteredLeads.find(l => l.id.toString() === id);
-        return lead ? { id: lead.id, idType: typeof lead.id, name: lead.full_name, email: lead.email } : null;
+        return lead ? { id: lead.id, name: lead.full_name, email: lead.email } : null;
       }).filter(Boolean),
       payload
     });
