@@ -44,13 +44,16 @@ export default async function handler(req, res) {
 
   const { leadIds, leadSource, campaignId, campaignName, platform } = req.body;
 
-  console.log('Extracted fields:', { leadIds, leadSource, campaignId, campaignName, platform });
+  // Auto-determine platform based on lead source (platform param is optional)
+  const actualPlatform = leadSource === 'LinkedIn' ? 'heyreach' : 'instantly';
 
-  if (!leadIds || !leadSource || !campaignId || !platform) {
+  console.log('Extracted fields:', { leadIds, leadSource, campaignId, campaignName, platform, actualPlatform });
+
+  if (!leadIds || !leadSource || !campaignId) {
     console.log('Missing required fields validation failed');
     return res.status(400).json({ 
-      error: 'Missing required fields: leadIds, leadSource, campaignId, platform',
-      received: { leadIds: !!leadIds, leadSource: !!leadSource, campaignId: !!campaignId, platform: !!platform }
+      error: 'Missing required fields: leadIds, leadSource, campaignId',
+      received: { leadIds: !!leadIds, leadSource: !!leadSource, campaignId: !!campaignId }
     });
   }
 
@@ -130,15 +133,15 @@ export default async function handler(req, res) {
     // Send to external platform
     let sendResult;
     try {
-      if (platform === 'instantly') {
+      if (actualPlatform === 'instantly') {
         sendResult = await sendToInstantly(leads, campaignId);
-      } else if (platform === 'heyreach') {
+      } else if (actualPlatform === 'heyreach') {
         sendResult = await sendToHeyReach(leads, campaignId);
       } else {
-        throw new Error(`Unsupported platform: ${platform}`);
+        throw new Error(`Unsupported platform: ${actualPlatform}`);
       }
     } catch (platformError) {
-      console.error(`Error sending to ${platform}:`, platformError);
+      console.error(`Error sending to ${actualPlatform}:`, platformError);
       // Continue to log in database even if external API fails
       sendResult = { 
         error: platformError.message,
@@ -152,10 +155,10 @@ export default async function handler(req, res) {
       try {
         console.log(`Updating sync status for ${numericLeadIds.length} leads in ${tableName} table`);
         
-        // Use different column names based on platform
-        const syncColumns = platform === 'instantly' 
-          ? { instantly_synced: true, instantly_synced_at: new Date().toISOString() }
-          : { heyreach_synced: true, heyreach_synced_at: new Date().toISOString() };
+        // Use different column names based on lead source (fixed mapping)
+        const syncColumns = leadSource === 'LinkedIn' 
+          ? { heyreach_synced: true, heyreach_synced_at: new Date().toISOString() }
+          : { instantly_synced: true, instantly_synced_at: new Date().toISOString() };
         
         const { error: updateError } = await supabase
           .from(tableName)
@@ -165,7 +168,7 @@ export default async function handler(req, res) {
         if (updateError) {
           console.error('Error updating sync status:', updateError);
         } else {
-          console.log(`✅ Successfully updated ${platform} sync status for ${numericLeadIds.length} leads`);
+          console.log(`✅ Successfully updated ${actualPlatform} sync status for ${numericLeadIds.length} leads`);
         }
       } catch (syncError) {
         console.error('Error updating lead sync status:', syncError);
@@ -179,7 +182,7 @@ export default async function handler(req, res) {
       lead_source: tableName,
       campaign_id: campaignId,
       campaign_name: campaignName || `Campaign ${campaignId}`,
-      platform: platform,
+      platform: actualPlatform,
       sent_at: new Date().toISOString(),
       status: sendResult.error ? 'failed' : 'sent',
       response: sendResult,
@@ -205,7 +208,7 @@ export default async function handler(req, res) {
       success: true,
       count: numericLeadIds.length,
       campaign: campaignName || campaignId,
-      platform: platform,
+      platform: actualPlatform,
       sendResult: sendResult
     });
   } catch (error) {
