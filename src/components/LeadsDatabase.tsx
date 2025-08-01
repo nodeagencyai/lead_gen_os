@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
@@ -561,136 +561,176 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
           </div>
         )}
 
-        {/* Campaign Selection Panel */}
+        {/* Campaign Selection Modal */}
         {showCampaignSend && (
-          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #3b82f6' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: '#3b82f6' }}>
-                Send {selectedLeads.length} leads to {mode === 'email' ? 'Instantly' : 'HeyReach'} Campaign
-              </h3>
-              <button
-                onClick={() => {
-                  setShowCampaignSend(false);
-                  setSendingStatus('idle');
-                  setSendingMessage('');
-                  setSelectedCampaign(null);
-                  setCampaignId('');
-                  setCampaignName('');
-                }}
-                className="text-sm px-3 py-1 rounded transition-colors hover:opacity-80"
-                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
-              >
-                Cancel
-              </button>
-            </div>
-
-            {/* Status Message */}
-            {sendingMessage && (
-              <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
-                backgroundColor: sendingStatus === 'error' ? '#1a0f0f' : sendingStatus === 'success' ? '#0f1a1a' : '#1a1a1a',
-                border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#333333'}`,
-                color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#ffffff'
-              }}>
-                {sendingStatus === 'error' && <AlertCircle className="w-5 h-5" />}
-                {sendingStatus === 'success' && <CheckCircle className="w-5 h-5" />}
-                {sendingStatus === 'loading' && <Loader className="w-5 h-5 animate-spin" />}
-                <span>{sendingMessage}</span>
-              </div>
-            )}
-
-            {/* Campaign Selection */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-3" style={{ color: '#cccccc' }}>
-                Choose Campaign *
-              </label>
-              
-              {campaignsLoading ? (
-                <div className="flex items-center space-x-2 px-4 py-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-                  <Loader className="w-5 h-5 animate-spin" style={{ color: '#888888' }} />
-                  <span className="text-sm" style={{ color: '#888888' }}>Loading available campaigns...</span>
-                </div>
-              ) : availableCampaigns.length > 0 ? (
-                <select
-                  value={selectedCampaign?.id || selectedCampaign?.campaignId || ''}
-                  onChange={(e) => {
-                    const campaign = availableCampaigns.find(c => 
-                      (c.id || c.campaignId) === e.target.value
-                    );
-                    if (campaign) {
-                      setSelectedCampaign(campaign);
-                      setCampaignId(campaign.id || campaign.campaignId || '');
-                      setCampaignName(campaign.name || campaign.campaignName || '');
-                    }
-                  }}
-                  className="w-full px-4 py-3 rounded-lg focus:outline-none transition-all duration-300"
-                  style={{
-                    backgroundColor: '#0f0f0f',
-                    border: '1px solid #333333',
-                    color: '#ffffff',
-                    fontSize: '16px'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#333333';
-                  }}
-                >
-                  <option value="" disabled style={{ backgroundColor: '#1a1a1a', color: '#888888' }}>
-                    Select a campaign to send leads to...
-                  </option>
-                  {availableCampaigns.map((campaign) => (
-                    <option 
-                      key={campaign.id || campaign.campaignId} 
-                      value={campaign.id || campaign.campaignId}
-                      style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}
-                    >
-                      {campaign.name || campaign.campaignName}
-                      {campaign.leadCount ? ` (${campaign.leadCount} leads)` : ''}
-                      {campaign.status ? ` - ${campaign.status}` : ''}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <div className="px-4 py-3 rounded-lg text-sm flex items-center space-x-2" style={{ backgroundColor: '#1a0f0f', border: '1px solid #ef4444', color: '#ef4444' }}>
-                  <AlertCircle size={16} />
-                  <span>No campaigns available. Please check your {mode === 'email' ? 'Instantly' : 'HeyReach'} account.</span>
-                </div>
-              )}
-              
-              {selectedCampaign && (
-                <div className="mt-2 text-xs" style={{ color: '#888888' }}>
-                  Selected: <span style={{ color: '#3b82f6' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
-                  {selectedCampaign.status && <span> • Status: {selectedCampaign.status}</span>}
-                  {selectedCampaign.leadCount && <span> • Current leads: {selectedCampaign.leadCount}</span>}
-                </div>
-              )}
-            </div>
-
-            {/* Send Button */}
-            <div className="flex justify-end">
-              <button
-                onClick={handleSendToCampaign}
-                disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
-                className="px-6 py-3 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: '#3b82f6',
-                  border: '1px solid #2563eb',
-                  color: '#ffffff'
-                }}
-              >
-                {sendingStatus === 'loading' ? (
-                  <div className="flex items-center space-x-2">
-                    <Loader className="w-4 h-4 animate-spin" />
-                    <span>Sending {selectedLeads.length} leads...</span>
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black bg-opacity-75 transition-opacity duration-300" 
+              onClick={() => {
+                setShowCampaignSend(false);
+                setSendingStatus('idle');
+                setSendingMessage('');
+                setSelectedCampaign(null);
+                setCampaignId('');
+                setCampaignName('');
+              }}
+            />
+            
+            {/* Modal */}
+            <div className="relative bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 transform transition-all duration-300">
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white mb-2">
+                      Send to Campaign
+                    </h2>
+                    <p className="text-gray-400 text-sm">
+                      Add {selectedLeads.length} selected {selectedLeads.length === 1 ? 'lead' : 'leads'} to a {mode === 'email' ? 'email' : 'LinkedIn'} campaign
+                    </p>
                   </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Send size={16} />
-                    <span>Send {selectedLeads.length} Leads to Campaign</span>
+                  <button
+                    onClick={() => {
+                      setShowCampaignSend(false);
+                      setSendingStatus('idle');
+                      setSendingMessage('');
+                      setSelectedCampaign(null);
+                      setCampaignId('');
+                      setCampaignName('');
+                    }}
+                    className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <X size={20} className="text-gray-400" />
+                  </button>
+                </div>
+
+                {/* Status Message */}
+                {sendingMessage && (
+                  <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
+                    backgroundColor: sendingStatus === 'error' ? '#1a0f0f' : sendingStatus === 'success' ? '#0f1a1a' : '#1a1a1a',
+                    border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#333333'}`,
+                    color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#ffffff'
+                  }}>
+                    {sendingStatus === 'error' && <AlertCircle className="w-5 h-5" />}
+                    {sendingStatus === 'success' && <CheckCircle className="w-5 h-5" />}
+                    {sendingStatus === 'loading' && <Loader className="w-5 h-5 animate-spin" />}
+                    <span>{sendingMessage}</span>
                   </div>
                 )}
-              </button>
+
+                {/* Campaign Selection */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    Select Campaign *
+                  </label>
+                  
+                  {campaignsLoading ? (
+                    <div className="flex items-center space-x-2 px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg">
+                      <Loader className="w-5 h-5 animate-spin text-gray-400" />
+                      <span className="text-sm text-gray-400">Loading campaigns...</span>
+                    </div>
+                  ) : availableCampaigns.length > 0 ? (
+                    <select
+                      value={selectedCampaign?.id || selectedCampaign?.campaignId || ''}
+                      onChange={(e) => {
+                        const campaign = availableCampaigns.find(c => 
+                          (c.id || c.campaignId) === e.target.value
+                        );
+                        if (campaign) {
+                          setSelectedCampaign(campaign);
+                          setCampaignId(campaign.id || campaign.campaignId || '');
+                          setCampaignName(campaign.name || campaign.campaignName || '');
+                        }
+                      }}
+                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-blue-500 focus:outline-none transition-colors"
+                    >
+                      <option value="" disabled>Choose a campaign...</option>
+                      {availableCampaigns.map((campaign) => (
+                        <option 
+                          key={campaign.id || campaign.campaignId} 
+                          value={campaign.id || campaign.campaignId}
+                        >
+                          {campaign.name || campaign.campaignName}
+                          {campaign.leadCount ? ` (${campaign.leadCount} leads)` : ''}
+                          {campaign.status === 'active' || campaign.status === 'running' ? ' ✓' : campaign.status === 'paused' ? ' ⏸' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="px-4 py-3 bg-red-900 bg-opacity-20 border border-red-600 rounded-lg text-sm flex items-center space-x-2">
+                      <AlertCircle size={16} className="text-red-400" />
+                      <span className="text-red-400">No campaigns available</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected leads preview */}
+                {selectedLeads.length > 0 && (
+                  <div className="mb-4 p-3 bg-gray-900 rounded-lg">
+                    <p className="text-sm text-gray-400 mb-1">Sending:</p>
+                    <p className="text-sm text-white">
+                      {(() => {
+                        const selectedLeadNames = selectedLeads
+                          .map(leadId => {
+                            const lead = filteredLeads.find(l => l.id.toString() === leadId);
+                            return lead?.full_name || 'Unknown';
+                          })
+                          .filter(name => name !== 'Unknown');
+                        
+                        if (selectedLeadNames.length === 0) return `${selectedLeads.length} leads`;
+                        if (selectedLeadNames.length <= 3) return selectedLeadNames.join(', ');
+                        return `${selectedLeadNames.slice(0, 3).join(', ')} and ${selectedLeads.length - 3} more`;
+                      })()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Selected campaign info */}
+                {selectedCampaign && (
+                  <div className="mb-4 p-3 bg-blue-900 bg-opacity-20 border border-blue-600 rounded-lg">
+                    <p className="text-sm text-blue-400">
+                      Campaign: <span className="text-white font-medium">{selectedCampaign.name || selectedCampaign.campaignName}</span>
+                      {selectedCampaign.status && <span className="text-blue-300"> • {selectedCampaign.status}</span>}
+                      {selectedCampaign.leadCount && <span className="text-blue-300"> • {selectedCampaign.leadCount} existing leads</span>}
+                    </p>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setShowCampaignSend(false);
+                      setSendingStatus('idle');
+                      setSendingMessage('');
+                      setSelectedCampaign(null);
+                      setCampaignId('');
+                      setCampaignName('');
+                    }}
+                    className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendToCampaign}
+                    disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    {sendingStatus === 'loading' ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Send {selectedLeads.length} {selectedLeads.length === 1 ? 'Lead' : 'Leads'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
