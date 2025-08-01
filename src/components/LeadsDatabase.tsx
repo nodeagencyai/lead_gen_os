@@ -169,11 +169,13 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       (!dateRange.end || !lead.created_at || 
        new Date(lead.created_at) <= new Date(dateRange.end));
     
-    // Sync status filter using instantly_synced column
-    const isInstantlySynced = lead.instantly_synced === true;
+    // Sync status filter using platform-specific sync column
+    const isSynced = mode === 'email' 
+      ? (lead as any).instantly_synced === true
+      : (lead as any).heyreach_synced === true;
     const matchesSyncFilter = showSyncedFilter === 'all' ||
-      (showSyncedFilter === 'synced' && isInstantlySynced) ||
-      (showSyncedFilter === 'not-synced' && !isInstantlySynced);
+      (showSyncedFilter === 'synced' && isSynced) ||
+      (showSyncedFilter === 'not-synced' && !isSynced);
     
     return matchesSearch && matchesNiche && matchesTag && matchesDateRange && matchesSyncFilter;
   });
@@ -979,8 +981,13 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                           return <span className="text-xs" style={{ color: '#666666' }}>No email</span>;
                         }
                         
-                        // Check instantly_synced column directly from lead data
-                        if (lead.instantly_synced === true) {
+                        // Check platform-specific sync column
+                        const isSynced = mode === 'email' 
+                          ? (lead as any).instantly_synced === true
+                          : (lead as any).heyreach_synced === true;
+                        const platformName = mode === 'email' ? 'Instantly' : 'HeyReach';
+                        
+                        if (isSynced) {
                           return (
                             <div className="flex items-center space-x-2">
                               <span className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs" style={{ 
@@ -992,7 +999,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                                 <span>Synced</span>
                               </span>
                               <span className="text-xs" style={{ color: '#888888' }}>
-                                Instantly
+                                {platformName}
                               </span>
                             </div>
                           );

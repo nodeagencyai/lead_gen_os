@@ -151,18 +151,21 @@ export default async function handler(req, res) {
     if (!sendResult.error) {
       try {
         console.log(`Updating sync status for ${numericLeadIds.length} leads in ${tableName} table`);
+        
+        // Use different column names based on platform
+        const syncColumns = platform === 'instantly' 
+          ? { instantly_synced: true, instantly_synced_at: new Date().toISOString() }
+          : { heyreach_synced: true, heyreach_synced_at: new Date().toISOString() };
+        
         const { error: updateError } = await supabase
           .from(tableName)
-          .update({ 
-            instantly_synced: true, 
-            instantly_synced_at: new Date().toISOString() 
-          })
+          .update(syncColumns)
           .in('id', numericLeadIds);
 
         if (updateError) {
           console.error('Error updating sync status:', updateError);
         } else {
-          console.log(`✅ Successfully updated sync status for ${numericLeadIds.length} leads`);
+          console.log(`✅ Successfully updated ${platform} sync status for ${numericLeadIds.length} leads`);
         }
       } catch (syncError) {
         console.error('Error updating lead sync status:', syncError);

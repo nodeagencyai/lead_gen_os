@@ -39,12 +39,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // Determine which table to query
+    // Determine which table to query and which sync columns to check
     const tableName = leadSource === 'LinkedIn' ? 'LinkedIn' : 'Apollo';
+    const syncColumns = tableName === 'LinkedIn' 
+      ? 'id, heyreach_synced, heyreach_synced_at'
+      : 'id, instantly_synced, instantly_synced_at';
     
     let query = supabase
       .from(tableName)
-      .select('id, instantly_synced, instantly_synced_at')
+      .select(syncColumns)
       .limit(1);
 
     // Query by leadId if available, otherwise by email
@@ -57,28 +60,35 @@ export default async function handler(req, res) {
     const { data: leadData, error: queryError } = await query.single();
 
     if (queryError || !leadData) {
+      const platformName = tableName === 'LinkedIn' ? 'heyreach' : 'instantly';
       console.log(`Lead with ${leadId ? `ID ${leadId}` : `email ${email}`} not found in ${tableName} table`);
       return res.status(200).json({ 
         synced: false,
-        platform: 'instantly'
+        platform: platformName
       });
     }
 
-    // Check the instantly_synced column
-    const synced = leadData.instantly_synced === true;
+    // Check the appropriate sync column based on table
+    const synced = tableName === 'LinkedIn' 
+      ? leadData.heyreach_synced === true
+      : leadData.instantly_synced === true;
+    const syncedAt = tableName === 'LinkedIn' 
+      ? leadData.heyreach_synced_at
+      : leadData.instantly_synced_at;
+    const platformName = tableName === 'LinkedIn' ? 'heyreach' : 'instantly';
 
     if (synced) {
-      console.log(`✅ Lead ${leadId || email} is synced to Instantly (synced at: ${leadData.instantly_synced_at})`);
+      console.log(`✅ Lead ${leadId || email} is synced to ${platformName} (synced at: ${syncedAt})`);
       return res.status(200).json({ 
         synced: true,
-        platform: 'instantly',
-        syncedAt: leadData.instantly_synced_at
+        platform: platformName,
+        syncedAt: syncedAt
       });
     } else {
-      console.log(`❌ Lead ${leadId || email} is not synced to Instantly`);
+      console.log(`❌ Lead ${leadId || email} is not synced to ${platformName}`);
       return res.status(200).json({ 
         synced: false,
-        platform: 'instantly'
+        platform: platformName
       });
     }
 
@@ -88,7 +98,7 @@ export default async function handler(req, res) {
       synced: false,
       error: 'Failed to check sync status',
       message: error.message,
-      platform: 'instantly'
+      platform: 'unknown'
     });
   }
 }

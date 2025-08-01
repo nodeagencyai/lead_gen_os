@@ -169,8 +169,8 @@ export interface LinkedInLead {
   status: 'new' | 'contacted' | 'replied' | 'qualified' | 'converted' | 'unqualified';
   created_at: string;
   updated_at: string;
-  instantly_synced?: boolean;
-  instantly_synced_at?: string;
+  heyreach_synced?: boolean;
+  heyreach_synced_at?: string;
 }
 
 export type CampaignLead = ApolloLead | LinkedInLead;
