@@ -989,7 +989,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                         
                         if (isSynced) {
                           return (
-                            <span className="flex items-center justify-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium min-w-[80px]" style={{ 
+                            <span className="flex items-center justify-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium w-[90px]" style={{ 
                               backgroundColor: '#10b98120', 
                               color: '#10b981',
                               border: '1px solid #10b98140'
@@ -1000,7 +1000,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                           );
                         } else {
                           return (
-                            <span className="flex items-center justify-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium min-w-[80px]" style={{ 
+                            <span className="flex items-center justify-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium w-[90px]" style={{ 
                               backgroundColor: '#ef444420', 
                               color: '#ef4444',
                               border: '1px solid #ef444440'
