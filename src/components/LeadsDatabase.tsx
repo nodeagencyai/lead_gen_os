@@ -50,6 +50,12 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [campaignName, setCampaignName] = useState('');
   const [sendingStatus, setSendingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [sendingMessage, setSendingMessage] = useState('');
+  
+  // Campaign selection states
+  const [availableCampaigns, setAvailableCampaigns] = useState<any[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+  const [lastUsedCampaigns, setLastUsedCampaigns] = useState<{[key: string]: string}>({});
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -180,6 +186,95 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const isAllSelected = filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length;
   const isIndeterminate = selectedLeads.length > 0 && selectedLeads.length < filteredLeads.length;
 
+  // Fetch available campaigns
+  const fetchCampaigns = async () => {
+    if (availableCampaigns.length > 0) return; // Use cache
+    
+    setCampaignsLoading(true);
+    try {
+      const endpoint = mode === 'email' ? '/api/instantly/campaigns' : '/api/heyreach/campaigns';
+      const method = mode === 'email' ? 'GET' : 'POST';
+      
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        ...(mode === 'linkedin' && { body: JSON.stringify({}) })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch campaigns');
+      }
+
+      const campaigns = data.items || data.campaigns || [];
+      setAvailableCampaigns(campaigns);
+      
+      // Auto-select based on niche intelligence
+      autoSelectCampaign(campaigns);
+      
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      setSendingMessage(`Failed to load campaigns: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setSendingStatus('error');
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
+
+  // Smart campaign auto-selection based on lead niches
+  const autoSelectCampaign = (campaigns: any[]) => {
+    if (campaigns.length === 0) return;
+
+    // Get niches from selected leads
+    const selectedLeadNiches = selectedLeads
+      .map(leadId => {
+        const lead = filteredLeads.find(l => l.id.toString() === leadId);
+        return lead?.niche?.toLowerCase();
+      })
+      .filter(Boolean);
+
+    // Find most common niche
+    const nicheCount: {[key: string]: number} = {};
+    selectedLeadNiches.forEach(niche => {
+      if (niche) nicheCount[niche] = (nicheCount[niche] || 0) + 1;
+    });
+    
+    const dominantNiche = Object.keys(nicheCount).reduce((a, b) => 
+      nicheCount[a] > nicheCount[b] ? a : b, ''
+    );
+
+    // Try to find matching campaign by niche
+    let bestCampaign = null;
+    
+    if (dominantNiche) {
+      // Look for campaigns with niche in name
+      bestCampaign = campaigns.find(campaign => 
+        campaign.name?.toLowerCase().includes(dominantNiche)
+      );
+    }
+    
+    // Fallback to last used campaign for this niche
+    if (!bestCampaign && dominantNiche && lastUsedCampaigns[dominantNiche]) {
+      bestCampaign = campaigns.find(campaign => 
+        campaign.id === lastUsedCampaigns[dominantNiche]
+      );
+    }
+    
+    // Final fallback to first campaign
+    if (!bestCampaign) {
+      bestCampaign = campaigns[0];
+    }
+
+    if (bestCampaign) {
+      setSelectedCampaign(bestCampaign);
+      setCampaignId(bestCampaign.id || bestCampaign.campaignId || '');
+      setCampaignName(bestCampaign.name || bestCampaign.campaignName || '');
+    }
+  };
+
   // Campaign sending function
   const handleSendToCampaign = async () => {
     if (!campaignId || !campaignName || selectedLeads.length === 0) {
@@ -215,10 +310,37 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       setSendingStatus('success');
       setSendingMessage(`Successfully sent ${selectedLeads.length} leads to ${campaignName}!`);
       
+      // Remember this campaign for the dominant niche
+      if (selectedCampaign) {
+        const selectedLeadNiches = selectedLeads
+          .map(leadId => {
+            const lead = filteredLeads.find(l => l.id.toString() === leadId);
+            return lead?.niche?.toLowerCase();
+          })
+          .filter(Boolean);
+
+        const nicheCount: {[key: string]: number} = {};
+        selectedLeadNiches.forEach(niche => {
+          if (niche) nicheCount[niche] = (nicheCount[niche] || 0) + 1;
+        });
+        
+        const dominantNiche = Object.keys(nicheCount).reduce((a, b) => 
+          nicheCount[a] > nicheCount[b] ? a : b, ''
+        );
+
+        if (dominantNiche) {
+          setLastUsedCampaigns(prev => ({
+            ...prev,
+            [dominantNiche]: selectedCampaign.id || selectedCampaign.campaignId
+          }));
+        }
+      }
+      
       // Clear selections and form
       setSelectedLeads([]);
       setCampaignId('');
       setCampaignName('');
+      setSelectedCampaign(null);
       
       // Auto-hide after success
       setTimeout(() => {
@@ -353,7 +475,12 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             {/* Send to Campaign Button - Only show when leads are selected */}
             {selectedLeads.length > 0 && (
               <button 
-                onClick={() => setShowCampaignSend(!showCampaignSend)}
+                onClick={() => {
+                  setShowCampaignSend(!showCampaignSend);
+                  if (!showCampaignSend) {
+                    fetchCampaigns();
+                  }
+                }}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
                 style={{ backgroundColor: '#10b981', border: '1px solid #059669', color: '#ffffff' }}
               >
@@ -515,22 +642,9 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
           </div>
         )}
 
-        {/* Campaign Send Panel */}
+        {/* Smart Campaign Selection Bar */}
         {showCampaignSend && (
           <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #10b981' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: '#10b981' }}>
-                Send {selectedLeads.length} leads to {mode === 'email' ? 'Instantly' : 'HeyReach'} Campaign
-              </h3>
-              <button
-                onClick={() => setShowCampaignSend(false)}
-                className="text-sm px-3 py-1 rounded transition-colors hover:opacity-80"
-                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
-              >
-                Cancel
-              </button>
-            </div>
-
             {/* Status Message */}
             {sendingMessage && (
               <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
@@ -545,83 +659,118 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Campaign ID */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: '#cccccc' }}>
-                  Campaign ID *
-                </label>
-                <input
-                  type="text"
-                  placeholder={mode === 'email' ? "Enter Instantly campaign ID" : "Enter HeyReach campaign ID"}
-                  value={campaignId}
-                  onChange={(e) => setCampaignId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
-                  style={{
-                    backgroundColor: '#0f0f0f',
-                    border: '1px solid #333333',
-                    color: '#ffffff'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#10b981';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#333333';
-                  }}
-                />
+            {/* Inline Campaign Selection */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                {/* Selection Count */}
+                <div className="flex items-center space-x-2 px-3 py-2 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                  <CheckCircle size={16} style={{ color: '#10b981' }} />
+                  <span className="text-sm font-medium" style={{ color: '#10b981' }}>
+                    {selectedLeads.length} selected
+                  </span>
+                </div>
+
+                {/* Campaign Dropdown */}
+                <div className="relative">
+                  {campaignsLoading ? (
+                    <div className="flex items-center space-x-2 px-4 py-2 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                      <Loader className="w-4 h-4 animate-spin" style={{ color: '#888888' }} />
+                      <span className="text-sm" style={{ color: '#888888' }}>Loading campaigns...</span>
+                    </div>
+                  ) : availableCampaigns.length > 0 ? (
+                    <select
+                      value={selectedCampaign?.id || selectedCampaign?.campaignId || ''}
+                      onChange={(e) => {
+                        const campaign = availableCampaigns.find(c => 
+                          (c.id || c.campaignId) === e.target.value
+                        );
+                        if (campaign) {
+                          setSelectedCampaign(campaign);
+                          setCampaignId(campaign.id || campaign.campaignId || '');
+                          setCampaignName(campaign.name || campaign.campaignName || '');
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg focus:outline-none transition-all duration-300 min-w-[200px]"
+                      style={{
+                        backgroundColor: '#0f0f0f',
+                        border: '1px solid #333333',
+                        color: '#ffffff'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#10b981';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#333333';
+                      }}
+                    >
+                      <option value="" disabled>Select Campaign</option>
+                      {availableCampaigns.map((campaign) => (
+                        <option 
+                          key={campaign.id || campaign.campaignId} 
+                          value={campaign.id || campaign.campaignId}
+                          style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}
+                        >
+                          {campaign.name || campaign.campaignName} 
+                          {campaign.leadCount ? ` (${campaign.leadCount} leads)` : ''}
+                          {campaign.status ? ` - ${campaign.status}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="px-4 py-2 rounded-lg text-sm" style={{ backgroundColor: '#1a0f0f', border: '1px solid #ef4444', color: '#ef4444' }}>
+                      No campaigns available
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Campaign Name */}
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: '#cccccc' }}>
-                  Campaign Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter campaign name for tracking"
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+              {/* Action Buttons */}
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => {
+                    setShowCampaignSend(false);
+                    setSendingStatus('idle');
+                    setSendingMessage('');
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-80"
+                  style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+                >
+                  Cancel
+                </button>
+                
+                <button
+                  onClick={handleSendToCampaign}
+                  disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
+                  className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
-                    backgroundColor: '#0f0f0f',
-                    border: '1px solid #333333',
+                    backgroundColor: '#10b981',
+                    border: '1px solid #059669',
                     color: '#ffffff'
                   }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#10b981';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#333333';
-                  }}
-                />
+                >
+                  {sendingStatus === 'loading' ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span>Sending...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <Send size={16} />
+                      <span>Send to {mode === 'email' ? 'Instantly' : 'HeyReach'}</span>
+                    </div>
+                  )}
+                </button>
               </div>
             </div>
 
-            {/* Send Button */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm" style={{ color: '#888888' }}>
-                This will send the selected leads to your {mode === 'email' ? 'Instantly' : 'HeyReach'} campaign and track the sends in your database.
+            {/* Campaign Info */}
+            {selectedCampaign && (
+              <div className="mt-3 text-xs" style={{ color: '#888888' }}>
+                Sending to: <span style={{ color: '#10b981' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
+                {selectedCampaign.status && <span> • Status: {selectedCampaign.status}</span>}
+                {selectedCampaign.leadCount && <span> • Current leads: {selectedCampaign.leadCount}</span>}
               </div>
-              <button
-                onClick={handleSendToCampaign}
-                disabled={!campaignId || !campaignName || selectedLeads.length === 0 || sendingStatus === 'loading'}
-                className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: '#10b981',
-                  border: '1px solid #059669',
-                  color: '#ffffff'
-                }}
-              >
-                {sendingStatus === 'loading' ? (
-                  <div className="flex items-center space-x-2">
-                    <Loader className="w-4 h-4 animate-spin" />
-                    <span>Sending...</span>
-                  </div>
-                ) : (
-                  `Send ${selectedLeads.length} Leads`
-                )}
-              </button>
-            </div>
+            )}
           </div>
         )}
 
