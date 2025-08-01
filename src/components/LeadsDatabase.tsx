@@ -627,7 +627,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   </label>
                   
                   {campaignsLoading ? (
-                    <div className="flex items-center space-x-2 px-4 py-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="flex items-center space-x-2 px-4 py-3 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
                       <Loader className="w-5 h-5 animate-spin" style={{ color: '#888888' }} />
                       <span className="text-sm" style={{ color: '#888888' }}>Loading campaigns...</span>
                     </div>
@@ -644,15 +644,19 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                           setCampaignName(campaign.name || campaign.campaignName || '');
                         }
                       }}
-                      className="w-full px-4 py-3 rounded-lg focus:outline-none transition-all duration-300"
+                      className="w-full px-4 py-3 pr-12 rounded-lg focus:outline-none transition-all duration-300 appearance-none"
                       style={{
-                        backgroundColor: '#0f0f0f',
+                        backgroundColor: '#1a1a1a',
                         border: '1px solid #333333',
                         color: '#ffffff',
-                        fontSize: '16px'
+                        fontSize: '16px',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%23888888' d='M11.293 4.293L7 8.586 2.707 4.293A1 1 0 001.293 5.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 1.25rem center',
+                        backgroundSize: '14px'
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.borderColor = '#555555';
                       }}
                       onBlur={(e) => {
                         e.target.style.borderColor = '#333333';
@@ -672,7 +676,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                       ))}
                     </select>
                   ) : (
-                    <div className="px-4 py-3 rounded-lg text-sm flex items-center space-x-2" style={{ backgroundColor: '#1a0f0f', border: '1px solid #ef4444', color: '#ef4444' }}>
+                    <div className="px-4 py-3 rounded-lg text-sm flex items-center space-x-2" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333', color: '#ef4444' }}>
                       <AlertCircle size={16} />
                       <span>No campaigns available</span>
                     </div>
@@ -702,8 +706,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
                 {/* Selected campaign info */}
                 {selectedCampaign && (
-                  <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: '#0f1a1a', border: '1px solid #0A2540' }}>
-                    <p className="text-sm" style={{ color: '#5BB0FF' }}>
+                  <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <p className="text-sm" style={{ color: '#888888' }}>
                       Campaign: <span style={{ color: '#ffffff', fontWeight: '500' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
                       {selectedCampaign.status && <span style={{ color: '#cccccc' }}> • {selectedCampaign.status}</span>}
                       {selectedCampaign.leadCount && <span style={{ color: '#cccccc' }}> • {selectedCampaign.leadCount} existing leads</span>}
