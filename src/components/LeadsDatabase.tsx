@@ -268,25 +268,32 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     setSendingStatus('loading');
     setSendingMessage(`Sending ${selectedLeads.length} leads to campaign...`);
 
+    const payload = {
+      leadIds: selectedLeads.map(id => parseInt(id)),
+      leadSource: mode === 'email' ? 'apollo' : 'linkedin',
+      campaignId: campaignId,
+      campaignName: campaignName,
+      platform: mode === 'email' ? 'instantly' : 'heyreach'
+    };
+
+    console.log('Sending leads with payload:', payload);
+
     try {
       const response = await fetch('/api/campaigns/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          leadIds: selectedLeads.map(id => parseInt(id)),
-          leadSource: mode === 'email' ? 'apollo' : 'linkedin',
-          campaignId: campaignId,
-          campaignName: campaignName,
-          platform: mode === 'email' ? 'instantly' : 'heyreach'
-        })
+        body: JSON.stringify(payload)
       });
 
       const result = await response.json();
+      console.log('Campaign send response:', response.status, result);
 
       if (!response.ok) {
-        throw new Error(result.error || `Failed to send leads: ${response.statusText}`);
+        // Provide more detailed error information
+        const errorDetails = result.details ? ` - ${result.details}` : '';
+        throw new Error(result.error || `Failed to send leads: ${response.statusText}${errorDetails}`);
       }
 
       setSendingStatus('success');
@@ -308,7 +315,27 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     } catch (error) {
       console.error('Error sending leads to campaign:', error);
       setSendingStatus('error');
-      setSendingMessage(error instanceof Error ? error.message : 'Failed to send leads to campaign');
+      
+      // Provide helpful error messages
+      let errorMessage = 'Failed to send leads to campaign';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Add helpful hints for common errors
+        if (errorMessage.includes('API key not configured')) {
+          errorMessage += '. Please check your API keys in the Settings/Integrations page.';
+        } else if (errorMessage.includes('404')) {
+          errorMessage += '. Campaign may not exist or ID is incorrect.';
+        } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+          errorMessage += '. API key may be invalid or expired.';
+        } else if (errorMessage.includes('Instantly API error')) {
+          errorMessage = 'Instantly API Error: ' + errorMessage;
+        } else if (errorMessage.includes('HeyReach API error')) {
+          errorMessage = 'HeyReach API Error: ' + errorMessage;
+        }
+      }
+      
+      setSendingMessage(errorMessage);
     }
   };
 

@@ -122,36 +122,47 @@ async function sendToInstantly(leads, campaignId) {
     throw new Error('Instantly API key not configured');
   }
 
+  console.log(`Sending ${leads.length} leads to Instantly campaign ${campaignId}`);
+
+  // Format leads for Instantly API v2
   const instantlyLeads = leads.map(lead => ({
     email: lead.email,
-    first_name: lead.first_name || lead.full_name?.split(' ')[0] || '',
-    last_name: lead.last_name || lead.full_name?.split(' ').slice(1).join(' ') || '',
-    company_name: lead.company || '',
+    firstName: lead.first_name || lead.full_name?.split(' ')[0] || '',
+    lastName: lead.last_name || lead.full_name?.split(' ').slice(1).join(' ') || '',
+    companyName: lead.company || '',
     title: lead.title || '',
-    custom_variables: {
+    website: lead.website || '',
+    location: lead.city || lead.location || '',
+    phone: lead.phone || '',
+    customVariables: {
       niche: lead.niche || '',
-      tags: lead.tags?.join(', ') || '',
-      city: lead.city || '',
-      linkedin_url: lead.linkedin_url || ''
+      tags: Array.isArray(lead.tags) ? lead.tags.join(', ') : '',
+      linkedinUrl: lead.linkedin_url || '',
+      industry: lead.industry || ''
     }
   }));
 
-  const response = await fetch('https://api.instantly.ai/api/v1/lead/add', {
+  // Use Instantly API v2 endpoint
+  const response = await fetch(`https://api.instantly.ai/api/v2/campaigns/${campaignId}/leads`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${instantlyApiKey}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     },
     body: JSON.stringify({
-      campaign_id: campaignId,
-      leads: instantlyLeads
+      leads: instantlyLeads,
+      skip_if_in_workspace: true // Avoid duplicates
     })
   });
 
   const result = await response.json();
   
+  console.log('Instantly API response:', response.status, result);
+  
   if (!response.ok) {
-    throw new Error(`Instantly API error: ${result.message || response.statusText}`);
+    console.error('Instantly API error:', result);
+    throw new Error(`Instantly API error: ${result.error || result.message || response.statusText}`);
   }
 
   return result;
@@ -164,39 +175,48 @@ async function sendToHeyReach(leads, campaignId) {
     throw new Error('HeyReach API key not configured');
   }
 
+  console.log(`Sending ${leads.length} leads to HeyReach campaign ${campaignId}`);
+
+  // Format leads for HeyReach API
   const heyreachLeads = leads.map(lead => ({
-    email: lead.email,
+    email: lead.email || '',
     firstName: lead.first_name || lead.full_name?.split(' ')[0] || '',
     lastName: lead.last_name || lead.full_name?.split(' ').slice(1).join(' ') || '',
-    company: lead.company || '',
-    position: lead.title || '',
-    linkedinUrl: lead.linkedin_url || '',
-    customFields: {
+    companyName: lead.company || '',
+    jobTitle: lead.title || '',
+    linkedInUrl: lead.linkedin_url || '',
+    phoneNumber: lead.phone || '',
+    location: lead.city || lead.location || '',
+    custom: {
       niche: lead.niche || '',
-      tags: lead.tags?.join(', ') || '',
-      city: lead.city || ''
+      tags: Array.isArray(lead.tags) ? lead.tags.join(', ') : '',
+      industry: lead.industry || '',
+      website: lead.website || ''
     }
   }));
 
-  // Note: This is a placeholder implementation
-  // You'll need to implement the actual HeyReach API integration
-  // based on their API documentation
-  
-  const response = await fetch(`https://api.heyreach.io/api/public/campaigns/${campaignId}/leads`, {
+  // Use HeyReach prospect import endpoint
+  const response = await fetch('https://api.heyreach.io/api/public/prospect/Import', {
     method: 'POST',
     headers: {
       'X-API-KEY': heyreachApiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
     },
     body: JSON.stringify({
-      leads: heyreachLeads
+      campaignId: campaignId,
+      prospects: heyreachLeads,
+      skipDuplicates: true // Avoid duplicates
     })
   });
 
   const result = await response.json();
   
+  console.log('HeyReach API response:', response.status, result);
+  
   if (!response.ok) {
-    throw new Error(`HeyReach API error: ${result.message || response.statusText}`);
+    console.error('HeyReach API error:', result);
+    throw new Error(`HeyReach API error: ${result.error || result.message || response.statusText}`);
   }
 
   return result;
