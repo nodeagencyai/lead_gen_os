@@ -11,10 +11,12 @@ ALTER TABLE public."LinkedIn" ADD COLUMN IF NOT EXISTS heyreach_synced_at TIMEST
 
 -- Optional: Update existing leads to have sync status based on campaign_sends table
 -- This migrates existing data to the new column structure
+-- Note: Handle type mismatch between UUID (campaign_sends.lead_id) and integer (table IDs)
+
 UPDATE public."Apollo" 
 SET instantly_synced = TRUE, instantly_synced_at = cs.sent_at
 FROM campaign_sends cs 
-WHERE cs.lead_id = "Apollo".id 
+WHERE cs.lead_id::text = "Apollo".id::text 
   AND cs.lead_source = 'Apollo' 
   AND cs.platform = 'instantly' 
   AND cs.status IN ('sent', 'completed');
@@ -22,7 +24,7 @@ WHERE cs.lead_id = "Apollo".id
 UPDATE public."LinkedIn" 
 SET heyreach_synced = TRUE, heyreach_synced_at = cs.sent_at  
 FROM campaign_sends cs 
-WHERE cs.lead_id = "LinkedIn".id 
+WHERE cs.lead_id::text = "LinkedIn".id::text 
   AND cs.lead_source = 'LinkedIn' 
   AND cs.platform = 'heyreach' 
   AND cs.status IN ('sent', 'completed');
