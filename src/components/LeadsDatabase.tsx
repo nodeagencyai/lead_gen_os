@@ -3,7 +3,7 @@ import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, Al
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
-import { SyncService, type SyncStatus } from '../services/syncService';
+// import { SyncService, type SyncStatus } from '../services/syncService'; // No longer needed - using instantly_synced column
 
 interface DisplayLead {
   id: number;
@@ -58,9 +58,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [campaignsLoading, setCampaignsLoading] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
   
-  // Sync status states
-  const [syncStatuses, setSyncStatuses] = useState<Map<string, SyncStatus>>(new Map());
-  const [syncLoading, setSyncLoading] = useState(false);
+  // Sync status states - now using instantly_synced column directly from lead data
   const [showSyncedFilter, setShowSyncedFilter] = useState<'all' | 'synced' | 'not-synced'>('all');
 
   const formatFieldValue = (value: any): string => {
@@ -143,34 +141,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     };
   }, []);
 
-  // Check sync status for all leads with emails
-  useEffect(() => {
-    const checkSyncStatus = async () => {
-      const allLeads = [...apolloLeads, ...linkedinLeads];
-      const leadsWithEmail = allLeads.filter(lead => lead.email);
-      
-      if (leadsWithEmail.length === 0) return;
-      
-      setSyncLoading(true);
-      try {
-        // Pass lead data including ID and source for accurate sync checking
-        const leadData = leadsWithEmail.map(lead => ({
-          email: lead.email!,
-          id: lead.id,
-          source: apolloLeads.includes(lead) ? 'Apollo' : 'LinkedIn'
-        }));
-        
-        const statuses = await SyncService.checkMultipleLeads(leadData);
-        setSyncStatuses(statuses);
-      } catch (error) {
-        console.error('Error checking sync statuses:', error);
-      } finally {
-        setSyncLoading(false);
-      }
-    };
-    
-    checkSyncStatus();
-  }, [apolloLeads, linkedinLeads]);
+  // No longer need complex sync status checking since we use instantly_synced column directly from lead data
 
   const currentLeads = mode === 'email' ? apolloLeads : linkedinLeads;
   
@@ -198,11 +169,11 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       (!dateRange.end || !lead.created_at || 
        new Date(lead.created_at) <= new Date(dateRange.end));
     
-    // Sync status filter
-    const syncStatus = lead.email ? syncStatuses.get(lead.email) : null;
+    // Sync status filter using instantly_synced column
+    const isInstantlySynced = lead.instantly_synced === true;
     const matchesSyncFilter = showSyncedFilter === 'all' ||
-      (showSyncedFilter === 'synced' && syncStatus?.overallSynced) ||
-      (showSyncedFilter === 'not-synced' && !syncStatus?.overallSynced);
+      (showSyncedFilter === 'synced' && isInstantlySynced) ||
+      (showSyncedFilter === 'not-synced' && !isInstantlySynced);
     
     return matchesSearch && matchesNiche && matchesTag && matchesDateRange && matchesSyncFilter;
   });
@@ -320,24 +291,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       setCampaignName('');
       setSelectedCampaign(null);
       
-      // Clear sync cache to force refresh of sync status
-      SyncService.clearCache();
-      
-      // Re-check sync status for all leads
-      const allLeads = [...apolloLeads, ...linkedinLeads];
-      const leadsWithEmail = allLeads.filter(lead => lead.email);
-      if (leadsWithEmail.length > 0) {
-        const leadData = leadsWithEmail.map(lead => ({
-          email: lead.email!,
-          id: lead.id,
-          source: apolloLeads.includes(lead) ? 'Apollo' : 'LinkedIn'
-        }));
-        
-        // Trigger sync status update
-        SyncService.checkMultipleLeads(leadData).then(statuses => {
-          setSyncStatuses(statuses);
-        });
-      }
+      // Refresh leads data to get updated sync status from database
+      fetchLeads();
       
       // Auto-hide after success
       setTimeout(() => {
@@ -1020,26 +975,12 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.email)}</td>
                     <td className="p-4">
                       {(() => {
-                        const syncStatus = lead.email ? syncStatuses.get(lead.email) : null;
-                        
                         if (!lead.email) {
                           return <span className="text-xs" style={{ color: '#666666' }}>No email</span>;
                         }
                         
-                        if (syncLoading && !syncStatus) {
-                          return (
-                            <div className="flex items-center space-x-1">
-                              <RefreshCw size={12} className="animate-spin" style={{ color: '#888888' }} />
-                              <span className="text-xs" style={{ color: '#888888' }}>Checking...</span>
-                            </div>
-                          );
-                        }
-                        
-                        if (syncStatus?.overallSynced) {
-                          const platforms = [];
-                          if (syncStatus.instantly.synced) platforms.push('Instantly');
-                          if (syncStatus.heyreach.synced) platforms.push('HeyReach');
-                          
+                        // Check instantly_synced column directly from lead data
+                        if (lead.instantly_synced === true) {
                           return (
                             <div className="flex items-center space-x-2">
                               <span className="flex items-center space-x-1 px-2 py-1 rounded-full text-xs" style={{ 
@@ -1051,7 +992,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                                 <span>Synced</span>
                               </span>
                               <span className="text-xs" style={{ color: '#888888' }}>
-                                {platforms.join(', ')}
+                                Instantly
                               </span>
                             </div>
                           );

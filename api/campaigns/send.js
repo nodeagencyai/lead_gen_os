@@ -147,7 +147,30 @@ export default async function handler(req, res) {
       };
     }
 
-    // Record campaign sends in database
+    // Update sync status in lead tables on successful send
+    if (!sendResult.error) {
+      try {
+        console.log(`Updating sync status for ${numericLeadIds.length} leads in ${tableName} table`);
+        const { error: updateError } = await supabase
+          .from(tableName)
+          .update({ 
+            instantly_synced: true, 
+            instantly_synced_at: new Date().toISOString() 
+          })
+          .in('id', numericLeadIds);
+
+        if (updateError) {
+          console.error('Error updating sync status:', updateError);
+        } else {
+          console.log(`✅ Successfully updated sync status for ${numericLeadIds.length} leads`);
+        }
+      } catch (syncError) {
+        console.error('Error updating lead sync status:', syncError);
+        // Continue even if sync status update fails
+      }
+    }
+
+    // Record campaign sends in database (optional for audit trail)
     const campaignSends = numericLeadIds.map(leadId => ({
       lead_id: leadId,
       lead_source: tableName,

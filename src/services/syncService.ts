@@ -55,8 +55,8 @@ export class SyncService {
 
   static async checkInstantly(email: string, leadId?: number, leadSource?: string): Promise<SyncStatus['instantly']> {
     try {
-      // Use the new database-based endpoint for more reliable sync status
-      const response = await fetch('/api/instantly/check-lead-db', {
+      // Use simple column-based sync checking
+      const response = await fetch('/api/instantly/check-sync-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

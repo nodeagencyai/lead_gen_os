@@ -153,6 +153,8 @@ export interface ApolloLead {
   source_attribution?: string;
   processed?: boolean;
   campaign_name?: string;
+  instantly_synced?: boolean;
+  instantly_synced_at?: string;
 }
 
 // LinkedIn table structure for LinkedIn campaigns
@@ -167,6 +169,8 @@ export interface LinkedInLead {
   status: 'new' | 'contacted' | 'replied' | 'qualified' | 'converted' | 'unqualified';
   created_at: string;
   updated_at: string;
+  instantly_synced?: boolean;
+  instantly_synced_at?: string;
 }
 
 export type CampaignLead = ApolloLead | LinkedInLead;
