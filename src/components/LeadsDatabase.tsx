@@ -401,7 +401,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   }
                 }}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-                style={{ backgroundColor: '#3b82f6', border: '1px solid #2563eb', color: '#ffffff' }}
+                style={{ backgroundColor: '#13283D', border: '1px solid #0F1F2F', color: '#ffffff' }}
               >
                 <Send size={16} />
                 <span>Send to Campaign ({selectedLeads.length})</span>
@@ -610,8 +610,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                 {sendingMessage && (
                   <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
                     backgroundColor: sendingStatus === 'error' ? '#1a0f0f' : sendingStatus === 'success' ? '#0f1a1a' : '#1a1a1a',
-                    border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#333333'}`,
-                    color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#3b82f6' : '#ffffff'
+                    border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#13283D' : '#333333'}`,
+                    color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#13283D' : '#ffffff'
                   }}>
                     {sendingStatus === 'error' && <AlertCircle className="w-5 h-5" />}
                     {sendingStatus === 'success' && <CheckCircle className="w-5 h-5" />}
@@ -702,8 +702,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
                 {/* Selected campaign info */}
                 {selectedCampaign && (
-                  <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: '#0f1a1a', border: '1px solid #3b82f6' }}>
-                    <p className="text-sm" style={{ color: '#3b82f6' }}>
+                  <div className="mb-6 p-3 rounded-lg" style={{ backgroundColor: '#0f1a1a', border: '1px solid #13283D' }}>
+                    <p className="text-sm" style={{ color: '#13283D' }}>
                       Campaign: <span style={{ color: '#ffffff', fontWeight: '500' }}>{selectedCampaign.name || selectedCampaign.campaignName}</span>
                       {selectedCampaign.status && <span style={{ color: '#cccccc' }}> • {selectedCampaign.status}</span>}
                       {selectedCampaign.leadCount && <span style={{ color: '#cccccc' }}> • {selectedCampaign.leadCount} existing leads</span>}
@@ -732,8 +732,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     disabled={!selectedCampaign || selectedLeads.length === 0 || sendingStatus === 'loading'}
                     className="px-6 py-2.5 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     style={{
-                      backgroundColor: '#3b82f6',
-                      border: '1px solid #2563eb',
+                      backgroundColor: '#13283D',
+                      border: '1px solid #0F1F2F',
                       color: '#ffffff'
                     }}
                   >
