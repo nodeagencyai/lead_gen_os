@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, CheckCircle } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
@@ -43,6 +43,13 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [nicheFilter, setNicheFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  
+  // Campaign sending states
+  const [showCampaignSend, setShowCampaignSend] = useState(false);
+  const [campaignId, setCampaignId] = useState('');
+  const [campaignName, setCampaignName] = useState('');
+  const [sendingStatus, setSendingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [sendingMessage, setSendingMessage] = useState('');
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -173,6 +180,73 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const isAllSelected = filteredLeads.length > 0 && selectedLeads.length === filteredLeads.length;
   const isIndeterminate = selectedLeads.length > 0 && selectedLeads.length < filteredLeads.length;
 
+  // Campaign sending function
+  const handleSendToCampaign = async () => {
+    if (!campaignId || !campaignName || selectedLeads.length === 0) {
+      setSendingMessage('Please select leads and enter campaign details');
+      setSendingStatus('error');
+      return;
+    }
+
+    setSendingStatus('loading');
+    setSendingMessage(`Sending ${selectedLeads.length} leads to campaign...`);
+
+    try {
+      const response = await fetch('/api/campaigns/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          leadIds: selectedLeads.map(id => parseInt(id)),
+          leadSource: mode === 'email' ? 'apollo' : 'linkedin',
+          campaignId: campaignId,
+          campaignName: campaignName,
+          platform: mode === 'email' ? 'instantly' : 'heyreach'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `Failed to send leads: ${response.statusText}`);
+      }
+
+      setSendingStatus('success');
+      setSendingMessage(`Successfully sent ${selectedLeads.length} leads to ${campaignName}!`);
+      
+      // Clear selections and form
+      setSelectedLeads([]);
+      setCampaignId('');
+      setCampaignName('');
+      
+      // Auto-hide after success
+      setTimeout(() => {
+        setShowCampaignSend(false);
+        setSendingStatus('idle');
+        setSendingMessage('');
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error sending leads to campaign:', error);
+      setSendingStatus('error');
+      setSendingMessage(error instanceof Error ? error.message : 'Failed to send leads to campaign');
+    }
+  };
+
+  // Auto-clear status messages after 5 seconds
+  useEffect(() => {
+    if (sendingStatus === 'success' || sendingStatus === 'error') {
+      const timer = setTimeout(() => {
+        if (sendingStatus !== 'success') { // Don't clear success messages automatically
+          setSendingStatus('idle');
+          setSendingMessage('');
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [sendingStatus]);
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
@@ -276,6 +350,18 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-3">
+            {/* Send to Campaign Button - Only show when leads are selected */}
+            {selectedLeads.length > 0 && (
+              <button 
+                onClick={() => setShowCampaignSend(!showCampaignSend)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                style={{ backgroundColor: '#10b981', border: '1px solid #059669', color: '#ffffff' }}
+              >
+                <Send size={16} />
+                <span>Send to Campaign ({selectedLeads.length})</span>
+              </button>
+            )}
+
             <div className="relative">
               <button 
                 onClick={() => setShowFilters(!showFilters)}
@@ -424,6 +510,116 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                 style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
               >
                 Clear Filters
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Campaign Send Panel */}
+        {showCampaignSend && (
+          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #10b981' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold" style={{ color: '#10b981' }}>
+                Send {selectedLeads.length} leads to {mode === 'email' ? 'Instantly' : 'HeyReach'} Campaign
+              </h3>
+              <button
+                onClick={() => setShowCampaignSend(false)}
+                className="text-sm px-3 py-1 rounded transition-colors hover:opacity-80"
+                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Status Message */}
+            {sendingMessage && (
+              <div className={`mb-4 p-3 rounded-lg flex items-center space-x-3`} style={{
+                backgroundColor: sendingStatus === 'error' ? '#1a0f0f' : sendingStatus === 'success' ? '#0f1a0f' : '#1a1a1a',
+                border: `1px solid ${sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#10b981' : '#333333'}`,
+                color: sendingStatus === 'error' ? '#ef4444' : sendingStatus === 'success' ? '#10b981' : '#ffffff'
+              }}>
+                {sendingStatus === 'error' && <AlertCircle className="w-5 h-5" />}
+                {sendingStatus === 'success' && <CheckCircle className="w-5 h-5" />}
+                {sendingStatus === 'loading' && <Loader className="w-5 h-5 animate-spin" />}
+                <span>{sendingMessage}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Campaign ID */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#cccccc' }}>
+                  Campaign ID *
+                </label>
+                <input
+                  type="text"
+                  placeholder={mode === 'email' ? "Enter Instantly campaign ID" : "Enter HeyReach campaign ID"}
+                  value={campaignId}
+                  onChange={(e) => setCampaignId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#10b981';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                  }}
+                />
+              </div>
+
+              {/* Campaign Name */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: '#cccccc' }}>
+                  Campaign Name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter campaign name for tracking"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#10b981';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Send Button */}
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm" style={{ color: '#888888' }}>
+                This will send the selected leads to your {mode === 'email' ? 'Instantly' : 'HeyReach'} campaign and track the sends in your database.
+              </div>
+              <button
+                onClick={handleSendToCampaign}
+                disabled={!campaignId || !campaignName || selectedLeads.length === 0 || sendingStatus === 'loading'}
+                className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  backgroundColor: '#10b981',
+                  border: '1px solid #059669',
+                  color: '#ffffff'
+                }}
+              >
+                {sendingStatus === 'loading' ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader className="w-4 h-4 animate-spin" />
+                    <span>Sending...</span>
+                  </div>
+                ) : (
+                  `Send ${selectedLeads.length} Leads`
+                )}
               </button>
             </div>
           </div>
