@@ -79,8 +79,9 @@ export const useChartData = () => {
         try {
           console.log(`📊 Fetching Instantly daily analytics for ${timePeriod} days...`);
           const dailyAnalytics = await InstantlyCampaignService.getDailyAnalytics(timePeriod);
+          console.log('📊 RAW DAILY ANALYTICS RESPONSE IN HOOK:', dailyAnalytics);
           
-          if (dailyAnalytics && dailyAnalytics.dailyData) {
+          if (dailyAnalytics && dailyAnalytics.dailyData && dailyAnalytics.dailyData.length > 0) {
             console.log('📊 DAILY ANALYTICS RECEIVED:', dailyAnalytics);
             console.log('📊 DAILY DATA ARRAY:', dailyAnalytics.dailyData);
             console.log('📊 TOTALS:', dailyAnalytics.totals);
@@ -124,10 +125,12 @@ export const useChartData = () => {
             }));
           } else {
             // No data available
-            console.log('⚠️ NO DAILY ANALYTICS DATA:', {
-              dailyAnalytics: dailyAnalytics,
-              hasDailyData: dailyAnalytics?.dailyData,
-              dailyDataLength: dailyAnalytics?.dailyData?.length
+            console.log('⚠️ NO DAILY ANALYTICS DATA - TAKING EMPTY DATA PATH:', {
+              dailyAnalyticsExists: !!dailyAnalytics,
+              hasDailyDataProperty: !!dailyAnalytics?.dailyData,
+              dailyDataIsArray: Array.isArray(dailyAnalytics?.dailyData),
+              dailyDataLength: dailyAnalytics?.dailyData?.length,
+              fullDailyAnalytics: dailyAnalytics
             });
             setChartData(prev => ({
               ...prev,

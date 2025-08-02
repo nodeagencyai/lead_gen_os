@@ -89,11 +89,19 @@ export default async function handler(req, res) {
 
         if (response.ok) {
           const campaignDailyData = await response.json();
+          console.log(`📊 Raw daily data for ${campaign.name}:`, JSON.stringify(campaignDailyData, null, 2));
+          
           const dailyArray = Array.isArray(campaignDailyData) ? campaignDailyData : (campaignDailyData.items || []);
           console.log(`✅ Campaign ${campaign.name}: ${dailyArray.length} daily records`);
+          
+          if (dailyArray.length > 0) {
+            console.log(`📊 First daily record for ${campaign.name}:`, dailyArray[0]);
+          }
+          
           allDailyData.push(...dailyArray);
         } else {
-          console.warn(`⚠️ Failed to fetch daily analytics for campaign ${campaign.name}:`, response.status);
+          const errorData = await response.text();
+          console.warn(`⚠️ Failed to fetch daily analytics for campaign ${campaign.name}:`, response.status, errorData);
         }
       } catch (error) {
         console.warn(`⚠️ Error fetching daily analytics for campaign ${campaign.name}:`, error.message);
@@ -129,7 +137,8 @@ export default async function handler(req, res) {
         opened: dayData.opened,
         replies: dayData.replies,
         unique_opened: dayData.unique_opened,
-        unique_replies: dayData.unique_replies
+        unique_replies: dayData.unique_replies,
+        allKeys: Object.keys(dayData)
       });
       const date = dayData.date;
       if (!dateAggregates[date]) {
@@ -159,6 +168,9 @@ export default async function handler(req, res) {
     const aggregatedData = Object.values(dateAggregates).sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
+    
+    console.log('📊 AGGREGATED DATA BY DATE:', aggregatedData);
+    console.log('📊 Date aggregates object:', dateAggregates);
 
     // Calculate totals and percentage changes
     const totals = aggregatedData.reduce((acc, day) => ({

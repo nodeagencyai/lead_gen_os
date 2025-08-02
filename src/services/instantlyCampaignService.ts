@@ -93,11 +93,19 @@ export class InstantlyCampaignService {
       
       if (result.error) {
         console.error('❌ Failed to fetch daily analytics:', result.error);
+        console.error('📊 API ERROR DETAILS:', result);
         return null;
       }
       
       console.log('✅ Daily analytics fetched successfully');
-      console.log('📊 DAILY ANALYTICS DATA:', JSON.stringify(result.data, null, 2));
+      console.log('📊 DAILY ANALYTICS DATA FROM SERVICE:', JSON.stringify(result.data, null, 2));
+      console.log('📊 DATA STRUCTURE CHECK:', {
+        hasData: !!result.data,
+        dataType: typeof result.data,
+        hasDailyData: !!result.data?.dailyData,
+        dailyDataLength: result.data?.dailyData?.length,
+        dailyDataType: Array.isArray(result.data?.dailyData) ? 'array' : typeof result.data?.dailyData
+      });
       return result.data;
       
     } catch (error) {
