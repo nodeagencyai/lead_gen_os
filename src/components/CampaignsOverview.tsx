@@ -26,16 +26,8 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     campaignName: ''
   });
   
-  // INVESTIGATE: Check what the service is actually returning
-  const { campaigns: rawCampaigns, loading, error, refetch } = useCampaignData(mode);
-  
-  // DEBUG: Log what we're actually getting from the service
-  console.log('🔍 INVESTIGATION: Raw campaigns from hook:', rawCampaigns);
-  console.log('🔍 INVESTIGATION: Loading state:', loading);
-  console.log('🔍 INVESTIGATION: Error state:', error);
-  
-  // Use the raw campaigns to see what the service is really returning
-  const campaigns = rawCampaigns;
+  // Use campaign data hook with smart API client fallback
+  const { campaigns, loading, error, refetch } = useCampaignData(mode);
   
   // Local state for filter
   const [filter, setFilter] = useState<'All' | 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed'>('All');

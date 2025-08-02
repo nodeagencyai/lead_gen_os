@@ -198,22 +198,20 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics for campaign ${campaignId} from API v2...`);
       
-      // Use proxy endpoint for analytics
-      console.log(`📊 Using proxy endpoint for analytics: ${campaignId}`);
-      
-      // Use proxy endpoint (production)
-      const result = await apiClient.get(`/api/instantly/analytics?id=${campaignId}`);
+      // Use smart API client with development fallback  
+      console.log(`📊 Fetching analytics via smart API client: ${campaignId}`);
+      const result = await apiClient.instantly(`/analytics?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
         return null;
       }
       
-      const analyticsData = result.data;
+      const analyticsData = result.data as any;
       console.log(`✅ Analytics for campaign ${campaignId} fetched from API v2`);
       console.log(`📊 Raw analytics structure:`, {
-        keys: Object.keys(analyticsData),
-        hasItems: !!analyticsData.items,
+        keys: Object.keys(analyticsData || {}),
+        hasItems: !!(analyticsData?.items),
         isArray: Array.isArray(analyticsData)
       });
       
@@ -251,18 +249,18 @@ export class InstantlyCampaignService {
         return null;
       }
       
-      const leadsData = result.data;
+      const leadsData = result.data as any;
       console.log(`✅ Leads for campaign ${campaignId} fetched from API v2`);
       console.log(`👥 Leads structure:`, {
-        hasItems: !!leadsData.items,
-        hasAnalytics: !!leadsData.analytics,
-        leadCount: leadsData.items?.length || 0
+        hasItems: !!(leadsData?.items),
+        hasAnalytics: !!(leadsData?.analytics),
+        leadCount: leadsData?.items?.length || 0
       });
       
       return {
-        leads: leadsData.items || [],
-        analytics: leadsData.analytics || {
-          total_leads: leadsData.items?.length || 0,
+        leads: leadsData?.items || [],
+        analytics: leadsData?.analytics || {
+          total_leads: leadsData?.items?.length || 0,
           leads_ready: 0,
           leads_contacted: 0
         }
@@ -610,87 +608,9 @@ export class InstantlyCampaignService {
     console.log('🚀 Fetching ALL Instantly campaigns with real data...');
     
     try {
-      // Check if proxy endpoints work, fallback to mock data with real values
-      console.log('📋 Fetching campaigns via proxy endpoint...');
-      
-      const campaignsResult = await apiClient.get('/api/instantly/campaigns');
-      
-      // If proxy fails (returns HTML/source code), use mock data with real API values
-      if (campaignsResult.error || typeof campaignsResult.data === 'string') {
-        console.log('⚠️ Proxy endpoint failed, using real API values in mock structure');
-        
-        // Create campaigns with the real data from your debug session
-        const mockCampaignsWithRealData = [
-          {
-            id: 'afe7fbea-9d4e-491f-88e4-8f75985b9c07',
-            name: 'Beta',
-            status: 3, // Completed per your debug
-            created_at: '2023-01-01',
-            updated_at: '2024-01-01',
-            leads_count: 1
-          },
-          {
-            id: '4bde0574-609a-409d-86cc-52b233699a2b', 
-            name: 'Digital Marketing Agencies',
-            status: 0, // Draft per your debug
-            created_at: '2023-01-01',
-            updated_at: '2024-01-01',
-            leads_count: 0
-          },
-          {
-            id: '2e3519c8-ac6f-4961-b803-e28c7423d080',
-            name: 'Sales Development Representative', 
-            status: 0, // Draft per your debug
-            created_at: '2023-01-01',
-            updated_at: '2024-01-01',
-            leads_count: 0
-          }
-        ];
-        
-        // Process mock campaigns with real analytics
-        const enrichedCampaigns = await Promise.all(
-          mockCampaignsWithRealData.map(async (campaign: any) => {
-            console.log(`🔄 Processing mock campaign with real data: ${campaign.name}`);
-            
-            // Create real analytics based on your debug results
-            let mockAnalytics = null;
-            if (campaign.id === 'afe7fbea-9d4e-491f-88e4-8f75985b9c07') {
-              // Beta campaign - use your actual debug data
-              mockAnalytics = {
-                campaign_id: campaign.id,
-                campaign_name: campaign.name,
-                campaign_status: 3,
-                campaign_is_evergreen: false,
-                leads_count: 1,
-                contacted_count: 1,
-                emails_sent_count: 1,
-                open_count: 0,
-                reply_count: 0,
-                link_click_count: 0,
-                bounced_count: 0,
-                unsubscribed_count: 0,
-                completed_count: 0,
-                new_leads_contacted_count: 0,
-                total_opportunities: 0,
-                total_opportunity_value: 0
-              };
-            }
-            
-            const enriched = this.mapToEnrichedFormat(campaign, mockAnalytics, null, null);
-            
-            console.log(`✅ Mock campaign "${enriched.name}" with real data:`, {
-              status: enriched.status,
-              totalContacted: enriched.totalContacted,
-              emailsSent: enriched.emailsSent,
-              leadsReady: enriched.leadsReady
-            });
-            
-            return enriched;
-          })
-        );
-        
-        return enrichedCampaigns;
-      }
+      // Use smart API client with development fallback
+      console.log('📋 Fetching campaigns via smart API client...');
+      const campaignsResult = await apiClient.instantly('/campaigns');
       
       if (campaignsResult.error) {
         console.error('❌ Failed to fetch campaigns list:', campaignsResult.error);

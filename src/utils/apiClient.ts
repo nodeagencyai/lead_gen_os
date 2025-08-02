@@ -171,14 +171,81 @@ class ApiClient {
     return this.retryRequest<T>(endpoint, { method: 'DELETE' });
   }
 
-  // Specialized methods for different APIs - FORCE proxy routes only
+  // Specialized methods for different APIs with development fallback
   async instantly<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    // ALWAYS use serverless proxy - NO direct external API calls
-    console.log(`📡 FORCED PROXY: /api/instantly${endpoint}`);
-    if (data) {
-      return this.post<T>(`/api/instantly${endpoint}`, data);
+    const isDevelopment = import.meta.env.DEV;
+    const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
+    
+    // Try serverless proxy first
+    console.log(`📡 TRYING PROXY: /api/instantly${endpoint}`);
+    const proxyResponse = data 
+      ? await this.post<T>(`/api/instantly${endpoint}`, data)
+      : await this.get<T>(`/api/instantly${endpoint}`);
+    
+    // Check if proxy failed (returns source code instead of JSON)
+    const isSourceCode = typeof proxyResponse.data === 'string' && 
+                        (proxyResponse.data as string).includes('Vercel Serverless Function');
+    
+    if (isDevelopment && (proxyResponse.error || isSourceCode) && apiKey) {
+      console.log('🔄 DEVELOPMENT FALLBACK: Proxy failed, using direct API');
+      return this.directInstantlyCall<T>(endpoint, data, apiKey);
     }
-    return this.get<T>(`/api/instantly${endpoint}`);
+    
+    return proxyResponse;
+  }
+
+  // Direct Instantly.ai API call for development fallback
+  private async directInstantlyCall<T>(endpoint: string, data?: any, apiKey?: string): Promise<ApiResponse<T>> {
+    if (!apiKey) {
+      return { error: 'No API key available for direct call' };
+    }
+    
+    const baseUrl = 'https://api.instantly.ai/api/v2';
+    let url = baseUrl;
+    
+    // Map endpoints to correct Instantly API paths
+    if (endpoint === '/campaigns' || endpoint.startsWith('/campaigns?')) {
+      url = `${baseUrl}/campaigns${endpoint.includes('?') ? endpoint.substring(endpoint.indexOf('?')) : ''}`;
+    } else if (endpoint.startsWith('/analytics')) {
+      url = `${baseUrl}/campaigns/analytics${endpoint.substring(10)}`; // Remove '/analytics' and append rest
+    } else {
+      url = `${baseUrl}${endpoint}`;
+    }
+    
+    console.log(`🔗 DIRECT API CALL: ${url}`);
+    
+    try {
+      const response = await fetch(url, {
+        method: data ? 'POST' : 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: data ? JSON.stringify(data) : undefined
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ Direct API error:', response.status, responseData);
+        return {
+          error: `Direct API error: ${response.status}`,
+          status: response.status,
+          details: responseData
+        };
+      }
+      
+      console.log('✅ Direct API success:', { status: response.status, hasData: !!responseData });
+      return { data: responseData, status: response.status };
+      
+    } catch (error: any) {
+      console.error('❌ Direct API exception:', error);
+      return { 
+        error: error.message || 'Direct API call failed',
+        details: error
+      };
+    }
   }
 
   async heyreach<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
