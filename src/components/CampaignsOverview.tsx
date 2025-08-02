@@ -1,12 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { Plus, Download, RefreshCw, List, Clock } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
-import { useCampaignData } from '../hooks/useInstantlyCampaignData';
+import { useCampaignData } from '../hooks/useCampaignData';
 import CampaignToggle from './CampaignToggle';
 import SequenceViewerModal from './SequenceViewerModal';
 import StatusFilter from './StatusFilter';
 import { ErrorDisplay } from './ErrorHandler';
-import { DashboardCampaign } from '../services/instantlyDataTransformer';
 
 interface CampaignsOverviewProps {
   onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
@@ -27,21 +26,26 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     campaignName: ''
   });
   
-  // Use enhanced campaign data hook
-  const { 
-    campaigns, 
-    loading, 
-    error, 
-    lastUpdated,
-    filter,
-    setFilter,
-    refreshData,
-    rateLimitInfo,
-    stats
-  } = useCampaignData(undefined, {
-    autoRefresh: true,
-    autoRefreshInterval: 5 * 60 * 1000 // 5 minutes
-  });
+  // Use original working campaign data hook
+  const { campaigns, loading, error, refetch } = useCampaignData(mode);
+  
+  // Local state for filter
+  const [filter, setFilter] = useState<'All' | 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed'>('All');
+  
+  // Filter campaigns
+  const filteredCampaigns = filter === 'All' 
+    ? campaigns 
+    : campaigns.filter(c => c.status.toLowerCase() === filter.toLowerCase());
+
+  // Calculate stats
+  const stats = {
+    total: campaigns.length,
+    draft: campaigns.filter(c => c.status === 'Draft').length,
+    running: campaigns.filter(c => c.status === 'Running').length,
+    paused: campaigns.filter(c => c.status === 'Paused').length,
+    stopped: campaigns.filter(c => c.status === 'Stopped').length,
+    completed: campaigns.filter(c => c.status === 'Completed').length
+  };
 
   // Handle sequence modal
   const openSequenceModal = (campaignId: string, campaignName: string) => {
@@ -63,17 +67,17 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
   // Export functionality
   const handleExport = useCallback(() => {
     const csvContent = [
-      ['Campaign Name', 'Status', 'Total Leads', 'Contacted', 'Open Rate', 'Click Rate', 'Reply Rate', 'Emails Sent'].join(','),
-      ...campaigns.map(campaign => 
+      ['Campaign Name', 'Status', 'Total Contacted', 'Open Rate', 'Click Rate', 'Reply Rate', 'Leads Ready', 'Emails Sent'].join(','),
+      ...filteredCampaigns.map(campaign => 
         [
           campaign.name,
           campaign.status,
-          campaign.totalLeads,
-          campaign.totalContacted,
-          `${campaign.openRate}%`,
-          `${campaign.clickRate}%`,
-          `${campaign.replyRate}%`,
-          campaign.emailsSent
+          campaign.totalContacted || 0,
+          `${campaign.openRate || 0}%`,
+          `${campaign.clickRate || 0}%`,
+          `${campaign.replyRate || 0}%`,
+          campaign.leadsReady || 0,
+          campaign.emailsSent || 0
         ].join(',')
       )
     ].join('\n');
@@ -85,7 +89,7 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     a.download = `campaigns-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-  }, [campaigns]);
+  }, [filteredCampaigns]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -157,24 +161,16 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
             <h1 className="text-3xl font-bold mb-2 text-white">
               Campaigns Overview
             </h1>
-            <div className="flex items-center space-x-4">
-              <p className="text-base" style={{ color: '#ffffff' }}>
-                {mode === 'email' 
-                  ? 'Real-time email campaign analytics from Instantly.ai'
-                  : 'LinkedIn campaign management (Coming Soon)'
-                }
-              </p>
-              {lastUpdated && (
-                <div className="flex items-center space-x-2 text-sm text-gray-400">
-                  <Clock size={14} />
-                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-                </div>
-              )}
-            </div>
+            <p className="text-base" style={{ color: '#ffffff' }}>
+              {mode === 'email' 
+                ? 'Real-time email campaign analytics from Instantly.ai'
+                : 'LinkedIn campaign management (Coming Soon)'
+              }
+            </p>
           </div>
           <div className="flex items-center space-x-4">
             <button 
-              onClick={refreshData}
+              onClick={refetch}
               disabled={loading}
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
               style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
@@ -272,7 +268,7 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {campaigns.map((campaign: DashboardCampaign) => (
+          {filteredCampaigns.map((campaign) => (
             <div 
               key={campaign.id}
               className="rounded-xl p-6 transition-all duration-200 hover:border-opacity-80"
@@ -393,12 +389,6 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
           </div>
         )}
 
-        {/* Rate Limit Warning */}
-        {rateLimitInfo.remaining < 10 && (
-          <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #f59e0b', color: '#f59e0b' }}>
-            ⚠️ API rate limit approaching ({rateLimitInfo.remaining} requests remaining)
-          </div>
-        )}
       </div>
       
       {/* Sequence Viewer Modal */}
