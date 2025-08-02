@@ -199,6 +199,8 @@ function App() {
               onClick={() => {
                 if (mode === 'email') {
                   window.open('https://app.instantly.ai/app/campaigns', '_blank');
+                } else if (mode === 'linkedin') {
+                  window.open('https://app.heyreach.io/app/dashboard', '_blank');
                 }
               }}
               className="text-sm px-3 py-1 rounded-full transition-all duration-200 hover:opacity-80"
@@ -206,13 +208,11 @@ function App() {
                 backgroundColor: '#1a1a1a', 
                 border: '1px solid #333333', 
                 color: '#888888',
-                cursor: mode === 'email' ? 'pointer' : 'default'
+                cursor: 'pointer'
               }}
               onMouseEnter={(e) => {
-                if (mode === 'email') {
-                  e.currentTarget.style.borderColor = '#555555';
-                  e.currentTarget.style.backgroundColor = '#2a2a2a';
-                }
+                e.currentTarget.style.borderColor = '#555555';
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#333333';
