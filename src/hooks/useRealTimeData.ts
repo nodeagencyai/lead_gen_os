@@ -148,7 +148,12 @@ export const useRealTimeData = () => {
         // EMAIL DASHBOARD: Optimized Promise.all with faster timeout
         const [apiData, leadData] = await Promise.all([
           Promise.race([
-            IntegrationService.getInstantlyData(),
+            // Use the new InstantlyCampaignService instead of old IntegrationService
+            (async () => {
+              const { InstantlyCampaignService } = await import('../services/instantlyCampaignService');
+              const campaigns = await InstantlyCampaignService.fetchAllCampaigns();
+              return { campaigns, analytics: {} }; // Match expected structure
+            })(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 8000)) // 8s timeout
           ]),
           fetchLeadAnalytics('Apollo')
