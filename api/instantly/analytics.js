@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     console.log(`🔄 Fetching analytics from Instantly${id ? ` for campaign ${id}` : ' (all campaigns)'}...`);
 
     // Build URL with proper query parameters per official API v2 docs
-    let url = 'https://api.instantly.ai/api/v2/campaigns/analytics';
+    let url = 'https://api.instantly.ai/api/v2/analytics';
     if (id) {
       url += `?id=${id}`;
     }
