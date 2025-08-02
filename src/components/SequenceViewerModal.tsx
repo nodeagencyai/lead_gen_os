@@ -42,6 +42,20 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
     }
   }, [isOpen, campaignId]);
 
+  useEffect(() => {
+    // Prevent body scroll when modal is open
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to restore scroll on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   const fetchSequences = async () => {
     if (!campaignId) {
       console.warn('⚠️ No campaign ID provided to sequence viewer');
