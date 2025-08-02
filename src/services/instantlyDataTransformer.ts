@@ -3,6 +3,8 @@
  * Maps API responses to dashboard-friendly format with correct field mappings
  */
 
+import { getStatusColor as getStatusColorFromConfig } from '../config/campaignColors';
+
 // API Response Types
 export interface InstantlyCampaignRaw {
   id: string;
@@ -279,17 +281,10 @@ export class DataTransformer {
   }
 
   /**
-   * Get status color
+   * Get status color - now uses centralized color configuration
    */
   private static getStatusColor(status: DashboardCampaign['status']): string {
-    const colors: Record<DashboardCampaign['status'], string> = {
-      'Draft': '#3b82f6',      // Blue
-      'Running': '#10b981',    // Green
-      'Paused': '#f59e0b',     // Yellow
-      'Stopped': '#ef4444',    // Red
-      'Completed': '#6b7280'   // Gray
-    };
-    return colors[status];
+    return getStatusColorFromConfig(status);
   }
 
   /**

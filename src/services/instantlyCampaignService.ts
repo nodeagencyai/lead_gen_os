@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '../utils/apiClient';
+import { getStatusColor as getStatusColorFromConfig } from '../config/campaignColors';
 
 // Specific Campaign IDs extracted from share URLs
 export const INSTANTLY_CAMPAIGNS = {
@@ -800,16 +801,12 @@ export class InstantlyCampaignService {
 
   /**
    * Get status color for UI display
+   * Now uses centralized color configuration for consistency
    */
   private static getStatusColor(status: string): string {
-    switch(status) {
-      case 'Draft': return '#3b82f6';      // Blue
-      case 'Running': return '#10b981';    // Green  
-      case 'Paused': return '#f59e0b';     // Yellow
-      case 'Stopped': return '#ef4444';   // Red
-      case 'Completed': return '#6b7280'; // Gray
-      default: return '#3b82f6';
-    }
+    // Map status to valid type and get color from centralized config
+    const validStatus = status as 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed';
+    return getStatusColorFromConfig(validStatus);
   }
 
   /**

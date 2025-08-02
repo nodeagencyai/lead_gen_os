@@ -6,6 +6,7 @@ import CampaignToggle from './CampaignToggle';
 import SequenceViewerModal from './SequenceViewerModal';
 import StatusFilter from './StatusFilter';
 import { ErrorDisplay } from './ErrorHandler';
+import { getStatusColors, getStatusBackgroundColor } from '../config/campaignColors';
 
 interface CampaignsOverviewProps {
   onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
@@ -279,10 +280,20 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#555555';
                 e.currentTarget.style.transform = 'translateY(-2px)';
+                // Update progress bar to hover color
+                const progressBar = e.currentTarget.querySelector('.campaign-progress-bar') as HTMLElement;
+                if (progressBar) {
+                  progressBar.style.backgroundColor = getStatusColors(campaign.status as any).hover;
+                }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#333333';
                 e.currentTarget.style.transform = 'translateY(0px)';
+                // Reset progress bar to normal color
+                const progressBar = e.currentTarget.querySelector('.campaign-progress-bar') as HTMLElement;
+                if (progressBar) {
+                  progressBar.style.backgroundColor = campaign.statusColor;
+                }
               }}
             >
               {/* Campaign Header */}
@@ -297,10 +308,11 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               {/* Status */}
               <div className="mb-4">
                 <span 
-                  className="text-sm font-medium px-2 py-1 rounded"
+                  className="text-sm font-medium px-3 py-1.5 rounded-md"
                   style={{ 
-                    backgroundColor: campaign.statusColor + '20',
-                    color: campaign.statusColor 
+                    backgroundColor: getStatusBackgroundColor(campaign.status as any),
+                    color: getStatusColors(campaign.status as any).primary,
+                    border: `1px solid ${getStatusColors(campaign.status as any).primary}40`
                   }}
                 >
                   {campaign.status}
@@ -315,7 +327,7 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
                 </div>
                 <div className="w-full rounded-full h-2" style={{ backgroundColor: '#333333' }}>
                   <div 
-                    className="h-2 rounded-full transition-all duration-300"
+                    className="campaign-progress-bar h-2 rounded-full transition-all duration-300"
                     style={{ 
                       width: `${campaign.preparation}%`,
                       backgroundColor: campaign.statusColor 

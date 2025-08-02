@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IntegrationService } from '../services/integrationService';
 import { InstantlyCampaignService } from '../services/instantlyCampaignService';
+import { getStatusColor } from '../config/campaignColors';
 
 interface CampaignData {
   id: string;
@@ -68,7 +69,7 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
             id: camp.id,
             name: camp.name,
             status: camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused',
-            statusColor: camp.status === 1 ? '#10b981' : camp.status === 0 ? '#3b82f6' : '#f59e0b',
+            statusColor: getStatusColor(camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused'),
             preparation: 75,
             leadsReady: 0,
             emailsSent: 0,
