@@ -467,8 +467,9 @@ function App() {
               </button>
             </div>
           ) : (
-          <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#1a1a1a', border: '1px solid #444444' }}>
-            <table className="w-full">
+            <>
+              <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#1a1a1a', border: '1px solid #444444' }}>
+                <table className="w-full">
               <thead style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
                 <tr>
                   {(mode === 'email' ? ['Campaign Name', 'Emails Sent', 'Replies', 'Meetings', 'Reply Rate'] : ['Campaign Name', 'Connections', 'Replies', 'Meetings', 'Response Rate']).map((header, index) => (
@@ -516,17 +517,18 @@ function App() {
               </tbody>
             </table>
           </div>
-          {campaigns.length > 5 && (
-            <div className="mt-4 text-center">
-              <button
-                onClick={() => setCurrentView('campaigns')}
-                className="text-sm transition-all duration-200 hover:opacity-80"
-                style={{ color: '#5BB0FF' }}
-              >
-                View all {campaigns.length} campaigns →
-              </button>
-            </div>
-          )}
+              {campaigns.length > 5 && (
+                <div className="mt-4 text-center">
+                  <button
+                    onClick={() => setCurrentView('campaigns')}
+                    className="text-sm transition-all duration-200 hover:opacity-80"
+                    style={{ color: '#5BB0FF' }}
+                  >
+                    View all {campaigns.length} campaigns →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
