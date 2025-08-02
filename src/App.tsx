@@ -195,9 +195,32 @@ function App() {
             >
               {loading ? 'Refreshing...' : 'Refresh Data'}
             </button>
-            <div className="text-sm px-3 py-1 rounded-full" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333', color: '#888888' }}>
+            <button
+              onClick={() => {
+                if (mode === 'email') {
+                  window.open('https://app.instantly.ai/app/campaigns', '_blank');
+                }
+              }}
+              className="text-sm px-3 py-1 rounded-full transition-all duration-200 hover:opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #333333', 
+                color: '#888888',
+                cursor: mode === 'email' ? 'pointer' : 'default'
+              }}
+              onMouseEnter={(e) => {
+                if (mode === 'email') {
+                  e.currentTarget.style.borderColor = '#555555';
+                  e.currentTarget.style.backgroundColor = '#2a2a2a';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#333333';
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+              }}
+            >
               {mode === 'email' ? 'Apollo + Instantly' : 'Sales Navigator + HeyReach'}
-            </div>
+            </button>
           </div>
         </div>
 
