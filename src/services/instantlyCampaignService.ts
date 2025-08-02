@@ -198,8 +198,34 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics for campaign ${campaignId} from API v2...`);
       
-      // Use correct API v2 analytics endpoint (per debug results)
-      const result = await apiClient.instantly(`/campaigns/analytics?id=${campaignId}`);
+      // TEMPORARY DEV FIX: Direct API call during development
+      const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
+      if (apiKey && import.meta.env.DEV) {
+        console.log('🛠️ DEV MODE: Using direct API call for analytics');
+        try {
+          const response = await fetch(`https://api.instantly.ai/api/v2/campaigns/analytics?id=${campaignId}`, {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          const data = await response.json();
+          if (response.ok) {
+            const result = { data, status: response.status };
+            console.log('✅ Direct API analytics success:', result);
+            return this.parseAnalyticsResponse(result.data, campaignId);
+          } else {
+            console.error('❌ Direct API analytics error:', response.status, data);
+            return null;
+          }
+        } catch (error) {
+          console.error('❌ Direct API analytics exception:', error);
+          return null;
+        }
+      }
+      
+      // Use proxy endpoint (production)
+      const result = await apiClient.get(`/api/instantly/analytics?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
@@ -336,8 +362,8 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics overview for campaign ${campaignId} from API v2...`);
       
-      // Use API v2 analytics overview endpoint (per official docs)
-      const result = await apiClient.instantly(`/analytics/overview?id=${campaignId}`);
+      // Use API v2 analytics overview endpoint via proxy
+      const result = await apiClient.get(`/api/instantly/analytics-overview?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics overview not available for campaign ${campaignId}:`, result.error);
@@ -607,9 +633,79 @@ export class InstantlyCampaignService {
     console.log('🚀 Fetching ALL Instantly campaigns with real data...');
     
     try {
-      // First, get all campaigns using the working endpoint
+      // TEMPORARY DEV FIX: Direct API call during development
+      const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
+      if (apiKey && import.meta.env.DEV) {
+        console.log('🛠️ DEV MODE: Using direct API call for campaigns');
+        try {
+          const response = await fetch('https://api.instantly.ai/api/v2/campaigns', {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          const data = await response.json();
+          if (response.ok) {
+            const campaignsResult = { data, status: response.status };
+            console.log('✅ Direct API campaigns success');
+            
+            const allCampaigns = (campaignsResult.data as any)?.items || campaignsResult.data || [];
+            console.log(`📋 Found ${allCampaigns.length} total campaigns from Instantly`);
+            
+            if (allCampaigns.length === 0) {
+              console.warn('⚠️ No campaigns found in Instantly account');
+              return [];
+            }
+            
+            // Continue with enrichment process...
+            const enrichedCampaigns = await Promise.all(
+              allCampaigns.map(async (campaign: any) => {
+                try {
+                  console.log(`🔄 Processing campaign: ${campaign.name} (${campaign.id})`);
+                  
+                  // Fetch analytics and overview data in parallel
+                  const [analytics, analyticsOverview] = await Promise.all([
+                    this.getCampaignAnalytics(campaign.id),
+                    this.getCampaignAnalyticsOverview(campaign.id)
+                  ]);
+                  
+                  // Map to enriched format with real data
+                  const enriched = this.mapToEnrichedFormat(campaign, analytics, null, analyticsOverview);
+                  
+                  console.log(`✅ Campaign "${enriched.name}" processed:`, {
+                    status: enriched.status,
+                    totalContacted: enriched.totalContacted,
+                    openRate: enriched.openRate,
+                    emailsSent: enriched.emailsSent,
+                    leadsReady: enriched.leadsReady
+                  });
+                  
+                  return enriched;
+                  
+                } catch (error) {
+                  console.warn(`⚠️ Error enriching campaign ${campaign.id}:`, error);
+                  // Still return the campaign with basic data
+                  return this.mapToEnrichedFormat(campaign, null, null, null);
+                }
+              })
+            );
+            
+            console.log(`✅ Successfully processed ${enrichedCampaigns.length} campaigns with real data`);
+            return enrichedCampaigns;
+            
+          } else {
+            console.error('❌ Direct API campaigns error:', response.status, data);
+            throw new Error(`Direct API error: ${response.status}`);
+          }
+        } catch (error) {
+          console.error('❌ Direct API campaigns exception:', error);
+          throw error;
+        }
+      }
+      
+      // First, get all campaigns using the working endpoint (production)
       console.log('📋 Fetching campaigns list from Instantly API v2...');
-      const campaignsResult = await apiClient.instantly('/campaigns');
+      const campaignsResult = await apiClient.get('/api/instantly/campaigns');
       
       if (campaignsResult.error) {
         console.error('❌ Failed to fetch campaigns list:', campaignsResult.error);
