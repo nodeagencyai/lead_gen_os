@@ -64,6 +64,7 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Fetched aggregated analytics from Instantly');
+    console.log('📊 RAW API RESPONSE:', JSON.stringify(data, null, 2));
     
     // Calculate aggregated metrics from all campaigns
     let aggregatedMetrics = {
@@ -152,6 +153,7 @@ export default async function handler(req, res) {
       bounce_rate: calculateChange(aggregatedMetrics.bounced, previousMetrics.bounced)
     };
 
+    console.log('📊 FINAL AGGREGATED METRICS:', JSON.stringify(aggregatedMetrics, null, 2));
     res.status(200).json(aggregatedMetrics);
 
   } catch (error) {
