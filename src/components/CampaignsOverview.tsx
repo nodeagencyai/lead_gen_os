@@ -1,28 +1,12 @@
-import React, { useState } from 'react';
-import { Plus, Download, RefreshCw, List } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Plus, Download, RefreshCw, List, Clock } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
-import { useCampaignData } from '../hooks/useCampaignData';
+import { useCampaignData } from '../hooks/useInstantlyCampaignData';
 import CampaignToggle from './CampaignToggle';
 import SequenceViewerModal from './SequenceViewerModal';
-
-interface Campaign {
-  id: string;
-  name: string;
-  status: 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed';
-  statusColor: string;
-  preparation: number;
-  leadsReady: number;
-  emailsSent: number;
-  replies: number;
-  meetings: number;
-  template: string;
-  platform: string;
-  // New analytics fields
-  totalContacted: number;
-  openRate: number;
-  clickRate: number;
-  replyRate: number;
-}
+import StatusFilter from './StatusFilter';
+import { ErrorDisplay } from './ErrorHandler';
+import { DashboardCampaign } from '../services/instantlyDataTransformer';
 
 interface CampaignsOverviewProps {
   onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
@@ -31,7 +15,6 @@ interface CampaignsOverviewProps {
 const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => {
   const { mode } = useCampaignStore();
   const [activeTab, setActiveTab] = useState('Campaigns');
-  const [statusFilter, setStatusFilter] = useState('All');
   
   // Sequence viewer modal state
   const [sequenceModal, setSequenceModal] = useState<{
@@ -44,14 +27,21 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     campaignName: ''
   });
   
-  // Use real campaign data
-  const { campaigns, loading, error, refetch } = useCampaignData(mode);
-  
-  const filteredCampaigns = statusFilter === 'All' 
-    ? campaigns 
-    : campaigns.filter(c => c.status.toLowerCase() === statusFilter.toLowerCase());
-
-  const statusOptions = ['All', 'Draft', 'Running', 'Paused', 'Stopped', 'Completed'];
+  // Use enhanced campaign data hook
+  const { 
+    campaigns, 
+    loading, 
+    error, 
+    lastUpdated,
+    filter,
+    setFilter,
+    refreshData,
+    rateLimitInfo,
+    stats
+  } = useCampaignData(undefined, {
+    autoRefresh: true,
+    autoRefreshInterval: 5 * 60 * 1000 // 5 minutes
+  });
 
   // Handle sequence modal
   const openSequenceModal = (campaignId: string, campaignName: string) => {
@@ -69,6 +59,33 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
       campaignName: ''
     });
   };
+
+  // Export functionality
+  const handleExport = useCallback(() => {
+    const csvContent = [
+      ['Campaign Name', 'Status', 'Total Leads', 'Contacted', 'Open Rate', 'Click Rate', 'Reply Rate', 'Emails Sent'].join(','),
+      ...campaigns.map(campaign => 
+        [
+          campaign.name,
+          campaign.status,
+          campaign.totalLeads,
+          campaign.totalContacted,
+          `${campaign.openRate}%`,
+          `${campaign.clickRate}%`,
+          `${campaign.replyRate}%`,
+          campaign.emailsSent
+        ].join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `campaigns-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }, [campaigns]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -140,16 +157,24 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
             <h1 className="text-3xl font-bold mb-2 text-white">
               Campaigns Overview
             </h1>
-            <p className="text-base" style={{ color: '#ffffff' }}>
-              {mode === 'email' 
-                ? 'Prepare, preview, and organize your email campaigns'
-                : 'Prepare, preview, and organize your LinkedIn campaigns'
-              }
-            </p>
+            <div className="flex items-center space-x-4">
+              <p className="text-base" style={{ color: '#ffffff' }}>
+                {mode === 'email' 
+                  ? 'Real-time email campaign analytics from Instantly.ai'
+                  : 'LinkedIn campaign management (Coming Soon)'
+                }
+              </p>
+              {lastUpdated && (
+                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                  <Clock size={14} />
+                  <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <button 
-              onClick={refetch}
+              onClick={refreshData}
               disabled={loading}
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
               style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
@@ -158,15 +183,17 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
             </button>
             <button 
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+              onClick={handleExport}
+              disabled={campaigns.length === 0}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
               style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
             >
               <Download size={16} />
-              <span>Export All</span>
+              <span>Export CSV</span>
             </button>
             <button 
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-              style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+              style={{ backgroundColor: '#3b82f6', color: 'white' }}
             >
               <Plus size={16} />
               <span>New Campaign</span>
@@ -196,45 +223,27 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
         </div>
 
         {/* Status Filters */}
-        <div className="flex items-center space-x-2 mb-8">
-          {statusOptions.map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ${
-                statusFilter === status 
-                  ? 'text-white' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-              style={{
-                backgroundColor: statusFilter === status ? '#333333' : '#1a1a1a',
-                border: statusFilter === status ? '1px solid #555555' : '1px solid #333333'
-              }}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
+        <StatusFilter 
+          filter={filter}
+          setFilter={setFilter}
+          stats={stats}
+          loading={loading}
+        />
 
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #ef4444', color: '#ef4444' }}>
-            Error loading campaigns: {error}
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && !error && (
+        {/* Content */}
+        {error ? (
+          <ErrorDisplay 
+            error={error} 
+            onRetry={refreshData}
+          />
+        ) : loading && campaigns.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center space-x-3">
               <RefreshCw size={20} className="animate-spin" style={{ color: '#888888' }} />
               <span style={{ color: '#888888' }}>Loading campaigns...</span>
             </div>
           </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && campaigns.length === 0 && (
+        ) : campaigns.length === 0 ? (
           <div className="text-center py-12">
             <div className="mb-4">
               <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" 
@@ -244,25 +253,26 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">No Campaigns Found</h3>
             <p className="text-gray-400 mb-6">
-              {mode === 'email' 
-                ? 'Create your first email campaign to get started'
-                : 'Create your first LinkedIn campaign to get started'
+              {filter === 'All' 
+                ? (mode === 'email' 
+                    ? 'Create your first email campaign to get started'
+                    : 'LinkedIn campaigns coming soon')
+                : `No campaigns with status "${filter}"`
               }
             </p>
-            <button 
-              className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-80 mx-auto"
-              style={{ backgroundColor: '#3b82f6', color: 'white' }}
-            >
-              <Plus size={16} />
-              <span>Create Campaign</span>
-            </button>
+            {filter === 'All' && mode === 'email' && (
+              <button 
+                className="flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-80 mx-auto"
+                style={{ backgroundColor: '#3b82f6', color: 'white' }}
+              >
+                <Plus size={16} />
+                <span>Create Campaign</span>
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Campaign Cards */}
-        {!loading && !error && campaigns.length > 0 && (
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCampaigns.map((campaign) => (
+          {campaigns.map((campaign: DashboardCampaign) => (
             <div 
               key={campaign.id}
               className="rounded-xl p-6 transition-all duration-200 hover:border-opacity-80"
@@ -380,6 +390,13 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
               </div>
             </div>
           ))}
+          </div>
+        )}
+
+        {/* Rate Limit Warning */}
+        {rateLimitInfo.remaining < 10 && (
+          <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #f59e0b', color: '#f59e0b' }}>
+            ⚠️ API rate limit approaching ({rateLimitInfo.remaining} requests remaining)
           </div>
         )}
       </div>

@@ -16,6 +16,9 @@
     "api/instantly/analytics.js": {
       "maxDuration": 30
     },
+    "api/instantly/analytics-overview.js": {
+      "maxDuration": 30
+    },
     "api/heyreach/campaigns.js": {
       "maxDuration": 30
     },
