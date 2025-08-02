@@ -315,10 +315,10 @@ export const useRealTimeData = () => {
 
       const campaigns = allData.apiData?.campaigns?.map((camp: any, index: number) => ({
         name: camp.name || `Campaign ${index + 1}`,
-        sent: 0,
-        replies: 0,
-        meetings: 0,
-        rate: '0%'
+        sent: camp.emailsSent || 0,
+        replies: camp.replies || 0,
+        meetings: camp.meetings || 0,
+        rate: camp.replyRate ? `${camp.replyRate}%` : '0%'
       })) || [];
 
       return {

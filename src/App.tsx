@@ -446,6 +446,27 @@ function App() {
         {/* Campaigns Overview */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>Campaigns Overview</h2>
+          {loading ? (
+            <div className="rounded-lg p-8 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #444444' }}>
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-5 h-5 border-2 border-gray-600 border-t-white rounded-full animate-spin"></div>
+                <span style={{ color: '#888888' }}>Loading campaigns...</span>
+              </div>
+            </div>
+          ) : campaigns.length === 0 ? (
+            <div className="rounded-lg p-8 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #444444' }}>
+              <p className="text-base mb-4" style={{ color: '#888888' }}>
+                No campaigns found. Create your first campaign to see analytics here.
+              </p>
+              <button
+                onClick={() => setCurrentView('campaigns')}
+                className="px-4 py-2 rounded-lg transition-all duration-200 hover:opacity-80"
+                style={{ backgroundColor: '#0A2540', border: '1px solid #082030', color: '#5BB0FF' }}
+              >
+                Go to Campaigns
+              </button>
+            </div>
+          ) : (
           <div className="rounded-lg overflow-hidden" style={{ backgroundColor: '#1a1a1a', border: '1px solid #444444' }}>
             <table className="w-full">
               <thead style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #333333' }}>
@@ -461,7 +482,7 @@ function App() {
                 {campaigns.slice(0, 5).map((campaign: any, index: number) => (
                   <tr 
                     key={index} 
-                    className="transition-colors"
+                    className="transition-colors cursor-pointer"
                     style={{ borderTop: '1px solid #444444' }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = '#2a2a2a';
@@ -469,17 +490,44 @@ function App() {
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }}
+                    onClick={() => setCurrentView('campaigns')}
                   >
-                    <td className="p-4 text-sm text-white">{campaign.name}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.leads || campaign.sent || 0}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.responses || campaign.replies || 0}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.conversions || campaign.meetings || 0}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{campaign.rate || '0%'}</td>
+                    <td className="p-4 text-sm text-white flex items-center">
+                      <div 
+                        className="w-2 h-2 rounded-full mr-2"
+                        style={{ backgroundColor: campaign.statusColor || '#3b82f6' }}
+                      />
+                      {campaign.name}
+                    </td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
+                      {campaign.sent || campaign.emailsSent || 0}
+                    </td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
+                      {campaign.replies || 0}
+                    </td>
+                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
+                      {campaign.meetings || 0}
+                    </td>
+                    <td className="p-4 text-sm" style={{ color: campaign.rate && campaign.rate !== '0%' ? '#10b981' : '#cccccc' }}>
+                      {campaign.rate || '0%'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {campaigns.length > 5 && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setCurrentView('campaigns')}
+                className="text-sm transition-all duration-200 hover:opacity-80"
+                style={{ color: '#5BB0FF' }}
+              >
+                View all {campaigns.length} campaigns →
+              </button>
+            </div>
+          )}
+          )}
         </div>
 
         {/* Footer */}
