@@ -36,39 +36,32 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
         console.log('🔄 Fetching real data from 3 specific Instantly campaigns...');
         
         try {
+          console.log('🔄 STEP 1: Calling InstantlyCampaignService.fetchAllCampaigns()...');
           const realCampaigns = await InstantlyCampaignService.fetchAllCampaigns();
           
-          if (realCampaigns && realCampaigns.length > 0) {
-            console.log(`✅ Loaded ${realCampaigns.length} campaigns with real Instantly data:`, 
-              realCampaigns.map(c => ({ name: c.name, status: c.status, leads: c.leadsReady, emails: c.emailsSent }))
-            );
-            setCampaigns(realCampaigns);
-          } else {
-            console.warn('⚠️ No campaigns returned, falling back to old method...');
-            // Fallback to original method if new service fails
-            const instantlyData = await IntegrationService.getInstantlyData();
-            const mappedCampaigns = instantlyData.campaigns?.map((camp: any) => ({
-              id: camp.id,
-              name: camp.name,
-              status: camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused',
-              statusColor: camp.status === 1 ? '#10b981' : camp.status === 0 ? '#3b82f6' : '#f59e0b',
-              preparation: 75,
-              leadsReady: 0,
-              emailsSent: 0,
-              replies: 0,
-              meetings: 0,
-              template: 'General Outreach',
-              platform: 'Instantly',
-              // New analytics fields with default values
-              totalContacted: 0,
-              openRate: 0,
-              clickRate: 0,
-              replyRate: 0
-            })) || [];
-            setCampaigns(mappedCampaigns);
-          }
+          console.log('🔍 STEP 2: Service returned:', { 
+            campaigns: realCampaigns, 
+            length: realCampaigns?.length, 
+            hasData: !!(realCampaigns && realCampaigns.length > 0) 
+          });
+          
+          // ALWAYS use the real campaigns data - no fallback to zeros
+          console.log('✅ STEP 3: Using data from InstantlyCampaignService (forced):');
+          const finalCampaigns = realCampaigns || [];
+          finalCampaigns.forEach(c => {
+            console.log(`  Campaign: ${c.name}`, {
+              id: c.id,
+              status: c.status,
+              totalContacted: c.totalContacted,
+              emailsSent: c.emailsSent,
+              leadsReady: c.leadsReady,
+              openRate: c.openRate,
+              replyRate: c.replyRate
+            });
+          });
+          setCampaigns(finalCampaigns);
         } catch (error) {
-          console.error('❌ New service failed, using fallback:', error);
+          console.error('❌ STEP 3: CRITICAL - Main service FAILED, using fallback with ZEROS!', error);
           // Final fallback to original method
           const instantlyData = await IntegrationService.getInstantlyData();
           const mappedCampaigns = instantlyData.campaigns?.map((camp: any) => ({

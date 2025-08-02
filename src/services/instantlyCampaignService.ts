@@ -887,8 +887,8 @@ export class InstantlyCampaignService {
       case 0: return 'Draft';
       case 1: return 'Running';
       case 2: return 'Paused';
-      case 3: return 'Stopped';
-      case 4: return 'Completed';
+      case 3: return 'Completed';  // FIXED: 3 = Completed, not Stopped
+      case 4: return 'Stopped';    // FIXED: 4 = Stopped, not Completed
       default: return 'Draft';
     }
   }
