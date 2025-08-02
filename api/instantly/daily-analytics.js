@@ -46,8 +46,9 @@ export default async function handler(req, res) {
       return date.toISOString().split('T')[0];
     };
 
-    // Fetch daily analytics for all campaigns using the daily endpoint
-    const response = await fetch(`https://api.instantly.ai/api/v2/campaigns/analytics/daily?start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}`, {
+    // First, get all campaigns
+    console.log('🔄 Step 1: Fetching all campaigns...');
+    const campaignsResponse = await fetch(`https://api.instantly.ai/api/v2/campaigns`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${INSTANTLY_API_KEY}`,
@@ -56,16 +57,51 @@ export default async function handler(req, res) {
       }
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('❌ Instantly daily analytics error:', response.status, data);
-      return res.status(response.status).json({
-        error: 'Failed to fetch daily analytics',
-        status: response.status,
-        details: data
+    const campaignsData = await campaignsResponse.json();
+    
+    if (!campaignsResponse.ok) {
+      console.error('❌ Failed to fetch campaigns:', campaignsResponse.status, campaignsData);
+      return res.status(campaignsResponse.status).json({
+        error: 'Failed to fetch campaigns',
+        status: campaignsResponse.status,
+        details: campaignsData
       });
     }
+
+    const campaigns = Array.isArray(campaignsData) ? campaignsData : (campaignsData.items || []);
+    console.log(`✅ Found ${campaigns.length} campaigns`);
+
+    // Fetch daily analytics for each campaign individually
+    console.log('🔄 Step 2: Fetching daily analytics for each campaign...');
+    const allDailyData = [];
+    
+    for (const campaign of campaigns) {
+      try {
+        console.log(`🔄 Fetching daily analytics for campaign: ${campaign.name} (${campaign.id})`);
+        const response = await fetch(`https://api.instantly.ai/api/v2/campaigns/analytics/daily?campaign_id=${campaign.id}&start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${INSTANTLY_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const campaignDailyData = await response.json();
+          const dailyArray = Array.isArray(campaignDailyData) ? campaignDailyData : (campaignDailyData.items || []);
+          console.log(`✅ Campaign ${campaign.name}: ${dailyArray.length} daily records`);
+          allDailyData.push(...dailyArray);
+        } else {
+          console.warn(`⚠️ Failed to fetch daily analytics for campaign ${campaign.name}:`, response.status);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error fetching daily analytics for campaign ${campaign.name}:`, error.message);
+      }
+    }
+
+    const data = allDailyData;
+    console.log(`✅ Total daily records collected: ${data.length}`);
 
     console.log('✅ Fetched daily analytics from Instantly');
     console.log('📊 RAW DAILY ANALYTICS RESPONSE:', JSON.stringify(data, null, 2));
