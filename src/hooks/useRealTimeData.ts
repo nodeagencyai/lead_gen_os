@@ -158,25 +158,25 @@ export const useRealTimeData = () => {
           Promise.race([
             // Fetch both campaigns and aggregated analytics
             (async () => {
-              console.log('🚀 Starting to fetch campaigns and aggregated analytics...');
+              console.log('🚀 Starting to fetch campaigns and calculate client-side aggregated analytics...');
               const { InstantlyCampaignService } = await import('../services/instantlyCampaignService');
-              const [campaigns, aggregatedAnalytics] = await Promise.all([
-                InstantlyCampaignService.fetchAllCampaigns(),
-                InstantlyCampaignService.getAggregatedAnalytics()
-              ]);
-              console.log('📊 Aggregated Analytics Response:', aggregatedAnalytics);
-              console.log('📊 Analytics is null?', aggregatedAnalytics === null);
-              console.log('📊 Analytics type:', typeof aggregatedAnalytics);
+              
+              // Fetch campaigns with individual analytics (this works!)
+              const campaigns = await InstantlyCampaignService.fetchAllCampaigns();
               console.log('📋 Campaigns Response:', campaigns?.length || 0, 'campaigns');
               
-              // Better handling for null analytics
-              const analyticsData = aggregatedAnalytics || {
+              // Calculate aggregated analytics from individual campaign data
+              const aggregatedAnalytics = {
                 sent: 0,
                 unique_opened: 0,
                 unique_replies: 0,
                 meetings_booked: 0,
-                bounce_rate: 0,
+                bounced: 0,
+                unsubscribed: 0,
+                leads_count: 0,
                 open_rate: 0,
+                bounce_rate: 0,
+                reply_rate: 0,
                 changes: {
                   sent: 0,
                   unique_opened: 0,
@@ -186,7 +186,24 @@ export const useRealTimeData = () => {
                 }
               };
               
-              return { campaigns, analytics: analyticsData };
+              // Aggregate data from all campaigns
+              campaigns?.forEach(campaign => {
+                aggregatedAnalytics.sent += campaign.emailsSent || 0;
+                aggregatedAnalytics.unique_opened += campaign.analytics?.emailsOpened || 0;
+                aggregatedAnalytics.unique_replies += campaign.replies || 0;
+                aggregatedAnalytics.meetings_booked += campaign.meetings || 0;
+                // Note: bounced, unsubscribed data might not be available in campaign objects
+              });
+              
+              // Calculate rates
+              if (aggregatedAnalytics.sent > 0) {
+                aggregatedAnalytics.open_rate = Number(((aggregatedAnalytics.unique_opened / aggregatedAnalytics.sent) * 100).toFixed(2));
+                aggregatedAnalytics.reply_rate = Number(((aggregatedAnalytics.unique_replies / aggregatedAnalytics.sent) * 100).toFixed(2));
+              }
+              
+              console.log('📊 CLIENT-SIDE AGGREGATED ANALYTICS:', aggregatedAnalytics);
+              
+              return { campaigns, analytics: aggregatedAnalytics };
             })(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 8000)) // 8s timeout
           ]),
