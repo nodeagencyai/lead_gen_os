@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     const daysPeriod = parseInt(days);
     
     console.log(`🔄 Fetching daily analytics from Instantly for last ${daysPeriod} days...`);
+    console.log('🚀 USING NEW INDIVIDUAL CAMPAIGN APPROACH - VERSION 2.0');
 
     // Get date range
     const endDate = new Date();
