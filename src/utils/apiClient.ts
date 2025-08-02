@@ -201,6 +201,12 @@ class ApiClient {
       return proxyResponse;
     }
     
+    // Special debugging for analytics-aggregated endpoint
+    if (endpoint === '/analytics-aggregated') {
+      console.log('🔍 ANALYTICS-AGGREGATED RESPONSE:', JSON.stringify(proxyResponse.data, null, 2));
+      console.log('📊 RESPONSE TYPE:', typeof proxyResponse.data);
+    }
+    
     console.log('✅ Proxy success:', { hasData: !!proxyResponse.data });
     return proxyResponse;
   }

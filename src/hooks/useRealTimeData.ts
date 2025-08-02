@@ -319,8 +319,10 @@ export const useRealTimeData = () => {
 
     // Transform loaded data to legacy format
     if (mode === 'email') {
+      console.log('🔍 DEBUG: allData:', allData);
       console.log('🔍 DEBUG: allData.apiData:', allData.apiData);
       console.log('🔍 DEBUG: allData.apiData.analytics:', allData.apiData?.analytics);
+      console.log('🔍 DEBUG: Object.keys(allData.apiData):', Object.keys(allData.apiData || {}));
       
       const emailMetrics = {
         sent: allData.apiData?.analytics?.sent || 0,
