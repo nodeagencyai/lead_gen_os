@@ -189,10 +189,12 @@ export const useRealTimeData = () => {
               // Aggregate data from all campaigns
               campaigns?.forEach(campaign => {
                 aggregatedAnalytics.sent += campaign.emailsSent || 0;
-                aggregatedAnalytics.unique_opened += campaign.analytics?.emailsOpened || 0;
-                aggregatedAnalytics.unique_replies += campaign.replies || 0;
-                aggregatedAnalytics.meetings_booked += campaign.meetings || 0;
-                // Note: bounced, unsubscribed data might not be available in campaign objects
+                aggregatedAnalytics.unique_opened += campaign.analytics?.open_count || 0;
+                aggregatedAnalytics.unique_replies += campaign.analytics?.reply_count || 0;
+                aggregatedAnalytics.meetings_booked += campaign.analytics?.total_opportunities || 0;
+                aggregatedAnalytics.bounced += campaign.analytics?.bounced_count || 0;
+                aggregatedAnalytics.unsubscribed += campaign.analytics?.unsubscribed_count || 0;
+                aggregatedAnalytics.leads_count += campaign.analytics?.leads_count || 0;
               });
               
               // Calculate rates
