@@ -40,9 +40,16 @@ class ApiClient {
   }
 
   private getBaseUrl(): string {
-    // FORCE: Always use serverless proxy routes via same origin
     if (typeof window !== 'undefined') {
-      // Use current origin (works for both dev and production)
+      // In development, use the API server on port 3001
+      if (window.location.hostname === 'localhost' && window.location.port === '3001') {
+        return window.location.origin;
+      }
+      // For Vite dev server, use the API server
+      if (window.location.hostname === 'localhost' && window.location.port === '5174') {
+        return 'http://localhost:3001';
+      }
+      // Production: use same origin (Vercel)
       return window.location.origin;
     }
     
@@ -173,11 +180,9 @@ class ApiClient {
 
   // Specialized methods for different APIs with development fallback
   async instantly<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    const isDevelopment = import.meta.env.DEV;
-    const apiKey = import.meta.env.VITE_INSTANTLY_API_KEY;
+    console.log(`📡 INSTANTLY API: /api/instantly${endpoint}`);
     
-    // Try serverless proxy first
-    console.log(`📡 TRYING PROXY: /api/instantly${endpoint}`);
+    // Always try proxy first (works in both dev server and production)
     const proxyResponse = data 
       ? await this.post<T>(`/api/instantly${endpoint}`, data)
       : await this.get<T>(`/api/instantly${endpoint}`);
@@ -186,11 +191,17 @@ class ApiClient {
     const isSourceCode = typeof proxyResponse.data === 'string' && 
                         (proxyResponse.data as string).includes('Vercel Serverless Function');
     
-    if (isDevelopment && (proxyResponse.error || isSourceCode) && apiKey) {
-      console.log('🔄 DEVELOPMENT FALLBACK: Proxy failed, using direct API');
-      return this.directInstantlyCall<T>(endpoint, data, apiKey);
+    if (isSourceCode) {
+      console.warn('⚠️ Proxy serving source code - are you using Vite dev server? Use dev:real script instead');
+      return { error: 'Proxy not available - use npm run dev:real for real API data' };
     }
     
+    if (proxyResponse.error) {
+      console.error('❌ Proxy failed:', proxyResponse.error);
+      return proxyResponse;
+    }
+    
+    console.log('✅ Proxy success:', { hasData: !!proxyResponse.data });
     return proxyResponse;
   }
 
@@ -241,11 +252,133 @@ class ApiClient {
       
     } catch (error: any) {
       console.error('❌ Direct API exception:', error);
+      
+      // Only use mock data if in development AND it's a CORS error
+      if (import.meta.env.DEV && error.message?.includes('fetch')) {
+        console.log('🔄 DEVELOPMENT FALLBACK: CORS blocked, using mock data');
+        return this.getMockDataForDevelopment<T>(endpoint);
+      }
+      
       return { 
         error: error.message || 'Direct API call failed',
         details: error
       };
     }
+  }
+
+  // Development mock data with real API structure
+  private getMockDataForDevelopment<T>(endpoint: string): ApiResponse<T> {
+    console.log(`🎭 MOCK DATA: Providing development fallback for ${endpoint}`);
+    
+    // Mock campaigns list
+    if (endpoint === '/campaigns') {
+      const mockCampaigns = {
+        items: [
+          {
+            id: '4bde0574-609a-409d-86cc-52b233699a2b',
+            name: 'Digital Marketing Agencies',
+            status: 1, // Running
+            created_at: '2024-01-15T10:00:00Z',
+            updated_at: '2024-01-20T15:30:00Z',
+            leads_count: 150,
+            sequences: []
+          },
+          {
+            id: '2e3519c8-ac6f-4961-b803-e28c7423d080', 
+            name: 'Sales Development Representative',
+            status: 2, // Paused
+            created_at: '2024-01-10T09:00:00Z',
+            updated_at: '2024-01-18T12:00:00Z',
+            leads_count: 89,
+            sequences: []
+          },
+          {
+            id: 'afe7fbea-9d4e-491f-88e4-8f75985b9c07',
+            name: 'Beta',
+            status: 3, // Completed
+            created_at: '2024-01-05T08:00:00Z', 
+            updated_at: '2024-01-25T16:45:00Z',
+            leads_count: 25,
+            sequences: []
+          }
+        ]
+      };
+      return { data: mockCampaigns as T, status: 200 };
+    }
+    
+    // Mock analytics data
+    if (endpoint.startsWith('/analytics?id=')) {
+      const campaignId = endpoint.split('id=')[1];
+      let mockAnalytics: any[] = [];
+      
+      // Provide different data based on campaign ID to simulate real scenarios
+      if (campaignId === '4bde0574-609a-409d-86cc-52b233699a2b') {
+        // Digital Marketing - Active campaign with data
+        mockAnalytics = [{
+          campaign_id: campaignId,
+          campaign_name: 'Digital Marketing Agencies',
+          campaign_status: 1,
+          campaign_is_evergreen: false,
+          leads_count: 150,
+          contacted_count: 75,
+          open_count: 38,
+          reply_count: 8,
+          link_click_count: 12,
+          bounced_count: 5,
+          unsubscribed_count: 2,
+          completed_count: 73,
+          emails_sent_count: 75,
+          new_leads_contacted_count: 15,
+          total_opportunities: 3,
+          total_opportunity_value: 15000
+        }];
+      } else if (campaignId === '2e3519c8-ac6f-4961-b803-e28c7423d080') {
+        // Sales Development - Some activity
+        mockAnalytics = [{
+          campaign_id: campaignId,
+          campaign_name: 'Sales Development Representative',
+          campaign_status: 2,
+          campaign_is_evergreen: false,
+          leads_count: 89,
+          contacted_count: 45,
+          open_count: 23, 
+          reply_count: 5,
+          link_click_count: 7,
+          bounced_count: 3,
+          unsubscribed_count: 1,
+          completed_count: 42,
+          emails_sent_count: 45,
+          new_leads_contacted_count: 8,
+          total_opportunities: 2,
+          total_opportunity_value: 8500
+        }];
+      } else if (campaignId === 'afe7fbea-9d4e-491f-88e4-8f75985b9c07') {
+        // Beta - The campaign that was showing real data
+        mockAnalytics = [{
+          campaign_id: campaignId,
+          campaign_name: 'Beta',
+          campaign_status: 3,
+          campaign_is_evergreen: false,
+          leads_count: 25,
+          contacted_count: 1,
+          open_count: 1,
+          reply_count: 1,
+          link_click_count: 0,
+          bounced_count: 0,
+          unsubscribed_count: 0,
+          completed_count: 1,
+          emails_sent_count: 1,
+          new_leads_contacted_count: 1,
+          total_opportunities: 1,
+          total_opportunity_value: 2500
+        }];
+      }
+      
+      return { data: mockAnalytics as T, status: 200 };
+    }
+    
+    // Default fallback
+    return { error: `No mock data available for endpoint: ${endpoint}` };
   }
 
   async heyreach<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
