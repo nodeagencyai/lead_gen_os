@@ -68,6 +68,7 @@ export default async function handler(req, res) {
     }
 
     console.log('✅ Fetched daily analytics from Instantly');
+    console.log('📊 RAW DAILY ANALYTICS RESPONSE:', JSON.stringify(data, null, 2));
     console.log('📊 Daily analytics structure:', {
       hasItems: !!data.items,
       isArray: Array.isArray(data),
@@ -77,11 +78,23 @@ export default async function handler(req, res) {
     
     // Process the daily data into the format needed for charts
     const dailyData = Array.isArray(data) ? data : (data.items || []);
+    console.log('📊 DAILY DATA TO PROCESS:', {
+      length: dailyData.length,
+      firstItem: dailyData.length > 0 ? dailyData[0] : 'no items'
+    });
     
     // Group by date and aggregate across all campaigns
     const dateAggregates = {};
     
-    dailyData.forEach(dayData => {
+    dailyData.forEach((dayData, index) => {
+      console.log(`📊 Processing day ${index + 1}:`, {
+        date: dayData.date,
+        sent: dayData.sent,
+        opened: dayData.opened,
+        replies: dayData.replies,
+        unique_opened: dayData.unique_opened,
+        unique_replies: dayData.unique_replies
+      });
       const date = dayData.date;
       if (!dateAggregates[date]) {
         dateAggregates[date] = {
@@ -158,6 +171,7 @@ export default async function handler(req, res) {
       totalsOpened: totals.unique_opened,
       changesData: result.changes
     });
+    console.log('📊 FINAL RESULT:', JSON.stringify(result, null, 2));
 
     res.status(200).json(result);
 

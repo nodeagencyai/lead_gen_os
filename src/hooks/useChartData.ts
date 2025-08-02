@@ -81,6 +81,11 @@ export const useChartData = () => {
           const dailyAnalytics = await InstantlyCampaignService.getDailyAnalytics(timePeriod);
           
           if (dailyAnalytics && dailyAnalytics.dailyData) {
+            console.log('📊 DAILY ANALYTICS RECEIVED:', dailyAnalytics);
+            console.log('📊 DAILY DATA ARRAY:', dailyAnalytics.dailyData);
+            console.log('📊 TOTALS:', dailyAnalytics.totals);
+            console.log('📊 CHANGES:', dailyAnalytics.changes);
+            
             // Transform daily data for charts
             const emailsSentData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
               date: day.date,
@@ -91,6 +96,9 @@ export const useChartData = () => {
               date: day.date,
               value: day.unique_opened + day.unique_replies
             }));
+
+            console.log('📊 EMAILS SENT CHART DATA:', emailsSentData);
+            console.log('📊 OPENS/REPLIES CHART DATA:', opensRepliesData);
 
             const totals = dailyAnalytics.totals;
             const changes = dailyAnalytics.changes;
@@ -116,6 +124,11 @@ export const useChartData = () => {
             }));
           } else {
             // No data available
+            console.log('⚠️ NO DAILY ANALYTICS DATA:', {
+              dailyAnalytics: dailyAnalytics,
+              hasDailyData: dailyAnalytics?.dailyData,
+              dailyDataLength: dailyAnalytics?.dailyData?.length
+            });
             setChartData(prev => ({
               ...prev,
               chart1: {
