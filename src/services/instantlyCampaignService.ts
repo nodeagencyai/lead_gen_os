@@ -83,6 +83,30 @@ interface EnrichedCampaignData {
 export class InstantlyCampaignService {
   
   /**
+   * Fetch daily analytics for performance trends charts
+   */
+  static async getDailyAnalytics(days: number = 30): Promise<any | null> {
+    try {
+      console.log(`📊 Fetching daily analytics for last ${days} days from Instantly API v2...`);
+      
+      const result = await apiClient.instantly(`/daily-analytics?days=${days}`);
+      
+      if (result.error) {
+        console.error('❌ Failed to fetch daily analytics:', result.error);
+        return null;
+      }
+      
+      console.log('✅ Daily analytics fetched successfully');
+      console.log('📊 DAILY ANALYTICS DATA:', JSON.stringify(result.data, null, 2));
+      return result.data;
+      
+    } catch (error) {
+      console.error('❌ Error fetching daily analytics:', error);
+      return null;
+    }
+  }
+
+  /**
    * Fetch aggregated analytics across all campaigns
    */
   static async getAggregatedAnalytics(): Promise<any | null> {

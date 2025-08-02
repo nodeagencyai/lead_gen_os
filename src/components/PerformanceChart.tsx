@@ -13,6 +13,7 @@ interface PerformanceChartProps {
   changePercent: string;
   isPositive: boolean;
   color?: string;
+  timePeriod?: number;
 }
 
 const PerformanceChart: React.FC<PerformanceChartProps> = ({
@@ -21,7 +22,8 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   totalValue,
   changePercent,
   isPositive,
-  color = '#888888'
+  color = '#888888',
+  timePeriod = 30
 }) => {
   const chartPath = useMemo(() => {
     if (!data || data.length === 0) return '';
@@ -95,7 +97,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
         <div className="text-2xl font-bold text-white">{totalValue}</div>
         <div className="text-sm flex items-center" style={{ color: isPositive ? '#10b981' : '#ef4444' }}>
           <TrendingUp className="w-4 h-4 mr-1" />
-          Last 30 Days {changePercent}
+          Last {timePeriod} Days {changePercent}
         </div>
       </div>
       

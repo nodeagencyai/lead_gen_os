@@ -20,7 +20,7 @@ function App() {
   const { isAuthenticated, isLoading, authenticate, logout } = useAdminAuth();
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, leadAnalytics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
-  const { chart1, chart2, loading: chartLoading, error: chartError, refetch: refetchCharts } = useChartData();
+  const { chart1, chart2, loading: chartLoading, error: chartError, timePeriod, setTimePeriod, refetch: refetchCharts } = useChartData();
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -377,40 +377,32 @@ function App() {
           
           {/* Time Period Tabs */}
           <div className="flex space-x-1 mb-6 rounded-lg p-1 w-fit" style={{ backgroundColor: '#333333', border: '1px solid #555555' }}>
-            <button 
-              className="px-4 py-2 text-sm transition-colors rounded-md hover:opacity-80"
-              style={{ color: '#aaaaaa' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#555555';
-                e.currentTarget.style.color = '#ffffff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#aaaaaa';
-              }}
-            >
-              Last 7 Days
-            </button>
-            <button 
-              className="px-4 py-2 text-sm rounded-md"
-              style={{ backgroundColor: '#555555', color: '#ffffff', border: '1px solid #777777' }}
-            >
-              Last 30 Days
-            </button>
-            <button 
-              className="px-4 py-2 text-sm transition-colors rounded-md hover:opacity-80"
-              style={{ color: '#aaaaaa' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#555555';
-                e.currentTarget.style.color = '#ffffff';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#aaaaaa';
-              }}
-            >
-              Last 90 Days
-            </button>
+            {[7, 30, 90].map((days) => (
+              <button 
+                key={days}
+                onClick={() => setTimePeriod(days)}
+                className="px-4 py-2 text-sm transition-colors rounded-md hover:opacity-80"
+                style={{ 
+                  backgroundColor: timePeriod === days ? '#555555' : 'transparent',
+                  color: timePeriod === days ? '#ffffff' : '#aaaaaa',
+                  border: timePeriod === days ? '1px solid #777777' : '1px solid transparent'
+                }}
+                onMouseEnter={(e) => {
+                  if (timePeriod !== days) {
+                    e.currentTarget.style.backgroundColor = '#444444';
+                    e.currentTarget.style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (timePeriod !== days) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#aaaaaa';
+                  }
+                }}
+              >
+                Last {days} Days
+              </button>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -421,6 +413,7 @@ function App() {
               changePercent={chart1.changePercent}
               isPositive={true}
               color="#888888"
+              timePeriod={timePeriod}
             />
             
             <PerformanceChart
@@ -430,6 +423,7 @@ function App() {
               changePercent={chart2.changePercent}
               isPositive={true}
               color="#888888"
+              timePeriod={timePeriod}
             />
           </div>
         </div>

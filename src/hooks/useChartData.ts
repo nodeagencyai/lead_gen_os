@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCampaignStore } from '../store/campaignStore';
 import { IntegrationService } from '../services/integrationService';
+import { InstantlyCampaignService } from '../services/instantlyCampaignService';
 
 interface ChartDataPoint {
   date: string;
@@ -22,11 +23,14 @@ interface ChartData {
   };
   loading: boolean;
   error: string | null;
+  timePeriod: number;
+  setTimePeriod: (days: number) => void;
 }
 
 export const useChartData = () => {
   const { mode } = useCampaignStore();
-  const [chartData, setChartData] = useState<ChartData>({
+  const [timePeriod, setTimePeriod] = useState<number>(30);
+  const [chartData, setChartData] = useState<Omit<ChartData, 'timePeriod' | 'setTimePeriod'>>({
     chart1: {
       title: '',
       data: [],
@@ -71,39 +75,72 @@ export const useChartData = () => {
       setChartData(prev => ({ ...prev, loading: true, error: null }));
 
       if (mode === 'email') {
-        // Use real data from Instantly API only
+        // Use real daily analytics from Instantly API v2
         try {
-          console.log('📊 Fetching Instantly chart data...');
-          const instantlyData = await IntegrationService.getInstantlyData();
+          console.log(`📊 Fetching Instantly daily analytics for ${timePeriod} days...`);
+          const dailyAnalytics = await InstantlyCampaignService.getDailyAnalytics(timePeriod);
           
-          const emailsSent = instantlyData.analytics.emails_sent || 0;
-          const emailsOpened = instantlyData.analytics.emails_opened || 0;
-          const emailsReplied = instantlyData.analytics.emails_replied || 0;
-          
-          // Generate chart data based on real values (or empty if 0)
-          const emailsSentData = emailsSent > 0 ? generateMockData(emailsSent) : [];
-          const opensRepliesData = (emailsOpened + emailsReplied) > 0 ? generateMockData(emailsOpened + emailsReplied) : [];
+          if (dailyAnalytics && dailyAnalytics.dailyData) {
+            // Transform daily data for charts
+            const emailsSentData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
+              date: day.date,
+              value: day.sent
+            }));
+            
+            const opensRepliesData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
+              date: day.date,
+              value: day.unique_opened + day.unique_replies
+            }));
 
-          setChartData({
-            chart1: {
-              title: 'Emails Sent Over Time',
-              data: emailsSentData,
-              totalValue: emailsSent.toLocaleString(),
-              changePercent: emailsSent > 0 ? '+0%' : '0%'
-            },
-            chart2: {
-              title: 'Opens & Replies Over Time',
-              data: opensRepliesData,
-              totalValue: (emailsOpened + emailsReplied).toLocaleString(),
-              changePercent: (emailsOpened + emailsReplied) > 0 ? '+0%' : '0%'
-            },
-            loading: false,
-            error: null
-          });
+            const totals = dailyAnalytics.totals;
+            const changes = dailyAnalytics.changes;
+
+            setChartData(prev => ({
+              ...prev,
+              chart1: {
+                title: 'Emails Sent Over Time',
+                data: emailsSentData,
+                totalValue: totals.sent.toLocaleString(),
+                changePercent: `${Number(changes.sent) >= 0 ? '+' : ''}${changes.sent}%`
+              },
+              chart2: {
+                title: 'Opens & Replies Over Time',
+                data: opensRepliesData,
+                totalValue: (totals.unique_opened + totals.unique_replies).toLocaleString(),
+                changePercent: `${Number(changes.unique_opened) >= 0 ? '+' : ''}${changes.unique_opened}%`
+              },
+              loading: false,
+              error: null,
+              timePeriod,
+              setTimePeriod
+            }));
+          } else {
+            // No data available
+            setChartData(prev => ({
+              ...prev,
+              chart1: {
+                title: 'Emails Sent Over Time',
+                data: [],
+                totalValue: '0',
+                changePercent: '0%'
+              },
+              chart2: {
+                title: 'Opens & Replies Over Time',
+                data: [],
+                totalValue: '0',
+                changePercent: '0%'
+              },
+              loading: false,
+              error: null,
+              timePeriod,
+              setTimePeriod
+            }));
+          }
         } catch (apiError) {
-          console.error('Instantly API failed:', apiError);
+          console.error('Instantly daily analytics failed:', apiError);
           // Use zeros when API fails
-          setChartData({
+          setChartData(prev => ({
+            ...prev,
             chart1: {
               title: 'Emails Sent Over Time',
               data: [],
@@ -117,8 +154,10 @@ export const useChartData = () => {
               changePercent: '0%'
             },
             loading: false,
-            error: apiError instanceof Error ? apiError.message : 'Failed to load chart data'
-          });
+            error: apiError instanceof Error ? apiError.message : 'Failed to load chart data',
+            timePeriod,
+            setTimePeriod
+          }));
         }
 
       } else {
@@ -133,7 +172,8 @@ export const useChartData = () => {
           const connectionsData = connectionsAccepted > 0 ? generateMockData(connectionsAccepted) : [];
           const messagesRepliesData = (messagesSent + messageReplies) > 0 ? generateMockData(messagesSent + messageReplies) : [];
 
-          setChartData({
+          setChartData(prev => ({
+            ...prev,
             chart1: {
               title: 'Connections Made Over Time',
               data: connectionsData,
@@ -147,12 +187,15 @@ export const useChartData = () => {
               changePercent: (messagesSent + messageReplies) > 0 ? '+0%' : '0%'
             },
             loading: false,
-            error: null
-          });
+            error: null,
+            timePeriod,
+            setTimePeriod
+          }));
         } catch (apiError) {
           console.error('HeyReach API failed:', apiError);
           // Use zeros when API fails
-          setChartData({
+          setChartData(prev => ({
+            ...prev,
             chart1: {
               title: 'Connections Made Over Time',
               data: [],
@@ -166,8 +209,10 @@ export const useChartData = () => {
               changePercent: '0%'
             },
             loading: false,
-            error: null
-          });
+            error: null,
+            timePeriod,
+            setTimePeriod
+          }));
         }
       }
 
@@ -183,10 +228,12 @@ export const useChartData = () => {
 
   useEffect(() => {
     fetchChartData();
-  }, [mode]);
+  }, [mode, timePeriod]);
 
   return {
     ...chartData,
+    timePeriod,
+    setTimePeriod,
     refetch: fetchChartData
   };
 };
