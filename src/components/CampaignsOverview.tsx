@@ -164,7 +164,7 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
             </h1>
             <p className="text-base" style={{ color: '#ffffff' }}>
               {mode === 'email' 
-                ? 'Real-time email campaign analytics from Instantly.ai'
+                ? 'Real-time email campaign analytics from Instantly'
                 : 'LinkedIn campaign management (Coming Soon)'
               }
             </p>
