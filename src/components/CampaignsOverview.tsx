@@ -27,7 +27,30 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
   });
   
   // Use original working campaign data hook
-  const { campaigns, loading, error, refetch } = useCampaignData(mode);
+  const { campaigns: rawCampaigns, loading, error, refetch } = useCampaignData(mode);
+  
+  // TEMPORARY: Force real data to test if cards work
+  const campaigns = rawCampaigns.map(campaign => {
+    console.log('🔍 CARD DATA TEST - Raw campaign:', campaign);
+    
+    // If this is the Beta campaign, force real data
+    if (campaign.name === 'Beta' || campaign.id === 'afe7fbea-9d4e-491f-88e4-8f75985b9c07') {
+      const testCampaign = {
+        ...campaign,
+        totalContacted: 1,
+        emailsSent: 1, 
+        openRate: 0,
+        replyRate: 0,
+        clickRate: 0,
+        leadsReady: 0,
+        status: 'Completed'
+      };
+      console.log('🔧 FORCING Beta campaign data:', testCampaign);
+      return testCampaign;
+    }
+    
+    return campaign;
+  });
   
   // Local state for filter
   const [filter, setFilter] = useState<'All' | 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed'>('All');
