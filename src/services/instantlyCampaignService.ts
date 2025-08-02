@@ -163,25 +163,52 @@ export class InstantlyCampaignService {
       
       const campaign = result.data as any;
       
+      // COMPREHENSIVE DEBUG LOGGING FOR PRODUCTION
       console.log(`✅ Campaign ${campaignId} fetched from API v2`);
-      console.log(`📋 Campaign structure:`, {
-        id: campaign.id,
-        name: campaign.name,
-        status: campaign.status,
-        hasSequences: !!campaign.sequences,
-        sequenceCount: campaign.sequences?.length || 0
-      });
+      console.log('🔍 RAW API RESPONSE STRUCTURE:', JSON.stringify(campaign, null, 2));
       
-      // Specifically log sequences if found
+      // Check all possible sequence locations
+      console.log('🧭 SEQUENCE PATH ANALYSIS:');
+      console.log('  - campaign.sequences exists:', !!campaign.sequences);
+      console.log('  - campaign.payload exists:', !!campaign.payload);
+      console.log('  - campaign.payload.sequences exists:', !!campaign.payload?.sequences);
+      console.log('  - campaign.campaign exists:', !!campaign.campaign);
+      console.log('  - campaign.campaign.payload exists:', !!campaign.campaign?.payload);
+      console.log('  - campaign.campaign.payload.sequences exists:', !!campaign.campaign?.payload?.sequences);
+      
+      // Log all top-level keys
+      console.log('📋 TOP-LEVEL KEYS:', Object.keys(campaign || {}));
+      
+      // Check nested structure
+      if (campaign.payload) {
+        console.log('📦 PAYLOAD KEYS:', Object.keys(campaign.payload));
+        if (campaign.payload.sequences) {
+          console.log('📧 PAYLOAD.SEQUENCES LENGTH:', campaign.payload.sequences.length);
+          console.log('📧 PAYLOAD.SEQUENCES STRUCTURE:', campaign.payload.sequences);
+        }
+      }
+      
+      if (campaign.campaign) {
+        console.log('🎯 NESTED CAMPAIGN KEYS:', Object.keys(campaign.campaign));
+        if (campaign.campaign.payload) {
+          console.log('📦 NESTED CAMPAIGN.PAYLOAD KEYS:', Object.keys(campaign.campaign.payload));
+          if (campaign.campaign.payload.sequences) {
+            console.log('📧 NESTED CAMPAIGN.PAYLOAD.SEQUENCES LENGTH:', campaign.campaign.payload.sequences.length);
+            console.log('📧 NESTED CAMPAIGN.PAYLOAD.SEQUENCES STRUCTURE:', campaign.campaign.payload.sequences);
+          }
+        }
+      }
+      
+      // Legacy structure check
       if (campaign.sequences && Array.isArray(campaign.sequences) && campaign.sequences.length > 0) {
-        console.log(`🎯 SUCCESS: Found ${campaign.sequences.length} sequences in API v2 response!`);
+        console.log(`🎯 SUCCESS: Found ${campaign.sequences.length} sequences in direct structure!`);
         console.log(`📧 First sequence preview:`, {
           keys: Object.keys(campaign.sequences[0]),
           hasSubject: !!campaign.sequences[0].subject,
           hasContent: !!campaign.sequences[0].content || !!campaign.sequences[0].body
         });
       } else {
-        console.warn(`⚠️ No sequences found in API v2 response for campaign ${campaignId}`);
+        console.warn(`⚠️ No sequences found in direct structure for campaign ${campaignId}`);
       }
       
       return campaign;
@@ -414,18 +441,28 @@ export class InstantlyCampaignService {
   static parseSequencesFromCampaign(campaignData: any): any[] {
     const sequences: any[] = [];
     
-    // Check for sequences in multiple possible locations
+    // Check for sequences in multiple possible locations (ordered by most likely)
     let sequencesData: any[] | null = null;
     
-    // Try nested payload structure first (newer format)
-    if (campaignData.payload?.sequences && Array.isArray(campaignData.payload.sequences)) {
+    // Check deeply nested: campaign.campaign.payload.sequences (most nested)
+    if (campaignData.campaign?.payload?.sequences && Array.isArray(campaignData.campaign.payload.sequences)) {
+      sequencesData = campaignData.campaign.payload.sequences;
+      console.log(`📧 Found sequences in deeply nested structure (campaign.campaign.payload.sequences): ${sequencesData.length} sequences`);
+    }
+    // Check nested payload structure: campaign.payload.sequences
+    else if (campaignData.payload?.sequences && Array.isArray(campaignData.payload.sequences)) {
       sequencesData = campaignData.payload.sequences;
-      console.log(`📧 Found sequences in nested payload structure: ${sequencesData.length} sequences`);
+      console.log(`📧 Found sequences in nested payload structure (campaign.payload.sequences): ${sequencesData.length} sequences`);
+    }
+    // Check nested campaign: campaign.campaign.sequences  
+    else if (campaignData.campaign?.sequences && Array.isArray(campaignData.campaign.sequences)) {
+      sequencesData = campaignData.campaign.sequences;
+      console.log(`📧 Found sequences in nested campaign structure (campaign.campaign.sequences): ${sequencesData.length} sequences`);
     }
     // Fall back to direct sequences property (older format)
     else if (campaignData.sequences && Array.isArray(campaignData.sequences)) {
       sequencesData = campaignData.sequences;
-      console.log(`📧 Found sequences in direct structure: ${sequencesData.length} sequences`);
+      console.log(`📧 Found sequences in direct structure (campaign.sequences): ${sequencesData.length} sequences`);
     }
     
     // If no sequences found, return empty array
@@ -483,12 +520,20 @@ export class InstantlyCampaignService {
    * Handles both direct sequences and nested payload.sequences structure
    */
   static hasSequences(campaignData: any): boolean {
-    // Check for sequences in multiple possible locations
+    // Check for sequences in multiple possible locations (matching parseSequencesFromCampaign)
     let sequencesData: any[] | null = null;
     
-    // Try nested payload structure first (newer format)
-    if (campaignData.payload?.sequences && Array.isArray(campaignData.payload.sequences)) {
+    // Check deeply nested: campaign.campaign.payload.sequences (most nested)
+    if (campaignData.campaign?.payload?.sequences && Array.isArray(campaignData.campaign.payload.sequences)) {
+      sequencesData = campaignData.campaign.payload.sequences;
+    }
+    // Check nested payload structure: campaign.payload.sequences
+    else if (campaignData.payload?.sequences && Array.isArray(campaignData.payload.sequences)) {
       sequencesData = campaignData.payload.sequences;
+    }
+    // Check nested campaign: campaign.campaign.sequences  
+    else if (campaignData.campaign?.sequences && Array.isArray(campaignData.campaign.sequences)) {
+      sequencesData = campaignData.campaign.sequences;
     }
     // Fall back to direct sequences property (older format)
     else if (campaignData.sequences && Array.isArray(campaignData.sequences)) {
