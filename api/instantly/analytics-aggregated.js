@@ -65,6 +65,15 @@ export default async function handler(req, res) {
 
     console.log('✅ Fetched aggregated analytics from Instantly');
     console.log('📊 RAW API RESPONSE:', JSON.stringify(data, null, 2));
+    console.log('📊 RESPONSE ANALYSIS:', {
+      isArray: Array.isArray(data),
+      hasItems: !!data.items,
+      dataType: typeof data,
+      dataLength: Array.isArray(data) ? data.length : 'not array',
+      itemsLength: data.items ? data.items.length : 'no items property',
+      keys: Object.keys(data || {}),
+      firstItem: Array.isArray(data) && data.length > 0 ? data[0] : (data.items && data.items.length > 0 ? data.items[0] : 'no first item')
+    });
     
     // Calculate aggregated metrics from all campaigns
     let aggregatedMetrics = {
@@ -79,9 +88,26 @@ export default async function handler(req, res) {
 
     // Check if data is an array or has items property
     const campaigns = Array.isArray(data) ? data : (data.items || []);
+    console.log('📊 CAMPAIGNS TO PROCESS:', {
+      campaignsCount: campaigns.length,
+      campaignsType: typeof campaigns,
+      isArray: Array.isArray(campaigns)
+    });
+    
+    if (campaigns.length > 0) {
+      console.log('📊 FIRST CAMPAIGN STRUCTURE:', JSON.stringify(campaigns[0], null, 2));
+    }
     
     // Aggregate metrics from all campaigns
-    campaigns.forEach(campaign => {
+    campaigns.forEach((campaign, index) => {
+      console.log(`📊 Processing campaign ${index + 1}:`, {
+        name: campaign.campaign_name || campaign.name || 'unnamed',
+        emails_sent_count: campaign.emails_sent_count,
+        open_count: campaign.open_count,
+        reply_count: campaign.reply_count,
+        bounced_count: campaign.bounced_count,
+        total_opportunities: campaign.total_opportunities
+      });
       aggregatedMetrics.sent += campaign.emails_sent_count || 0;
       aggregatedMetrics.unique_opened += campaign.open_count || 0;
       aggregatedMetrics.unique_replies += campaign.reply_count || 0;
