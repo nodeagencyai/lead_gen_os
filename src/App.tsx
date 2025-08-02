@@ -219,7 +219,7 @@ function App() {
                 e.currentTarget.style.backgroundColor = '#1a1a1a';
               }}
             >
-              {mode === 'email' ? 'Apollo + Instantly' : 'Sales Navigator + HeyReach'}
+              {mode === 'email' ? 'Go to Instantly' : 'Go to HeyReach'}
             </button>
           </div>
         </div>
