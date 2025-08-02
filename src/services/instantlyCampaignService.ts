@@ -409,18 +409,35 @@ export class InstantlyCampaignService {
   /**
    * Parse sequences from campaign or subsequence data (improved logic)
    * Based on user's research of actual API v2 structure
+   * Handles both direct sequences and nested payload.sequences structure
    */
   static parseSequencesFromCampaign(campaignData: any): any[] {
     const sequences: any[] = [];
     
-    // Check if campaign has sequences
-    if (!campaignData.sequences || !Array.isArray(campaignData.sequences)) {
-      return sequences; // Return empty array
+    // Check for sequences in multiple possible locations
+    let sequencesData: any[] | null = null;
+    
+    // Try nested payload structure first (newer format)
+    if (campaignData.payload?.sequences && Array.isArray(campaignData.payload.sequences)) {
+      sequencesData = campaignData.payload.sequences;
+      console.log(`📧 Found sequences in nested payload structure: ${sequencesData.length} sequences`);
+    }
+    // Fall back to direct sequences property (older format)
+    else if (campaignData.sequences && Array.isArray(campaignData.sequences)) {
+      sequencesData = campaignData.sequences;
+      console.log(`📧 Found sequences in direct structure: ${sequencesData.length} sequences`);
     }
     
-    // Parse each sequence
-    campaignData.sequences.forEach((sequence: any, sequenceIndex: number) => {
+    // If no sequences found, return empty array
+    if (!sequencesData) {
+      console.warn(`⚠️ No sequences found in campaign data. Checked both payload.sequences and direct sequences`);
+      return sequences;
+    }
+    
+    // Parse each sequence using the found sequences data
+    sequencesData.forEach((sequence: any, sequenceIndex: number) => {
       if (!sequence.steps || !Array.isArray(sequence.steps)) {
+        console.warn(`⚠️ Sequence ${sequenceIndex} has no valid steps array`);
         return; // Skip invalid sequence
       }
       
@@ -463,13 +480,26 @@ export class InstantlyCampaignService {
 
   /**
    * Check if campaign/subsequence has sequences without fetching full data
+   * Handles both direct sequences and nested payload.sequences structure
    */
   static hasSequences(campaignData: any): boolean {
-    if (!campaignData.sequences || !Array.isArray(campaignData.sequences)) {
+    // Check for sequences in multiple possible locations
+    let sequencesData: any[] | null = null;
+    
+    // Try nested payload structure first (newer format)
+    if (campaignData.payload?.sequences && Array.isArray(campaignData.payload.sequences)) {
+      sequencesData = campaignData.payload.sequences;
+    }
+    // Fall back to direct sequences property (older format)
+    else if (campaignData.sequences && Array.isArray(campaignData.sequences)) {
+      sequencesData = campaignData.sequences;
+    }
+    
+    if (!sequencesData) {
       return false;
     }
     
-    return campaignData.sequences.some((sequence: any) => 
+    return sequencesData.some((sequence: any) => 
       sequence.steps && 
       sequence.steps.length > 0 &&
       sequence.steps.some((step: any) => 

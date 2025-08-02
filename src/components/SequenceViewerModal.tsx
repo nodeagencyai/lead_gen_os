@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Clock, TrendingUp, Eye } from 'lucide-react';
+import { X, Mail, Clock, TrendingUp, Eye, Code } from 'lucide-react';
 import { InstantlyCampaignService } from '../services/instantlyCampaignService';
 
 interface SequenceStep {
@@ -99,6 +99,32 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
 
   const calculateReplyRate = (replied: number, sent: number) => {
     return sent > 0 ? Math.round((replied / sent) * 100) : 0;
+  };
+
+  // Helper to clean HTML content for preview
+  const cleanHtmlContent = (htmlContent: string): string => {
+    if (!htmlContent) return '';
+    
+    // Remove HTML tags and convert common HTML entities
+    return htmlContent
+      .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> to newlines
+      .replace(/<\/p>/gi, '\n\n')     // Convert </p> to double newlines
+      .replace(/<p[^>]*>/gi, '')      // Remove <p> tags
+      .replace(/<div[^>]*>/gi, '')    // Remove <div> tags
+      .replace(/<\/div>/gi, '\n')     // Convert </div> to newlines
+      .replace(/<[^>]*>/g, '')        // Remove all remaining HTML tags
+      .replace(/&nbsp;/g, ' ')        // Convert &nbsp; to spaces
+      .replace(/&amp;/g, '&')         // Convert &amp; to &
+      .replace(/&lt;/g, '<')          // Convert &lt; to <
+      .replace(/&gt;/g, '>')          // Convert &gt; to >
+      .replace(/&quot;/g, '"')        // Convert &quot; to "
+      .replace(/&#39;/g, "'")         // Convert &#39; to '
+      .trim();
+  };
+
+  // Helper to detect if content is HTML
+  const isHtmlContent = (content: string): boolean => {
+    return /<[a-z][\s\S]*>/i.test(content);
   };
 
   if (!isOpen) return null;
@@ -245,18 +271,51 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
                       style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium" style={{ color: '#cccccc' }}>Email Content</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium" style={{ color: '#cccccc' }}>Email Content</span>
+                          {isHtmlContent(sequence.content) && (
+                            <span 
+                              className="text-xs px-2 py-1 rounded-full flex items-center space-x-1"
+                              style={{ backgroundColor: '#f59e0b20', color: '#f59e0b' }}
+                            >
+                              <Code size={10} />
+                              <span>HTML</span>
+                            </span>
+                          )}
+                        </div>
                         <button className="flex items-center space-x-1 text-xs hover:opacity-80" style={{ color: '#888888' }}>
                           <Eye size={12} />
                           <span>Preview</span>
                         </button>
                       </div>
                       <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-32 overflow-hidden">
-                        {sequence.content.length > 200 
-                          ? sequence.content.substring(0, 200) + '...'
-                          : sequence.content
-                        }
+                        {(() => {
+                          const content = isHtmlContent(sequence.content) 
+                            ? cleanHtmlContent(sequence.content)
+                            : sequence.content;
+                          return content.length > 300 
+                            ? content.substring(0, 300) + '...'
+                            : content;
+                        })()}
                       </div>
+                      {isHtmlContent(sequence.content) && (
+                        <div className="mt-2 pt-2 border-t border-gray-600">
+                          <details className="text-xs">
+                            <summary 
+                              className="cursor-pointer hover:opacity-80 text-gray-400"
+                              style={{ color: '#888888' }}
+                            >
+                              View Raw HTML
+                            </summary>
+                            <div 
+                              className="mt-2 p-2 rounded text-xs font-mono max-h-24 overflow-y-auto"
+                              style={{ backgroundColor: '#0f0f0f', color: '#cccccc' }}
+                            >
+                              {sequence.content}
+                            </div>
+                          </details>
+                        </div>
+                      )}
                     </div>
 
                     {/* Performance Bar */}
