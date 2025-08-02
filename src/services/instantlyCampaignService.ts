@@ -89,55 +89,74 @@ export class InstantlyCampaignService {
     console.log(`🧪 DEBUG: Testing Instantly API v2 access for campaign ${campaignId}...`);
     
     try {
-      // Test the primary API v2 endpoint that should contain sequences
-      console.log(`🎯 Testing primary API v2 endpoint: /campaigns/${campaignId}`);
-      const primaryResult = await apiClient.instantly(`/campaigns/${campaignId}`);
-      
-      if (primaryResult.error) {
-        console.error(`❌ Primary campaign endpoint failed:`, primaryResult.error);
-      } else {
-        const campaign = primaryResult.data as any;
-        console.log(`✅ Primary campaign endpoint successful`);
-        console.log(`📋 Campaign structure:`, {
-          id: campaign.id,
-          name: campaign.name,
-          status: campaign.status,
-          hasSequences: !!campaign.sequences,
-          sequenceCount: campaign.sequences?.length || 0,
-          allKeys: Object.keys(campaign)
-        });
-        
-        // Log sequences if they exist
-        if (campaign.sequences && Array.isArray(campaign.sequences)) {
-          console.log(`🎯 FOUND SEQUENCES! ${campaign.sequences.length} sequences in campaign:`);
-          campaign.sequences.forEach((seq: any, index: number) => {
-            console.log(`📧 Sequence ${index + 1}:`, {
-              keys: Object.keys(seq),
-              hasSubject: !!seq.subject,
-              hasContent: !!seq.content || !!seq.body,
-              hasSteps: !!seq.steps,
-              isArray: Array.isArray(seq)
-            });
-          });
-        } else {
-          console.warn(`⚠️ No sequences array found in primary endpoint response`);
-        }
-      }
-      
-      // Also test the campaigns list to see if it shows sequences
-      console.log(`📋 Testing campaigns list for comparison...`);
+      // Test the campaigns list to find the specific campaign
+      console.log(`📋 Testing campaigns list to find campaign ${campaignId}...`);
       const campaignsResult = await apiClient.instantly('/campaigns');
       
       if (!campaignsResult.error) {
         const allCampaigns = (campaignsResult.data as any)?.items || campaignsResult.data || [];
         const specificCampaign = allCampaigns.find((c: any) => c.id === campaignId);
         if (specificCampaign) {
-          console.log(`📝 Campaign in list view:`, {
+          console.log(`✅ Found campaign in list view`);
+          console.log('🔍 RAW CAMPAIGN DATA:', JSON.stringify(specificCampaign, null, 2));
+          console.log(`📝 Campaign structure:`, {
+            id: specificCampaign.id,
+            name: specificCampaign.name,
+            status: specificCampaign.status,
             hasSequences: !!specificCampaign.sequences,
+            hasPayload: !!specificCampaign.payload,
+            hasPayloadSequences: !!specificCampaign.payload?.sequences,
             sequenceCount: specificCampaign.sequences?.length || 0,
+            payloadSequenceCount: specificCampaign.payload?.sequences?.length || 0,
             keys: Object.keys(specificCampaign)
           });
+          
+          // Check payload structure
+          if (specificCampaign.payload) {
+            console.log(`📦 PAYLOAD STRUCTURE:`, {
+              keys: Object.keys(specificCampaign.payload),
+              hasSequences: !!specificCampaign.payload.sequences
+            });
+            
+            if (specificCampaign.payload.sequences && Array.isArray(specificCampaign.payload.sequences)) {
+              console.log(`🎯 FOUND SEQUENCES IN PAYLOAD! ${specificCampaign.payload.sequences.length} sequences`);
+              specificCampaign.payload.sequences.forEach((seq: any, index: number) => {
+                console.log(`📧 Payload Sequence ${index + 1}:`, {
+                  keys: Object.keys(seq),
+                  hasSteps: !!seq.steps,
+                  stepsCount: seq.steps?.length || 0
+                });
+                if (seq.steps && Array.isArray(seq.steps)) {
+                  seq.steps.forEach((step: any, stepIndex: number) => {
+                    console.log(`  📝 Step ${stepIndex + 1}:`, {
+                      type: step.type,
+                      delay: step.delay,
+                      hasVariants: !!step.variants,
+                      variantCount: step.variants?.length || 0
+                    });
+                  });
+                }
+              });
+            }
+          }
+          
+          // Check direct sequences
+          if (specificCampaign.sequences && Array.isArray(specificCampaign.sequences)) {
+            console.log(`🎯 FOUND DIRECT SEQUENCES! ${specificCampaign.sequences.length} sequences`);
+            specificCampaign.sequences.forEach((seq: any, index: number) => {
+              console.log(`📧 Direct Sequence ${index + 1}:`, {
+                keys: Object.keys(seq),
+                hasSubject: !!seq.subject,
+                hasContent: !!seq.content || !!seq.body,
+                hasSteps: !!seq.steps
+              });
+            });
+          }
+        } else {
+          console.error(`❌ Campaign ${campaignId} not found in campaigns list`);
         }
+      } else {
+        console.error(`❌ Failed to fetch campaigns list:`, campaignsResult.error);
       }
       
     } catch (error) {
@@ -147,24 +166,39 @@ export class InstantlyCampaignService {
   
   /**
    * Fetch campaign details with sequences from Instantly API v2
-   * Primary endpoint: GET /campaigns/{campaign_id} - contains complete campaign + sequences
+   * Since individual campaign endpoint doesn't exist, we fetch from campaigns list
    */
   static async getCampaignDetails(campaignId: string): Promise<InstantlyCampaignDetails | null> {
     try {
       console.log(`🔄 Fetching campaign details from API v2 for ${campaignId}...`);
       
-      // Use the primary API v2 endpoint that contains sequences
-      const result = await apiClient.instantly(`/campaigns/${campaignId}`);
+      // First try the individual campaign endpoint (in case it exists in the future)
+      const individualResult = await apiClient.instantly(`/campaigns/${campaignId}`);
       
-      if (result.error) {
-        console.error(`❌ Failed to fetch campaign ${campaignId} from API v2:`, result.error);
+      if (!individualResult.error) {
+        console.log(`✅ Found campaign via individual endpoint`);
+        return individualResult.data as InstantlyCampaignDetails;
+      }
+      
+      // Fallback: Fetch from campaigns list and find the specific campaign
+      console.log(`🔄 Individual endpoint not available, fetching from campaigns list...`);
+      const listResult = await apiClient.instantly('/campaigns');
+      
+      if (listResult.error) {
+        console.error(`❌ Failed to fetch campaigns list:`, listResult.error);
         return null;
       }
       
-      const campaign = result.data as any;
+      // Find the specific campaign in the list
+      const campaigns = (listResult.data as any)?.items || listResult.data || [];
+      const campaign = campaigns.find((c: any) => c.id === campaignId);
       
-      // COMPREHENSIVE DEBUG LOGGING FOR PRODUCTION
-      console.log(`✅ Campaign ${campaignId} fetched from API v2`);
+      if (!campaign) {
+        console.error(`❌ Campaign ${campaignId} not found in campaigns list`);
+        return null;
+      }
+      
+      console.log(`✅ Found campaign ${campaignId} in campaigns list`);
       console.log('🔍 RAW API RESPONSE STRUCTURE:', JSON.stringify(campaign, null, 2));
       
       // Check all possible sequence locations
