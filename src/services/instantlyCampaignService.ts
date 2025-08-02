@@ -198,8 +198,8 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics for campaign ${campaignId} from API v2...`);
       
-      // Use correct API v2 analytics endpoint (per official docs)
-      const result = await apiClient.instantly(`/analytics?id=${campaignId}`);
+      // Use correct API v2 analytics endpoint (per debug results)
+      const result = await apiClient.instantly(`/campaigns/analytics?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
@@ -278,9 +278,33 @@ export class InstantlyCampaignService {
     // Handle different possible response structures
     let analyticsItem = data;
     
-    // If response has items array, find the matching campaign
-    if (data.items && Array.isArray(data.items)) {
+    // Debug showed API returns an array directly
+    if (Array.isArray(data) && data.length > 0) {
+      analyticsItem = data[0]; // Take first item from array
+      console.log(`📊 Parsed analytics from array for campaign ${campaignId}`);
+    } else if (data.items && Array.isArray(data.items)) {
       analyticsItem = data.items.find((item: any) => item.campaign_id === campaignId) || data.items[0];
+    } else if (Array.isArray(data) && data.length === 0) {
+      console.warn(`⚠️ Empty analytics array for campaign ${campaignId}`);
+      // Return default analytics for campaigns with no data
+      return {
+        campaign_id: campaignId,
+        campaign_name: '',
+        campaign_status: 0,
+        campaign_is_evergreen: false,
+        leads_count: 0,
+        contacted_count: 0,
+        open_count: 0,
+        reply_count: 0,
+        link_click_count: 0,
+        bounced_count: 0,
+        unsubscribed_count: 0,
+        completed_count: 0,
+        emails_sent_count: 0,
+        new_leads_contacted_count: 0,
+        total_opportunities: 0,
+        total_opportunity_value: 0
+      };
     }
     
     // Map exact API v2 field names according to documentation
