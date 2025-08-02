@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Plus, Download, RefreshCw, List, Clock } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import { useCampaignData } from '../hooks/useCampaignData';
+import { useDirectInstantlyData } from '../hooks/useDirectInstantlyData';
 import CampaignToggle from './CampaignToggle';
 import SequenceViewerModal from './SequenceViewerModal';
 import StatusFilter from './StatusFilter';
@@ -26,31 +27,15 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     campaignName: ''
   });
   
-  // Use original working campaign data hook
-  const { campaigns: rawCampaigns, loading, error, refetch } = useCampaignData(mode);
+  // DIRECT FIX: Use simple direct API hook for email mode
+  const { campaigns: directCampaigns, loading: directLoading, error: directError, refetch: directRefetch } = useDirectInstantlyData();
+  const { campaigns: linkedinCampaigns, loading: linkedinLoading, error: linkedinError, refetch: linkedinRefetch } = useCampaignData('linkedin');
   
-  // TEMPORARY: Force real data to test if cards work
-  const campaigns = rawCampaigns.map(campaign => {
-    console.log('🔍 CARD DATA TEST - Raw campaign:', campaign);
-    
-    // If this is the Beta campaign, force real data
-    if (campaign.name === 'Beta' || campaign.id === 'afe7fbea-9d4e-491f-88e4-8f75985b9c07') {
-      const testCampaign = {
-        ...campaign,
-        totalContacted: 1,
-        emailsSent: 1, 
-        openRate: 0,
-        replyRate: 0,
-        clickRate: 0,
-        leadsReady: 0,
-        status: 'Completed'
-      };
-      console.log('🔧 FORCING Beta campaign data:', testCampaign);
-      return testCampaign;
-    }
-    
-    return campaign;
-  });
+  // Use direct data for email, original for linkedin
+  const campaigns = mode === 'email' ? directCampaigns : linkedinCampaigns;
+  const loading = mode === 'email' ? directLoading : linkedinLoading;
+  const error = mode === 'email' ? directError : linkedinError;
+  const refetch = mode === 'email' ? directRefetch : linkedinRefetch;
   
   // Local state for filter
   const [filter, setFilter] = useState<'All' | 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed'>('All');
