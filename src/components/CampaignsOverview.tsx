@@ -26,61 +26,16 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
     campaignName: ''
   });
   
-  // QUICK FIX: Use working hook but force real data display
+  // INVESTIGATE: Check what the service is actually returning
   const { campaigns: rawCampaigns, loading, error, refetch } = useCampaignData(mode);
   
-  // FORCE real data into cards - bypass any service issues
-  const campaigns = rawCampaigns.map(campaign => {
-    // Beta campaign - force real API data
-    if (campaign.id === 'afe7fbea-9d4e-491f-88e4-8f75985b9c07' || campaign.name === 'Beta') {
-      return {
-        ...campaign,
-        status: 'Completed',
-        statusColor: '#6b7280',
-        totalContacted: 1,
-        emailsSent: 1,
-        openRate: 0,
-        replyRate: 0,
-        clickRate: 0,
-        leadsReady: 0,
-        preparation: 100
-      };
-    }
-    
-    // Digital Marketing - force real data if available
-    if (campaign.id === '4bde0574-609a-409d-86cc-52b233699a2b') {
-      return {
-        ...campaign,
-        status: 'Draft',
-        statusColor: '#3b82f6',
-        totalContacted: 0,
-        emailsSent: 0,
-        openRate: 0,
-        replyRate: 0,
-        clickRate: 0,
-        leadsReady: 0,
-        preparation: 50
-      };
-    }
-    
-    // Sales Dev - force real data if available  
-    if (campaign.id === '2e3519c8-ac6f-4961-b803-e28c7423d080') {
-      return {
-        ...campaign,
-        status: 'Draft',
-        statusColor: '#3b82f6',
-        totalContacted: 0,
-        emailsSent: 0,
-        openRate: 0,
-        replyRate: 0,
-        clickRate: 0,
-        leadsReady: 0,
-        preparation: 50
-      };
-    }
-    
-    return campaign;
-  });
+  // DEBUG: Log what we're actually getting from the service
+  console.log('🔍 INVESTIGATION: Raw campaigns from hook:', rawCampaigns);
+  console.log('🔍 INVESTIGATION: Loading state:', loading);
+  console.log('🔍 INVESTIGATION: Error state:', error);
+  
+  // Use the raw campaigns to see what the service is really returning
+  const campaigns = rawCampaigns;
   
   // Local state for filter
   const [filter, setFilter] = useState<'All' | 'Draft' | 'Running' | 'Paused' | 'Stopped' | 'Completed'>('All');
