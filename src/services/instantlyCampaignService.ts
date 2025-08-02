@@ -97,6 +97,7 @@ export class InstantlyCampaignService {
       }
       
       console.log('✅ Aggregated analytics fetched successfully');
+      console.log('📊 AGGREGATED ANALYTICS DATA:', JSON.stringify(result.data, null, 2));
       return result.data;
       
     } catch (error) {

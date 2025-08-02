@@ -158,11 +158,14 @@ export const useRealTimeData = () => {
           Promise.race([
             // Fetch both campaigns and aggregated analytics
             (async () => {
+              console.log('🚀 Starting to fetch campaigns and aggregated analytics...');
               const { InstantlyCampaignService } = await import('../services/instantlyCampaignService');
               const [campaigns, aggregatedAnalytics] = await Promise.all([
                 InstantlyCampaignService.fetchAllCampaigns(),
                 InstantlyCampaignService.getAggregatedAnalytics()
               ]);
+              console.log('📊 Aggregated Analytics Response:', aggregatedAnalytics);
+              console.log('📋 Campaigns Response:', campaigns?.length || 0, 'campaigns');
               return { campaigns, analytics: aggregatedAnalytics || {} }; // Include aggregated analytics
             })(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 8000)) // 8s timeout
@@ -316,6 +319,9 @@ export const useRealTimeData = () => {
 
     // Transform loaded data to legacy format
     if (mode === 'email') {
+      console.log('🔍 DEBUG: allData.apiData:', allData.apiData);
+      console.log('🔍 DEBUG: allData.apiData.analytics:', allData.apiData?.analytics);
+      
       const emailMetrics = {
         sent: allData.apiData?.analytics?.sent || 0,
         opened: allData.apiData?.analytics?.unique_opened || 0,
@@ -332,6 +338,8 @@ export const useRealTimeData = () => {
           bounce_rate: 0
         }
       };
+      
+      console.log('📊 EMAIL METRICS TRANSFORMED:', emailMetrics);
 
       const campaigns = allData.apiData?.campaigns?.map((camp: any, index: number) => ({
         name: camp.name || `Campaign ${index + 1}`,
