@@ -165,8 +165,28 @@ export const useRealTimeData = () => {
                 InstantlyCampaignService.getAggregatedAnalytics()
               ]);
               console.log('📊 Aggregated Analytics Response:', aggregatedAnalytics);
+              console.log('📊 Analytics is null?', aggregatedAnalytics === null);
+              console.log('📊 Analytics type:', typeof aggregatedAnalytics);
               console.log('📋 Campaigns Response:', campaigns?.length || 0, 'campaigns');
-              return { campaigns, analytics: aggregatedAnalytics || {} }; // Include aggregated analytics
+              
+              // Better handling for null analytics
+              const analyticsData = aggregatedAnalytics || {
+                sent: 0,
+                unique_opened: 0,
+                unique_replies: 0,
+                meetings_booked: 0,
+                bounce_rate: 0,
+                open_rate: 0,
+                changes: {
+                  sent: 0,
+                  unique_opened: 0,
+                  unique_replies: 0,
+                  meetings_booked: 0,
+                  bounce_rate: 0
+                }
+              };
+              
+              return { campaigns, analytics: analyticsData };
             })(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 8000)) // 8s timeout
           ]),

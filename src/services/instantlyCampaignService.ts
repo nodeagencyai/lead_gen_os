@@ -93,11 +93,15 @@ export class InstantlyCampaignService {
       
       if (result.error) {
         console.error('❌ Failed to fetch aggregated analytics:', result.error);
+        console.error('📊 API Error Details:', result);
         return null;
       }
       
       console.log('✅ Aggregated analytics fetched successfully');
       console.log('📊 AGGREGATED ANALYTICS DATA:', JSON.stringify(result.data, null, 2));
+      console.log('📊 DATA TYPE:', typeof result.data);
+      console.log('📊 DATA KEYS:', result.data ? Object.keys(result.data) : 'No data');
+      
       return result.data;
       
     } catch (error) {
