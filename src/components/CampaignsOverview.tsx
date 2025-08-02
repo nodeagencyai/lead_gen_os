@@ -190,7 +190,7 @@ const CampaignsOverview: React.FC<CampaignsOverviewProps> = ({ onNavigate }) => 
             </button>
             <button 
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-              style={{ backgroundColor: '#3b82f6', color: 'white' }}
+              style={{ backgroundColor: '#0A2540', border: '1px solid #082030', color: '#5BB0FF' }}
             >
               <Plus size={16} />
               <span>New Campaign</span>
