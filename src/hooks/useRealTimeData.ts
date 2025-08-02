@@ -10,6 +10,14 @@ interface RealTimeMetrics {
     replied: number;
     meetings: number;
     bounceRate: number;
+    openRate?: number;
+    changes?: {
+      sent: string | number;
+      unique_opened: string | number;
+      unique_replies: string | number;
+      meetings_booked: string | number;
+      bounce_rate: string | number;
+    };
   };
   linkedinMetrics: {
     connectionRequests: number;
@@ -148,11 +156,14 @@ export const useRealTimeData = () => {
         // EMAIL DASHBOARD: Optimized Promise.all with faster timeout
         const [apiData, leadData] = await Promise.all([
           Promise.race([
-            // Use the new InstantlyCampaignService instead of old IntegrationService
+            // Fetch both campaigns and aggregated analytics
             (async () => {
               const { InstantlyCampaignService } = await import('../services/instantlyCampaignService');
-              const campaigns = await InstantlyCampaignService.fetchAllCampaigns();
-              return { campaigns, analytics: {} }; // Match expected structure
+              const [campaigns, aggregatedAnalytics] = await Promise.all([
+                InstantlyCampaignService.fetchAllCampaigns(),
+                InstantlyCampaignService.getAggregatedAnalytics()
+              ]);
+              return { campaigns, analytics: aggregatedAnalytics || {} }; // Include aggregated analytics
             })(),
             new Promise((_, reject) => setTimeout(() => reject(new Error('API timeout')), 8000)) // 8s timeout
           ]),
@@ -293,7 +304,7 @@ export const useRealTimeData = () => {
     if (!allData) {
       // Return loading state - matches legacy interface
       return {
-        emailMetrics: { sent: 0, opened: 0, replied: 0, meetings: 0, bounceRate: 0 },
+        emailMetrics: { sent: 0, opened: 0, replied: 0, meetings: 0, bounceRate: 0, openRate: 0, changes: { sent: 0, unique_opened: 0, unique_replies: 0, meetings_booked: 0, bounce_rate: 0 } },
         linkedinMetrics: { connectionRequests: 0, connectionsAccepted: 0, messagesSent: 0, messageReplies: 0, meetings: 0 },
         leadAnalytics: { totalLeads: 0, profileCoverage: { percentage: 0, completed: 0, total: 0 }, personalizationRate: { percentage: 0, personalized: 0, total: 0 } },
         campaigns: [],
@@ -306,11 +317,20 @@ export const useRealTimeData = () => {
     // Transform loaded data to legacy format
     if (mode === 'email') {
       const emailMetrics = {
-        sent: allData.apiData?.analytics?.emails_sent || 0,
-        opened: allData.apiData?.analytics?.emails_opened || 0,
-        replied: allData.apiData?.analytics?.emails_replied || 0,
+        sent: allData.apiData?.analytics?.sent || 0,
+        opened: allData.apiData?.analytics?.unique_opened || 0,
+        replied: allData.apiData?.analytics?.unique_replies || 0,
         meetings: allData.apiData?.analytics?.meetings_booked || 0,
-        bounceRate: Number(allData.apiData?.analytics?.bounce_rate) || 0
+        bounceRate: Number(allData.apiData?.analytics?.bounce_rate) || 0,
+        openRate: Number(allData.apiData?.analytics?.open_rate) || 0,
+        // Store percentage changes for the UI
+        changes: allData.apiData?.analytics?.changes || {
+          sent: 0,
+          unique_opened: 0,
+          unique_replies: 0,
+          meetings_booked: 0,
+          bounce_rate: 0
+        }
       };
 
       const campaigns = allData.apiData?.campaigns?.map((camp: any, index: number) => ({

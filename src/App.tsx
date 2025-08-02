@@ -44,11 +44,36 @@ function App() {
 
   // Convert real-time data to display format
   const keyMetrics = mode === 'email' ? [
-    { title: 'Emails Sent', value: emailMetrics.sent.toLocaleString(), change: '0%', positive: true },
-    { title: 'Emails Opened', value: emailMetrics.opened.toLocaleString(), change: '0%', positive: true },
-    { title: 'Email Replies', value: emailMetrics.replied.toLocaleString(), change: '0%', positive: true },
-    { title: 'Meetings Booked', value: emailMetrics.meetings.toLocaleString(), change: '0%', positive: true },
-    { title: 'Bounce Rate', value: `${emailMetrics.bounceRate}%`, change: '0%', positive: true }
+    { 
+      title: 'Emails Sent', 
+      value: emailMetrics.sent.toLocaleString(), 
+      change: `${emailMetrics.changes?.sent || 0}%`, 
+      positive: Number(emailMetrics.changes?.sent || 0) >= 0 
+    },
+    { 
+      title: 'Emails Opened', 
+      value: emailMetrics.opened.toLocaleString(), 
+      change: `${emailMetrics.changes?.unique_opened || 0}%`, 
+      positive: Number(emailMetrics.changes?.unique_opened || 0) >= 0 
+    },
+    { 
+      title: 'Email Replies', 
+      value: emailMetrics.replied.toLocaleString(), 
+      change: `${emailMetrics.changes?.unique_replies || 0}%`, 
+      positive: Number(emailMetrics.changes?.unique_replies || 0) >= 0 
+    },
+    { 
+      title: 'Open Rate', 
+      value: `${emailMetrics.openRate || 0}%`, 
+      change: `${emailMetrics.changes?.unique_opened || 0}%`, 
+      positive: Number(emailMetrics.changes?.unique_opened || 0) >= 0 
+    },
+    { 
+      title: 'Bounce Rate', 
+      value: `${emailMetrics.bounceRate}%`, 
+      change: `${emailMetrics.changes?.bounce_rate || 0}%`, 
+      positive: Number(emailMetrics.changes?.bounce_rate || 0) <= 0 // Lower bounce rate is positive
+    }
   ] : [
     { title: 'Connection Requests', value: linkedinMetrics.connectionRequests.toLocaleString(), change: '0%', positive: true },
     { title: 'Connections Accepted', value: linkedinMetrics.connectionsAccepted.toLocaleString(), change: '0%', positive: true },

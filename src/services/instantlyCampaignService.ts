@@ -83,6 +83,29 @@ interface EnrichedCampaignData {
 export class InstantlyCampaignService {
   
   /**
+   * Fetch aggregated analytics across all campaigns
+   */
+  static async getAggregatedAnalytics(): Promise<any | null> {
+    try {
+      console.log('📊 Fetching aggregated analytics from Instantly API v2...');
+      
+      const result = await apiClient.instantly('/analytics-aggregated');
+      
+      if (result.error) {
+        console.error('❌ Failed to fetch aggregated analytics:', result.error);
+        return null;
+      }
+      
+      console.log('✅ Aggregated analytics fetched successfully');
+      return result.data;
+      
+    } catch (error) {
+      console.error('❌ Error fetching aggregated analytics:', error);
+      return null;
+    }
+  }
+  
+  /**
    * Debug method to test API v2 connectivity and campaign existence
    */
   static async debugCampaignAccess(campaignId: string): Promise<void> {
