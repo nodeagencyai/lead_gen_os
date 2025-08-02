@@ -198,8 +198,8 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics for campaign ${campaignId} from API v2...`);
       
-      // Use correct API v2 analytics endpoint
-      const result = await apiClient.instantly(`/campaigns/analytics?id=${campaignId}`);
+      // Use correct API v2 analytics endpoint (per official docs)
+      const result = await apiClient.instantly(`/analytics?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics not available for campaign ${campaignId}:`, result.error);
@@ -312,8 +312,8 @@ export class InstantlyCampaignService {
     try {
       console.log(`📊 Fetching analytics overview for campaign ${campaignId} from API v2...`);
       
-      // Use API v2 analytics overview endpoint
-      const result = await apiClient.instantly(`/campaigns/analytics/overview?id=${campaignId}`);
+      // Use API v2 analytics overview endpoint (per official docs)
+      const result = await apiClient.instantly(`/analytics/overview?id=${campaignId}`);
       
       if (result.error) {
         console.warn(`⚠️ Analytics overview not available for campaign ${campaignId}:`, result.error);
@@ -577,74 +577,68 @@ export class InstantlyCampaignService {
   }
 
   /**
-   * Fetch all 3 specific campaigns with complete data
+   * Fetch ALL campaigns with complete data (not just 3 specific ones)
    */
   static async fetchAllCampaigns(): Promise<EnrichedCampaignData[]> {
-    console.log('🚀 Fetching all 3 specific Instantly campaigns...');
+    console.log('🚀 Fetching ALL Instantly campaigns with real data...');
     
     try {
       // First, get all campaigns using the working endpoint
-      console.log('📋 Fetching campaigns list from Instantly...');
+      console.log('📋 Fetching campaigns list from Instantly API v2...');
       const campaignsResult = await apiClient.instantly('/campaigns');
       
       if (campaignsResult.error) {
         console.error('❌ Failed to fetch campaigns list:', campaignsResult.error);
-        return this.getFallbackCampaigns();
+        throw new Error(campaignsResult.error);
       }
       
       const allCampaigns = (campaignsResult.data as any)?.items || campaignsResult.data || [];
       console.log(`📋 Found ${allCampaigns.length} total campaigns from Instantly`);
       
-      // Filter for our specific campaign IDs
-      const campaignIds = Object.values(INSTANTLY_CAMPAIGNS);
-      const specificCampaigns = allCampaigns.filter((campaign: any) => 
-        campaignIds.includes(campaign.id)
-      );
+      if (allCampaigns.length === 0) {
+        console.warn('⚠️ No campaigns found in Instantly account');
+        return [];
+      }
       
-      console.log(`🎯 Found ${specificCampaigns.length}/3 specific campaigns:`, 
-        specificCampaigns.map((c: any) => ({ id: c.id, name: c.name }))
-      );
-      
-      // Enrich each campaign with additional data
+      // Enrich ALL campaigns with analytics data
       const enrichedCampaigns = await Promise.all(
-        specificCampaigns.map(async (campaign: any) => {
+        allCampaigns.map(async (campaign: any) => {
           try {
-            // Fetch analytics, leads data, and analytics overview in parallel
-            const [analytics, leadsData, analyticsOverview] = await Promise.all([
+            console.log(`🔄 Processing campaign: ${campaign.name} (${campaign.id})`);
+            
+            // Fetch analytics and overview data in parallel
+            const [analytics, analyticsOverview] = await Promise.all([
               this.getCampaignAnalytics(campaign.id),
-              this.getCampaignLeads(campaign.id),
               this.getCampaignAnalyticsOverview(campaign.id)
             ]);
             
-            // Map to enriched format with all data
-            const enriched = this.mapToEnrichedFormat(campaign, analytics, leadsData, analyticsOverview);
-            console.log(`✅ Campaign "${enriched.name}" processed successfully with ${enriched.leadsReady} leads ready`);
+            // Map to enriched format with real data
+            const enriched = this.mapToEnrichedFormat(campaign, analytics, null, analyticsOverview);
+            
+            console.log(`✅ Campaign "${enriched.name}" processed:`, {
+              status: enriched.status,
+              totalContacted: enriched.totalContacted,
+              openRate: enriched.openRate,
+              emailsSent: enriched.emailsSent,
+              leadsReady: enriched.leadsReady
+            });
+            
             return enriched;
             
           } catch (error) {
             console.warn(`⚠️ Error enriching campaign ${campaign.id}:`, error);
-            // Still return the campaign without analytics/leads
+            // Still return the campaign with basic data
             return this.mapToEnrichedFormat(campaign, null, null, null);
           }
         })
       );
       
-      // If we didn't find all 3 campaigns, add fallback campaigns for missing ones
-      if (enrichedCampaigns.length < 3) {
-        console.log(`⚠️ Only found ${enrichedCampaigns.length}/3 campaigns, adding fallback campaigns`);
-        const foundIds = enrichedCampaigns.map((c: any) => c.id);
-        const missingIds = campaignIds.filter(id => !foundIds.includes(id));
-        
-        const fallbackCampaigns = missingIds.map(id => this.createFallbackCampaign(id));
-        enrichedCampaigns.push(...fallbackCampaigns);
-      }
-      
-      console.log(`✅ Successfully prepared ${enrichedCampaigns.length} campaigns for dashboard`);
+      console.log(`✅ Successfully processed ${enrichedCampaigns.length} campaigns with real data`);
       return enrichedCampaigns;
       
     } catch (error) {
       console.error('❌ Failed to fetch campaigns:', error);
-      return this.getFallbackCampaigns();
+      throw error; // Don't return fallback, let the UI handle the error
     }
   }
 
@@ -712,15 +706,19 @@ export class InstantlyCampaignService {
     // Calculate preparation based on campaign completeness
     const preparation = this.calculatePreparation(details);
     
-    // Use correct API v2 field names from analytics (prioritize overview data)
-    const totalLeads = leadsData?.analytics.total_leads || analytics?.leads_count || details.leads_count || 0;
-    const leadsReady = leadsData?.analytics.leads_ready || Math.floor(totalLeads * 0.9) || 0;
-    const leadsContacted = leadsData?.analytics.leads_contacted || analytics?.contacted_count || analyticsOverview?.new_leads_contacted_count || Math.floor(totalLeads * 0.8) || 0;
-    const emailsOpened = analyticsOverview?.open_count_unique || analytics?.open_count || 0;
-    const emailsReplied = analyticsOverview?.reply_count_unique || analytics?.reply_count || 0;
-    const emailsSent = analyticsOverview?.emails_sent_count || analytics?.emails_sent_count || 0;
-    const linkClicks = analyticsOverview?.link_click_count_unique || analytics?.link_click_count || 0;
-    const meetingsBooked = analyticsOverview?.total_meeting_booked || analytics?.total_opportunities || 0;
+    // Use correct API v2 field names from analytics (prioritize real API data)
+    const totalLeads = analytics?.leads_count || details.leads_count || 0;
+    const leadsContacted = analytics?.contacted_count || 0;
+    const emailsSent = analytics?.emails_sent_count || 0;
+    const emailsOpened = analytics?.open_count || 0;
+    const emailsReplied = analytics?.reply_count || 0;
+    const linkClicks = analytics?.link_click_count || 0;
+    const meetingsBooked = analytics?.total_opportunities || 0;
+    const bouncedCount = analytics?.bounced_count || 0;
+    const unsubscribedCount = analytics?.unsubscribed_count || 0;
+    
+    // Calculate leads ready: total leads minus contacted, bounced, and unsubscribed
+    const leadsReady = Math.max(0, totalLeads - leadsContacted - bouncedCount - unsubscribedCount);
     
     console.log(`📊 Campaign ${details.id} metrics:`, {
       totalLeads,

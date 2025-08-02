@@ -30,15 +30,15 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get campaign_id from query params for specific campaign analytics
-    const { campaign_id } = req.query;
+    // Get id from query params for specific campaign analytics (per official docs)
+    const { id } = req.query;
     
-    console.log(`🔄 Fetching analytics from Instantly${campaign_id ? ` for campaign ${campaign_id}` : ' (all campaigns)'}...`);
+    console.log(`🔄 Fetching analytics from Instantly${id ? ` for campaign ${id}` : ' (all campaigns)'}...`);
 
-    // Build URL with proper query parameters per API v2 docs
+    // Build URL with proper query parameters per official API v2 docs
     let url = 'https://api.instantly.ai/api/v2/campaigns/analytics';
-    if (campaign_id) {
-      url += `?id=${campaign_id}`;
+    if (id) {
+      url += `?id=${id}`;
     }
 
     const response = await fetch(url, {
