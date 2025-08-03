@@ -380,6 +380,98 @@ function App() {
           </div>
         </div>
 
+
+        {/* Performance Trends */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>Performance Trends</h2>
+          
+          {/* Time Period Tabs */}
+          <div className="flex space-x-1 mb-6 rounded-lg p-1 w-fit" style={{ backgroundColor: '#333333', border: '1px solid #555555' }}>
+            {[7, 30, 90].map((days) => (
+              <button 
+                key={days}
+                onClick={() => setTimePeriod(days)}
+                className="px-4 py-2 text-sm transition-colors rounded-md hover:opacity-80"
+                style={{ 
+                  backgroundColor: timePeriod === days ? '#555555' : 'transparent',
+                  color: timePeriod === days ? '#ffffff' : '#aaaaaa',
+                  border: timePeriod === days ? '1px solid #777777' : '1px solid transparent'
+                }}
+                onMouseEnter={(e) => {
+                  if (timePeriod !== days) {
+                    e.currentTarget.style.backgroundColor = '#444444';
+                    e.currentTarget.style.color = '#ffffff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (timePeriod !== days) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#aaaaaa';
+                  }
+                }}
+              >
+                Last {days} Days
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <PerformanceChart
+              title={chart1.title}
+              data={chart1.data}
+              totalValue={chart1.totalValue}
+              changePercent={chart1.changePercent}
+              isPositive={true}
+              color="#5BB0FF"
+              timePeriod={timePeriod}
+            />
+            
+            <PerformanceChart
+              title={chart2.title}
+              data={chart2.data}
+              totalValue={chart2.totalValue}
+              changePercent={chart2.changePercent}
+              isPositive={true}
+              color="#10b981"
+              timePeriod={timePeriod}
+            />
+          </div>
+        </div>
+
+        {/* Efficiency Metrics */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
+            {mode === 'email' ? 'Email Performance Metrics' : 'LinkedIn Performance Metrics'}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {efficiencyMetrics.map((metric, index) => (
+              <div 
+                key={index} 
+                className="rounded-lg p-6 transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#1a1a1a', 
+                  border: '1px solid #444444' 
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2a2a2a';
+                  e.currentTarget.style.borderColor = '#666666';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1a1a1a';
+                  e.currentTarget.style.borderColor = '#444444';
+                }}
+              >
+                <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{metric.title}</div>
+                <div className="text-2xl font-bold mb-2 text-white">{metric.value}</div>
+                <div className={`text-sm flex items-center`} style={{ color: metric.positive ? '#10b981' : '#ef4444' }}>
+                  {metric.positive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
+                  {metric.change}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Cost Metrics */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -498,97 +590,6 @@ function App() {
                  getCostEfficiencyScore() >= 50 ? 'Good' : 'Needs improvement'}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Performance Trends */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>Performance Trends</h2>
-          
-          {/* Time Period Tabs */}
-          <div className="flex space-x-1 mb-6 rounded-lg p-1 w-fit" style={{ backgroundColor: '#333333', border: '1px solid #555555' }}>
-            {[7, 30, 90].map((days) => (
-              <button 
-                key={days}
-                onClick={() => setTimePeriod(days)}
-                className="px-4 py-2 text-sm transition-colors rounded-md hover:opacity-80"
-                style={{ 
-                  backgroundColor: timePeriod === days ? '#555555' : 'transparent',
-                  color: timePeriod === days ? '#ffffff' : '#aaaaaa',
-                  border: timePeriod === days ? '1px solid #777777' : '1px solid transparent'
-                }}
-                onMouseEnter={(e) => {
-                  if (timePeriod !== days) {
-                    e.currentTarget.style.backgroundColor = '#444444';
-                    e.currentTarget.style.color = '#ffffff';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (timePeriod !== days) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#aaaaaa';
-                  }
-                }}
-              >
-                Last {days} Days
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <PerformanceChart
-              title={chart1.title}
-              data={chart1.data}
-              totalValue={chart1.totalValue}
-              changePercent={chart1.changePercent}
-              isPositive={true}
-              color="#5BB0FF"
-              timePeriod={timePeriod}
-            />
-            
-            <PerformanceChart
-              title={chart2.title}
-              data={chart2.data}
-              totalValue={chart2.totalValue}
-              changePercent={chart2.changePercent}
-              isPositive={true}
-              color="#10b981"
-              timePeriod={timePeriod}
-            />
-          </div>
-        </div>
-
-        {/* Efficiency Metrics */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4" style={{ color: '#ffffff' }}>
-            {mode === 'email' ? 'Email Performance Metrics' : 'LinkedIn Performance Metrics'}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {efficiencyMetrics.map((metric, index) => (
-              <div 
-                key={index} 
-                className="rounded-lg p-6 transition-all duration-200"
-                style={{ 
-                  backgroundColor: '#1a1a1a', 
-                  border: '1px solid #444444' 
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#2a2a2a';
-                  e.currentTarget.style.borderColor = '#666666';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1a1a1a';
-                  e.currentTarget.style.borderColor = '#444444';
-                }}
-              >
-                <div className="text-sm mb-2" style={{ color: '#cccccc' }}>{metric.title}</div>
-                <div className="text-2xl font-bold mb-2 text-white">{metric.value}</div>
-                <div className={`text-sm flex items-center`} style={{ color: metric.positive ? '#10b981' : '#ef4444' }}>
-                  {metric.positive ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-                  {metric.change}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
