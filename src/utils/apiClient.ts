@@ -61,7 +61,12 @@ class ApiClient {
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    // Add cache busting for mode isolation
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const cacheBust = typeof window !== 'undefined' 
+      ? window.localStorage.getItem('cache_bust') || Date.now()
+      : Date.now();
+    const url = `${this.baseUrl}${endpoint}${separator}_cb=${cacheBust}`;
     
     if (this.config.debug) {
       console.log('📡 API Request:', { url, method: options.method || 'GET', options });
@@ -77,6 +82,9 @@ class ApiClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
           ...options.headers,
         },
       });

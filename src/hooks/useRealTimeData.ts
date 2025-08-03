@@ -3,6 +3,32 @@ import { IntegrationService } from '../services/integrationService';
 import { useCampaignStore } from '../store/campaignStore';
 import { supabase } from '../lib/supabase';
 
+// Cache clearing utility for complete mode isolation
+const clearAllServiceCaches = () => {
+  console.log('🧹 CRITICAL: Clearing all service-level caches for mode isolation');
+  
+  // Clear session storage caches
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    // Clear all Instantly-related caches
+    const keysToRemove = [];
+    for (let i = 0; i < window.sessionStorage.length; i++) {
+      const key = window.sessionStorage.key(i);
+      if (key && (key.includes('instantly') || key.includes('heyreach') || key.includes('campaign') || key.includes('analytics'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => window.sessionStorage.removeItem(key));
+    console.log(`🧹 Cleared ${keysToRemove.length} session storage cache entries`);
+  }
+  
+  // Clear any API client caches
+  if (typeof window !== 'undefined') {
+    // Force browser to not use any cached API responses
+    const timestamp = Date.now();
+    window.localStorage.setItem('cache_bust', timestamp.toString());
+  }
+};
+
 interface RealTimeMetrics {
   emailMetrics: {
     sent: number;
@@ -60,12 +86,12 @@ export const useRealTimeData = () => {
   const [isBackgroundRefresh, setIsBackgroundRefresh] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Smart caching with 90-second expiry for fast mode switching
+  // Mode-specific caching - NO cross-mode contamination
   const [dataCache, setDataCache] = useState<{
     email?: { data: UnifiedDashboardData; timestamp: number };
     linkedin?: { data: UnifiedDashboardData; timestamp: number };
   }>({});
-  const CACHE_DURATION = 90 * 1000; // 90 seconds - balance between speed and freshness
+  const CACHE_DURATION = 60 * 1000; // 60 seconds - shorter to ensure fresh data
   
   // Background refresh interval
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
@@ -125,20 +151,26 @@ export const useRealTimeData = () => {
     }
   };
 
-  // SPEED OPTIMIZATION: Fast cache checking + optimized data fetching
+  // MODE-ISOLATED data fetching - complete separation between email and LinkedIn
   const fetchAllData = async (isInitialLoad = false, bypassCache = false) => {
-    console.log(`🚀 Loading ${mode} dashboard (optimized)...`);
+    console.log(`🚀 Loading ${mode} dashboard (mode-isolated)...`);
     
-    // SPEED BOOST: Check cache first for instant loading
+    // CRITICAL: Only use cache for the CURRENT mode - no cross-contamination
     if (!bypassCache) {
       const cached = dataCache[mode as keyof typeof dataCache];
       if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
-        console.log(`⚡ INSTANT: Using cached ${mode} data (${Math.round((Date.now() - cached.timestamp) / 1000)}s old)`);
+        console.log(`⚡ CACHE HIT: Using ${mode}-only cached data (${Math.round((Date.now() - cached.timestamp) / 1000)}s old)`);
         setAllData(cached.data);
         setInitialLoading(false);
         setIsBackgroundRefresh(false);
         return;
       }
+    }
+    
+    // CRITICAL: Clear any stale data when loading new mode
+    if (isInitialLoad) {
+      setAllData(null);
+      setError(null);
     }
     
     if (isInitialLoad) {
@@ -216,8 +248,13 @@ export const useRealTimeData = () => {
         console.timeEnd(`${mode}-load`);
         console.log('⚡ Email dashboard loaded with optimization');
         
-        // Cache the result
-        setDataCache(prev => ({ ...prev, email: { data: dashboardData, timestamp: Date.now() } }));
+        // Cache ONLY email data - no LinkedIn contamination
+        setDataCache(prev => ({ 
+          ...prev, 
+          email: { data: dashboardData, timestamp: Date.now() },
+          // CRITICAL: Remove any LinkedIn cache to prevent bleed
+          linkedin: undefined 
+        }));
         setAllData(dashboardData);
         
       } else {
@@ -234,8 +271,13 @@ export const useRealTimeData = () => {
         console.timeEnd(`${mode}-load`);
         console.log('⚡ LinkedIn dashboard loaded with optimization');
         
-        // Cache the result
-        setDataCache(prev => ({ ...prev, linkedin: { data: dashboardData, timestamp: Date.now() } }));
+        // Cache ONLY LinkedIn data - no email contamination
+        setDataCache(prev => ({ 
+          ...prev, 
+          linkedin: { data: dashboardData, timestamp: Date.now() },
+          // CRITICAL: Remove any email cache to prevent bleed
+          email: undefined 
+        }));
         setAllData(dashboardData);
       }
 
@@ -268,77 +310,48 @@ export const useRealTimeData = () => {
     }
   };
 
-  // SPEED OPTIMIZATION: Fast mode switching + background refresh + preloading
+  // MODE-ISOLATED loading: Complete separation between email and LinkedIn dashboards
   useEffect(() => {
-    console.log(`🚀 Mode changed to ${mode} - checking cache first`);
-    // Try cache first, then load if needed - much faster mode switching
-    fetchAllData(true, false); // Initial load with cache check
+    console.log(`🔄 MODE SWITCH: Switching to ${mode} dashboard - COMPLETE isolation`);
+    
+    // CRITICAL: Clear ALL caches and data state immediately on mode change
+    clearAllServiceCaches();
+    setAllData(null);
+    setError(null);
+    setInitialLoading(true);
+    
+    // CRITICAL: Clear ALL cache data to prevent any contamination
+    setDataCache({});
+    
+    // Load data for current mode only
+    fetchAllData(true, true); // Force bypass cache on mode switch
 
-    // PRELOAD: After 5 seconds, preload the alternate mode for instant future switching
-    const preloadTimeout = setTimeout(() => {
-      const alternateMode = mode === 'email' ? 'linkedin' : 'email';
-      const alternateCache = dataCache[alternateMode as keyof typeof dataCache];
-      
-      if (!alternateCache || (Date.now() - alternateCache.timestamp > CACHE_DURATION)) {
-        console.log(`🚀 PRELOADING: ${alternateMode} data for faster future switching...`);
-        
-        // Preload alternate mode data silently
-        const preloadData = async () => {
-          try {
-            let preloadResult;
-            if (alternateMode === 'email') {
-              const [apiData, leadData] = await Promise.all([
-                Promise.race([
-                  IntegrationService.getInstantlyData(),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('Preload timeout')), 10000))
-                ]),
-                fetchLeadAnalytics('Apollo')
-              ]);
-              preloadResult = { apiData, leadData };
-            } else {
-              const [apiData, leadData] = await Promise.all([
-                Promise.race([
-                  IntegrationService.getHeyReachData(),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('Preload timeout')), 10000))
-                ]),
-                fetchLeadAnalytics('LinkedIn')
-              ]);
-              preloadResult = { apiData, leadData };
-            }
-            
-            // Cache preloaded data
-            setDataCache(prev => ({
-              ...prev,
-              [alternateMode]: { data: preloadResult, timestamp: Date.now() }
-            }));
-            console.log(`✅ PRELOADED: ${alternateMode} data cached for instant switching`);
-            
-          } catch (error) {
-            console.log(`⚠️ Preload failed for ${alternateMode}:`, error);
-          }
-        };
-        
-        preloadData();
-      }
-    }, 5000); // Preload after 5 seconds
-
-    // Set up background refresh every 30 seconds - bypass cache for fresh data
+    // Set up background refresh ONLY for current mode
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
+    
     const interval = setInterval(() => {
-      console.log('🔄 Background refresh (silent, bypassing cache)...');
-      fetchAllData(false, true); // Background refresh bypasses cache for fresh data
-    }, 30000);
+      console.log(`🔄 Background refresh for ${mode} mode only`);
+      fetchAllData(false, true); // Background refresh for current mode
+    }, 45000); // 45 seconds
     setRefreshInterval(interval);
 
     return () => {
       if (interval) clearInterval(interval);
-      if (preloadTimeout) clearTimeout(preloadTimeout);
     };
-  }, [mode, dataCache]);
+  }, [mode]); // Remove dataCache dependency to prevent loops
 
-  // Manual refresh function - bypasses cache for fresh data
+  // Manual refresh function - clears cache and reloads current mode only
   const forceRefresh = () => {
-    console.log('🔄 Manual refresh triggered (bypassing cache)');
-    fetchAllData(true, true); // Manual refresh bypasses cache and shows spinner
+    console.log(`🔄 Manual refresh triggered for ${mode} mode only`);
+    // Clear current mode cache and reload
+    setDataCache(prev => ({
+      ...prev,
+      [mode]: undefined
+    }));
+    setAllData(null);
+    fetchAllData(true, true);
   };
 
   // MINIMALISTIC SPINNER: Transform unified data to legacy format
