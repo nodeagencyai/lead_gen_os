@@ -87,22 +87,80 @@ export const useChartData = () => {
             console.log('📊 TOTALS:', dailyAnalytics.totals);
             console.log('📊 CHANGES:', dailyAnalytics.changes);
             
-            // Transform daily data for charts
-            const emailsSentData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
-              date: day.date,
-              value: day.sent
-            }));
+            // TEMPORARY: Generate mock data for visualization testing
+            const generateMockDailyData = (days: number, baseValue: number, trend: 'up' | 'down' | 'stable' = 'up') => {
+              const mockData: ChartDataPoint[] = [];
+              const today = new Date();
+              
+              for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                
+                // Create realistic variations
+                const dayOfWeek = date.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const weekendMultiplier = isWeekend ? 0.7 : 1;
+                
+                // Add trend
+                const trendMultiplier = trend === 'up' ? 1 + (days - i) / days * 0.5 : 
+                                       trend === 'down' ? 1 - (days - i) / days * 0.3 : 1;
+                
+                // Add random variation
+                const randomVariation = 0.8 + Math.random() * 0.4; // 80% to 120%
+                
+                const value = Math.round(
+                  baseValue * weekendMultiplier * trendMultiplier * randomVariation
+                );
+                
+                mockData.push({
+                  date: date.toISOString(),
+                  value: Math.max(0, value)
+                });
+              }
+              
+              return mockData;
+            };
             
-            const opensRepliesData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
-              date: day.date,
-              value: day.unique_opened + day.unique_replies
-            }));
+            // Generate mock data based on time period
+            const mockEmailsSent = generateMockDailyData(timePeriod, 150, 'up');
+            const mockOpensReplies = generateMockDailyData(timePeriod, 45, 'up');
+            
+            // Transform daily data for charts - USING MOCK DATA
+            const emailsSentData: ChartDataPoint[] = mockEmailsSent;
+            const opensRepliesData: ChartDataPoint[] = mockOpensReplies;
+            
+            // Original code (commented out for now):
+            // const emailsSentData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
+            //   date: day.date,
+            //   value: day.sent
+            // }));
+            // 
+            // const opensRepliesData: ChartDataPoint[] = dailyAnalytics.dailyData.map((day: any) => ({
+            //   date: day.date,
+            //   value: day.unique_opened + day.unique_replies
+            // }));
 
             console.log('📊 EMAILS SENT CHART DATA:', emailsSentData);
             console.log('📊 OPENS/REPLIES CHART DATA:', opensRepliesData);
 
-            const totals = dailyAnalytics.totals;
-            const changes = dailyAnalytics.changes;
+            // TEMPORARY: Calculate mock totals from mock data
+            const mockTotals = {
+              sent: mockEmailsSent.reduce((sum, day) => sum + day.value, 0),
+              unique_opened: mockOpensReplies.reduce((sum, day) => sum + Math.round(day.value * 0.7), 0),
+              unique_replies: mockOpensReplies.reduce((sum, day) => sum + Math.round(day.value * 0.3), 0),
+              clicks: 0
+            };
+            
+            const totals = mockTotals;
+            const changes = {
+              sent: '+23.5',
+              unique_opened: '+18.2',
+              unique_replies: '+31.4'
+            };
+            
+            // Original code (commented out for now):
+            // const totals = dailyAnalytics.totals;
+            // const changes = dailyAnalytics.changes;
 
             setChartData(prev => ({
               ...prev,
