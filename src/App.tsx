@@ -412,7 +412,7 @@ function App() {
               totalValue={chart1.totalValue}
               changePercent={chart1.changePercent}
               isPositive={true}
-              color="#888888"
+              color="#5BB0FF"
               timePeriod={timePeriod}
             />
             
@@ -422,7 +422,7 @@ function App() {
               totalValue={chart2.totalValue}
               changePercent={chart2.changePercent}
               isPositive={true}
-              color="#888888"
+              color="#10b981"
               timePeriod={timePeriod}
             />
           </div>
