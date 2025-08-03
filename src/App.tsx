@@ -13,6 +13,7 @@ import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
 import { useChartData } from './hooks/useChartData';
 import { useAdminAuth } from './hooks/useAdminAuth';
+import { useCostTracking } from './hooks/useCostTracking';
 import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
 import { getStatusColor } from './config/campaignColors';
 
@@ -22,6 +23,14 @@ function App() {
   const { mode } = useCampaignStore();
   const { emailMetrics, linkedinMetrics, leadAnalytics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
   const { chart1, chart2, loading: chartLoading, error: chartError, timePeriod, setTimePeriod, refetch: refetchCharts } = useChartData();
+  const { 
+    metrics: costMetrics, 
+    loading: costLoading, 
+    formatCost, 
+    getCostEfficiencyScore, 
+    shouldShowCostAlert,
+    fetchMetrics: refreshCostMetrics 
+  } = useCostTracking();
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -371,6 +380,126 @@ function App() {
           </div>
         </div>
 
+        {/* Cost Metrics */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold" style={{ color: '#ffffff' }}>
+              Cost Metrics
+            </h2>
+            {shouldShowCostAlert() && (
+              <div className="px-3 py-1 rounded-full text-xs" style={{ backgroundColor: '#DC262620', color: '#DC2626', border: '1px solid #DC2626' }}>
+                ⚠️ Monthly budget exceeded
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Cost per Email */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost per Email</div>
+              <div className="text-2xl font-bold mb-2 text-white">
+                {costLoading ? '...' : formatCost(costMetrics?.costPerEmail || 0)}
+              </div>
+              <div className="text-xs" style={{ color: '#888888' }}>
+                Total: {costMetrics?.emailsSent || 0} emails
+              </div>
+            </div>
+
+            {/* Cost per Meeting */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost per Meeting</div>
+              <div className="text-2xl font-bold mb-2 text-white">
+                {costLoading ? '...' : formatCost(costMetrics?.costPerMeeting || 0)}
+              </div>
+              <div className="text-xs" style={{ color: '#888888' }}>
+                Total: {costMetrics?.meetingsBooked || 0} meetings
+              </div>
+            </div>
+
+            {/* Monthly Spend */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Monthly Spend</div>
+              <div className="text-2xl font-bold mb-2 text-white">
+                {costLoading ? '...' : formatCost(costMetrics?.totalMonthlySpend || 0)}
+              </div>
+              <div className="text-xs" style={{ color: '#888888' }}>
+                Fixed: {formatCost(costMetrics?.costBreakdown?.fixed?.total || 123)} • 
+                AI: {formatCost(costMetrics?.costBreakdown?.variable?.total || 0)}
+              </div>
+            </div>
+
+            {/* Cost Efficiency */}
+            <div 
+              className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
+              style={{ 
+                backgroundColor: '#1a1a1a', 
+                border: '1px solid #444444' 
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#2a2a2a';
+                e.currentTarget.style.borderColor = '#666666';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#1a1a1a';
+                e.currentTarget.style.borderColor = '#444444';
+              }}
+            >
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost Efficiency</div>
+              <div className="text-2xl font-bold mb-2 text-white">
+                {costLoading ? '...' : `${getCostEfficiencyScore()}%`}
+              </div>
+              <div className="text-xs" style={{ 
+                color: getCostEfficiencyScore() >= 70 ? '#10b981' : 
+                       getCostEfficiencyScore() >= 50 ? '#D97706' : '#DC2626' 
+              }}>
+                {getCostEfficiencyScore() >= 70 ? 'Excellent' : 
+                 getCostEfficiencyScore() >= 50 ? 'Good' : 'Needs improvement'}
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Performance Trends */}
         <div className="mb-8">
