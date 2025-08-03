@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Search, LogOut, Users, CheckCircle, Target } from 'lucide-react';
+import { useState } from 'react';
+import { TrendingUp, TrendingDown, LogOut, Users, CheckCircle, Target } from 'lucide-react';
 import LeadFinder from './components/LeadFinder.tsx';
 import LeadsDatabase from './components/LeadsDatabase';
 import CampaignsOverview from './components/CampaignsOverview';
@@ -14,22 +14,20 @@ import { useRealTimeData } from './hooks/useRealTimeData';
 import { useChartData } from './hooks/useChartData';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { useCostTracking } from './hooks/useCostTracking';
-import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
+import { getEfficiencyMetrics } from './data/campaignData';
 import { getStatusColor } from './config/campaignColors';
 
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring'>('dashboard');
   const { isAuthenticated, isLoading, authenticate, logout } = useAdminAuth();
   const { mode } = useCampaignStore();
-  const { emailMetrics, linkedinMetrics, leadAnalytics, campaigns, leads, loading, error, forceRefresh } = useRealTimeData();
-  const { chart1, chart2, loading: chartLoading, error: chartError, timePeriod, setTimePeriod, refetch: refetchCharts } = useChartData();
+  const { emailMetrics, linkedinMetrics, leadAnalytics, campaigns, loading, error, forceRefresh } = useRealTimeData();
+  const { chart1, chart2, timePeriod, setTimePeriod } = useChartData();
   const { 
     metrics: costMetrics, 
     loading: costLoading, 
-    formatCost, 
-    getCostEfficiencyScore, 
-    shouldShowCostAlert,
-    fetchMetrics: refreshCostMetrics 
+    formatCost,
+    shouldShowCostAlert
   } = useCostTracking();
 
   // Show loading screen while checking authentication
@@ -57,8 +55,8 @@ function App() {
     { 
       title: 'Emails Sent', 
       value: emailMetrics.sent.toLocaleString(), 
-      change: `${emailMetrics.changes?.sent || 0}%`, 
-      positive: Number(emailMetrics.changes?.sent || 0) >= 0 
+      change: `${(emailMetrics as any).changes?.sent || 0}%`, 
+      positive: Number((emailMetrics as any).changes?.sent || 0) >= 0 
     },
     { 
       title: 'Emails Opened', 
@@ -486,7 +484,7 @@ function App() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Cost per Email */}
+            {/* Cost per Email - Fixed costs only */}
             <div 
               className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
               style={{ 
@@ -504,14 +502,14 @@ function App() {
             >
               <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost per Email</div>
               <div className="text-2xl font-bold mb-2 text-white">
-                {costLoading ? '...' : formatCost(costMetrics?.costPerEmail || 0)}
+                {costLoading ? '...' : emailMetrics.sent > 0 ? formatCost(123 / emailMetrics.sent) : '€0.00'}
               </div>
               <div className="text-xs" style={{ color: '#888888' }}>
-                Total: {costMetrics?.emailsSent || 0} emails
+                Total: {emailMetrics.sent.toLocaleString()} emails sent (Instantly)
               </div>
             </div>
 
-            {/* Cost per Meeting */}
+            {/* OpenRouter Spend */}
             <div 
               className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
               style={{ 
@@ -527,16 +525,16 @@ function App() {
                 e.currentTarget.style.borderColor = '#444444';
               }}
             >
-              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost per Meeting</div>
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>OpenRouter Spend</div>
               <div className="text-2xl font-bold mb-2 text-white">
-                {costLoading ? '...' : formatCost(costMetrics?.costPerMeeting || 0)}
+                {costLoading ? '...' : formatCost(costMetrics?.costBreakdown?.variable?.total || 0)}
               </div>
               <div className="text-xs" style={{ color: '#888888' }}>
-                Total: {costMetrics?.meetingsBooked || 0} meetings
+                This month's token costs
               </div>
             </div>
 
-            {/* Monthly Spend */}
+            {/* Token Consumption */}
             <div 
               className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
               style={{ 
@@ -552,17 +550,16 @@ function App() {
                 e.currentTarget.style.borderColor = '#444444';
               }}
             >
-              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Monthly Spend</div>
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Token Consumption</div>
               <div className="text-2xl font-bold mb-2 text-white">
-                {costLoading ? '...' : formatCost(costMetrics?.totalMonthlySpend || 0)}
+                {costLoading ? '...' : (costMetrics?.totalTokensUsed || 0).toLocaleString()}
               </div>
               <div className="text-xs" style={{ color: '#888888' }}>
-                Fixed: {formatCost(costMetrics?.costBreakdown?.fixed?.total || 123)} • 
-                AI: {formatCost(costMetrics?.costBreakdown?.variable?.total || 0)}
+                Total tokens used this month
               </div>
             </div>
 
-            {/* Cost Efficiency */}
+            {/* Monthly Fixed Costs */}
             <div 
               className="rounded-lg p-6 transition-all duration-200 hover:border-opacity-80"
               style={{ 
@@ -578,16 +575,12 @@ function App() {
                 e.currentTarget.style.borderColor = '#444444';
               }}
             >
-              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost Efficiency</div>
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Monthly Fixed Costs</div>
               <div className="text-2xl font-bold mb-2 text-white">
-                {costLoading ? '...' : `${getCostEfficiencyScore()}%`}
+                €125.00
               </div>
-              <div className="text-xs" style={{ 
-                color: getCostEfficiencyScore() >= 70 ? '#10b981' : 
-                       getCostEfficiencyScore() >= 50 ? '#D97706' : '#DC2626' 
-              }}>
-                {getCostEfficiencyScore() >= 70 ? 'Excellent' : 
-                 getCostEfficiencyScore() >= 50 ? 'Good' : 'Needs improvement'}
+              <div className="text-xs" style={{ color: '#888888' }}>
+                Instantly: €75 • Google: €50
               </div>
             </div>
           </div>
