@@ -623,7 +623,17 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.slice(0, 5).map((campaign: any, index: number) => (
+                {campaigns.slice(0, 5).map((campaign: any, index: number) => {
+                  // Debug: Log campaign data to see what we're working with
+                  console.log(`🔍 DEBUG - Campaign ${index}:`, {
+                    name: campaign.name,
+                    status: campaign.status,
+                    statusColor: campaign.statusColor,
+                    hasStatusColor: !!campaign.statusColor,
+                    calculatedColor: getStatusColor(campaign.status || 'Draft')
+                  });
+                  
+                  return (
                   <tr 
                     key={index} 
                     className="transition-colors cursor-pointer"
@@ -656,7 +666,8 @@ function App() {
                       {campaign.rate || '0%'}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
