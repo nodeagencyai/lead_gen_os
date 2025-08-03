@@ -14,6 +14,7 @@ import { useRealTimeData } from './hooks/useRealTimeData';
 import { useChartData } from './hooks/useChartData';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { getChartLabels, getEfficiencyMetrics } from './data/campaignData';
+import { getStatusColor } from './config/campaignColors';
 
 function App() {
   const [currentView, setCurrentView] = useState<'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring'>('dashboard');
@@ -515,7 +516,7 @@ function App() {
                     <td className="p-4 text-sm text-white flex items-center">
                       <div 
                         className="w-2 h-2 rounded-full mr-2"
-                        style={{ backgroundColor: campaign.statusColor || '#3b82f6' }}
+                        style={{ backgroundColor: getStatusColor(campaign.status || 'Draft') }}
                       />
                       {campaign.name}
                     </td>
