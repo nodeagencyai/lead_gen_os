@@ -1,28 +1,5 @@
-// Vercel Serverless Function for HeyReach Authentication
-// Inline rate limiter to avoid module issues in Vercel
-const rateLimitStore = new Map();
-const RATE_LIMIT = 300; // 300 requests per minute
-const TIME_WINDOW = 60000; // 1 minute
-
-function checkRateLimit(key = 'global') {
-  const now = Date.now();
-  const requests = rateLimitStore.get(key) || [];
-  
-  // Filter out old requests
-  const recentRequests = requests.filter(time => now - time < TIME_WINDOW);
-  
-  if (recentRequests.length >= RATE_LIMIT) {
-    const oldestRequest = recentRequests[0];
-    const waitTime = TIME_WINDOW - (now - oldestRequest);
-    const error = new Error(`Rate limit exceeded. Wait ${waitTime}ms`);
-    error.waitTime = waitTime;
-    throw error;
-  }
-  
-  // Add current request
-  recentRequests.push(now);
-  rateLimitStore.set(key, recentRequests);
-}
+// Vercel Serverless Function for HeyReach Authentication (ES Module)
+import { heyreachRateLimiter } from '../utils/heyreachRateLimiter.mjs';
 
 export default async function handler(req, res) {
   // Set comprehensive CORS headers
@@ -34,7 +11,7 @@ export default async function handler(req, res) {
 
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('🔄 CORS preflight request handled for /api/heyreach/auth');
+    console.log('🔄 CORS preflight request handled for /api/heyreach/auth-esm');
     return res.status(200).end();
   }
 
@@ -46,7 +23,7 @@ export default async function handler(req, res) {
   try {
     // Check rate limit before making request
     try {
-      checkRateLimit('heyreach-auth');
+      await heyreachRateLimiter.checkLimit();
     } catch (rateLimitError) {
       console.warn('⚠️ Rate limit exceeded:', rateLimitError.message);
       return res.status(429).json({
@@ -67,7 +44,7 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('🔄 Testing HeyReach API key via serverless function...');
+    console.log('🔄 Testing HeyReach API key via serverless function (ESM)...');
 
     const response = await fetch('https://api.heyreach.io/api/public/auth/CheckApiKey', {
       method: 'GET',
@@ -106,7 +83,7 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log('✅ HeyReach authentication successful');
+    console.log('✅ HeyReach authentication successful (ESM)');
     res.status(200).json({ 
       success: true,
       message: 'Authentication successful',
@@ -114,7 +91,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('❌ HeyReach auth error:', error);
+    console.error('❌ HeyReach auth error (ESM):', error);
     res.status(500).json({ 
       error: 'Internal server error',
       message: error.message,

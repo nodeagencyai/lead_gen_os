@@ -1,5 +1,28 @@
 // Vercel Serverless Function for HeyReach Campaigns
-const { heyreachRateLimiter } = require('../utils/heyreachRateLimiter');
+// Inline rate limiter to avoid module issues in Vercel
+const rateLimitStore = new Map();
+const RATE_LIMIT = 300; // 300 requests per minute
+const TIME_WINDOW = 60000; // 1 minute
+
+function checkRateLimit(key = 'global') {
+  const now = Date.now();
+  const requests = rateLimitStore.get(key) || [];
+  
+  // Filter out old requests
+  const recentRequests = requests.filter(time => now - time < TIME_WINDOW);
+  
+  if (recentRequests.length >= RATE_LIMIT) {
+    const oldestRequest = recentRequests[0];
+    const waitTime = TIME_WINDOW - (now - oldestRequest);
+    const error = new Error(`Rate limit exceeded. Wait ${waitTime}ms`);
+    error.waitTime = waitTime;
+    throw error;
+  }
+  
+  // Add current request
+  recentRequests.push(now);
+  rateLimitStore.set(key, recentRequests);
+}
 
 export default async function handler(req, res) {
   // Set comprehensive CORS headers
@@ -23,7 +46,7 @@ export default async function handler(req, res) {
   try {
     // Check rate limit before making request
     try {
-      await heyreachRateLimiter.checkLimit();
+      checkRateLimit('heyreach-campaigns');
     } catch (rateLimitError) {
       console.warn('⚠️ Rate limit exceeded:', rateLimitError.message);
       return res.status(429).json({
