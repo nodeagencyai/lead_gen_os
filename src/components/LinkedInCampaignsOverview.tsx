@@ -185,7 +185,7 @@ const LinkedInCampaignsOverview: React.FC<LinkedInCampaignsOverviewProps> = ({ o
             </button>
             <button 
               className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-              style={{ backgroundColor: '#0A2540', border: '1px solid #082030', color: '#5BB0FF' }}
+              style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
             >
               <Plus size={16} />
               <span>New LinkedIn Campaign</span>
