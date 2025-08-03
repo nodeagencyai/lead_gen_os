@@ -4,8 +4,8 @@
  */
 
 class RateLimiter {
-  constructor(maxRequests = 250, timeWindow = 60000) {
-    // Stay well under the 300/minute limit to be safe
+  constructor(maxRequests = 300, timeWindow = 60000) {
+    // Use the official HeyReach limit of 300/minute
     this.maxRequests = maxRequests;
     this.timeWindow = timeWindow;
     this.requests = [];
@@ -50,6 +50,7 @@ class RateLimiter {
 }
 
 // Create a singleton instance for all HeyReach API calls
-const heyreachRateLimiter = new RateLimiter(250, 60000);
+// Official HeyReach limit: 300 requests per minute
+const heyreachRateLimiter = new RateLimiter(300, 60000);
 
 module.exports = { heyreachRateLimiter };

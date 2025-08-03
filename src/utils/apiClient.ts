@@ -411,9 +411,14 @@ class ApiClient {
     } else if (endpoint === '/auth') {
       // Auth check uses POST per our implementation
       return this.post<T>(`/api/heyreach${endpoint}`, data);
+    } else if (endpoint === '/accounts') {
+      // LinkedIn accounts endpoint requires POST with parameters per HeyReach docs
+      return this.post<T>(`/api/heyreach${endpoint}`, data || {});
+    } else if (endpoint === '/campaigns' || endpoint === '/conversations') {
+      // Campaigns and conversations endpoints also require POST with parameters per HeyReach API pattern
+      return this.post<T>(`/api/heyreach${endpoint}`, data || {});
     } else {
-      // For list endpoints (campaigns, accounts, conversations), use GET
-      // These endpoints now properly support GET method per HeyReach docs
+      // For other endpoints, use GET  
       return this.get<T>(`/api/heyreach${endpoint}`);
     }
   }

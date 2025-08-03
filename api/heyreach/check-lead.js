@@ -58,13 +58,18 @@ export default async function handler(req, res) {
 
     console.log(`🔄 Checking if lead ${email} exists in HeyReach...`);
 
-    // First, get all campaigns using correct endpoint
-    const campaignsResponse = await fetch('https://api.heyreach.io/api/public/campaigns', {
-      method: 'GET',
+    // First, get all campaigns using correct HeyReach API pattern
+    const campaignsResponse = await fetch('https://api.heyreach.io/api/public/campaign/GetAll', {
+      method: 'POST',
       headers: {
         'X-API-KEY': HEYREACH_API_KEY,
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        offset: "0",
+        limit: "100"
+      })
     });
 
     if (!campaignsResponse.ok) {
@@ -85,14 +90,19 @@ export default async function handler(req, res) {
         // Check rate limit before each additional request
         await heyreachRateLimiter.checkLimit();
         
-        // Get campaign leads/prospects using correct endpoint
-        // Note: This endpoint may not exist in HeyReach API - using conversations as fallback
-        const prospectsResponse = await fetch(`https://api.heyreach.io/api/public/conversations?campaign_id=${campaign.id}&limit=1000`, {
-          method: 'GET',
+        // Get campaign conversations using correct HeyReach API pattern
+        const prospectsResponse = await fetch('https://api.heyreach.io/api/public/conversation/GetAll', {
+          method: 'POST',
           headers: {
             'X-API-KEY': HEYREACH_API_KEY,
+            'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }
+          },
+          body: JSON.stringify({
+            offset: "0",
+            limit: "1000",
+            campaign_id: campaign.id
+          })
         });
 
         if (prospectsResponse.ok) {

@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Allow both GET and POST methods (GET is the correct one per docs)
+  // Allow both GET and POST methods (POST is required for HeyReach API)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -46,13 +46,22 @@ export default async function handler(req, res) {
 
     console.log('🔄 Fetching LinkedIn accounts from HeyReach...');
 
-    // Use correct endpoint from official documentation
-    const response = await fetch('https://api.heyreach.io/api/public/linkedin-accounts', {
-      method: 'GET',
+    // Use correct endpoint from official HeyReach documentation
+    // POST https://api.heyreach.io/api/public/li_account/GetAll
+    const requestBody = {
+      offset: req.query.offset || "0",
+      keyword: req.query.keyword || "",
+      limit: req.query.limit || "100"
+    };
+    
+    const response = await fetch('https://api.heyreach.io/api/public/li_account/GetAll', {
+      method: 'POST',
       headers: {
         'X-API-KEY': HEYREACH_API_KEY,
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      body: JSON.stringify(requestBody)
     });
 
     const data = await response.json();

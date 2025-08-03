@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Allow GET method per official documentation
+  // Allow POST method per HeyReach API pattern (similar to li_account/GetAll)
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -46,22 +46,25 @@ export default async function handler(req, res) {
 
     console.log('🔄 Fetching conversations from HeyReach...');
     
-    // Build query parameters from request
-    const queryParams = new URLSearchParams();
-    if (req.query.status) queryParams.append('status', req.query.status);
-    if (req.query.linkedin_account_id) queryParams.append('linkedin_account_id', req.query.linkedin_account_id);
-    if (req.query.campaign_id) queryParams.append('campaign_id', req.query.campaign_id);
-    if (req.query.limit) queryParams.append('limit', req.query.limit);
-    if (req.query.offset) queryParams.append('offset', req.query.offset);
+    // Use correct endpoint following HeyReach API pattern
+    // Following the same pattern as li_account/GetAll and campaign/GetAll
+    const requestBody = {
+      offset: req.query.offset || "0",
+      limit: req.query.limit || "50",
+      // Optional filters if supported
+      ...(req.query.status && { status: req.query.status }),
+      ...(req.query.linkedin_account_id && { linkedin_account_id: req.query.linkedin_account_id }),
+      ...(req.query.campaign_id && { campaign_id: req.query.campaign_id })
+    };
     
-    const url = `https://api.heyreach.io/api/public/conversations${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
+    const response = await fetch('https://api.heyreach.io/api/public/conversation/GetAll', {
+      method: 'POST',
       headers: {
         'X-API-KEY': HEYREACH_API_KEY,
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      body: JSON.stringify(requestBody)
     });
 
     const data = await response.json();

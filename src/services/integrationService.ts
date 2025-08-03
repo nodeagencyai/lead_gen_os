@@ -140,10 +140,11 @@ export class IntegrationService {
       console.log('✅ HeyReach authentication successful');
 
       // Fetch data in parallel for better performance
+      // Note: All HeyReach endpoints use POST with parameters per HeyReach API pattern
       const [accountsResult, campaignsResult, conversationsResult] = await Promise.all([
-        apiClient.heyreach('/accounts'),
-        apiClient.heyreach('/campaigns'),
-        apiClient.heyreach('/conversations')
+        apiClient.heyreach('/accounts', { offset: "0", keyword: "", limit: "100" }),
+        apiClient.heyreach('/campaigns', { offset: "0", limit: "50" }),
+        apiClient.heyreach('/conversations', { offset: "0", limit: "100" })
       ]);
 
       const accounts = (accountsResult.data as any)?.items || [];
