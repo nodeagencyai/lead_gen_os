@@ -299,7 +299,22 @@ export const useRealTimeData = () => {
         setAllData(staleCache.data);
         setError('Using cached data - refresh to retry');
       } else {
-        setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+        // Provide user-friendly error messages
+        let errorMessage = 'Failed to load dashboard data';
+        if (error instanceof Error) {
+          if (error.message.includes('API key not configured')) {
+            errorMessage = mode === 'linkedin' 
+              ? 'LinkedIn integration not configured - please set up HeyReach API key'
+              : 'Email integration not configured - please set up Instantly API key';
+          } else if (error.message.includes('authentication failed')) {
+            errorMessage = mode === 'linkedin'
+              ? 'LinkedIn authentication failed - please check HeyReach API key'
+              : 'Email authentication failed - please check Instantly API key';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        setError(errorMessage);
       }
       
       if (isInitialLoad) {

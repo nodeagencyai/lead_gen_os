@@ -129,11 +129,12 @@ export class IntegrationService {
     
     try {
       // Test authentication first
-      const authResult = await apiClient.heyreach('/auth');
+      const authResult = await apiClient.heyreach('/auth', {});
       
       if (authResult.error) {
         console.error('❌ HeyReach authentication failed:', authResult.error);
-        throw new Error(`HeyReach authentication failed: ${authResult.error}`);
+        console.error('❌ HeyReach auth details:', JSON.stringify(authResult, null, 2));
+        throw new Error(`HeyReach authentication failed: ${JSON.stringify(authResult.error)}`);
       }
 
       console.log('✅ HeyReach authentication successful');
@@ -145,9 +146,9 @@ export class IntegrationService {
         apiClient.heyreach('/conversations')
       ]);
 
-      const accounts = accountsResult.data?.items || [];
-      const campaigns = campaignsResult.data?.items || [];
-      const conversations = conversationsResult.data?.items || [];
+      const accounts = (accountsResult.data as any)?.items || [];
+      const campaigns = (campaignsResult.data as any)?.items || [];
+      const conversations = (conversationsResult.data as any)?.items || [];
 
       console.log(`✅ HeyReach data: ${accounts.length} accounts, ${campaigns.length} campaigns, ${conversations.length} conversations`);
 
@@ -191,6 +192,23 @@ export class IntegrationService {
 
     } catch (error) {
       console.error('❌ HeyReach API Error:', error);
+      
+      // If it's an API key configuration error, return empty data instead of failing
+      if (error instanceof Error && error.message.includes('API key not configured')) {
+        console.warn('⚠️ HeyReach API key not configured, returning empty data');
+        return {
+          campaigns: [],
+          connections: [],
+          analytics: {
+            connection_requests_sent: 0,
+            connections_accepted: 0,
+            messages_sent: 0,
+            message_replies: 0,
+            meetings_booked: 0
+          }
+        };
+      }
+      
       throw error;
     }
   }
@@ -219,47 +237,7 @@ export class IntegrationService {
     return getStatusColor(mappedStatus as any);
   }
 
-  private static async fetchHeyReachViaProxy() {
-    try {
-      console.log('🔄 Fetching HeyReach data via proxy...');
-      
-      // Get LinkedIn accounts via proxy
-      const accountsResponse = await fetch('http://localhost:3001/api/heyreach/accounts', { method: 'POST' });
-      const accounts = accountsResponse.ok ? (await accountsResponse.json()).items || [] : [];
-      
-      // Get campaigns via proxy
-      const campaignsResponse = await fetch('http://localhost:3001/api/heyreach/campaigns', { method: 'POST' });
-      const campaigns = campaignsResponse.ok ? (await campaignsResponse.json()).items || [] : [];
-      
-      // Get conversations via proxy
-      const conversationsResponse = await fetch('http://localhost:3001/api/heyreach/conversations', { method: 'POST' });
-      const conversations = conversationsResponse.ok ? (await conversationsResponse.json()).items || [] : [];
-
-      console.log(`✅ HeyReach proxy data: ${accounts.length} accounts, ${campaigns.length} campaigns, ${conversations.length} conversations`);
-
-      return {
-        accounts: accounts,
-        campaigns: campaigns,
-        conversations: conversations,
-        messages: [],
-        analytics: {
-          linkedin_accounts: accounts.length,
-          active_accounts: accounts.filter((acc: any) => acc.isActive).length,
-          total_campaigns: campaigns.length,
-          active_campaigns: accounts.reduce((sum: number, acc: any) => sum + (acc.activeCampaigns || 0), 0),
-          total_conversations: conversations.length,
-          auth_valid_accounts: accounts.filter((acc: any) => acc.authIsValid).length
-        }
-      };
-    } catch (error) {
-      console.error('❌ HeyReach Proxy API Error:', error);
-      throw error;
-    }
-  }
-
-  // NOTE: fetchHeyReachDirectAPI removed - using serverless proxy only
-
-  // NOTE: Old HeyReach direct API methods removed - now using centralized API client with serverless functions
+  // NOTE: Old HeyReach proxy and direct API methods removed - now using centralized API client with serverless functions
 
   static async getHeyReachAnalytics() {
     // This method is now integrated into getHeyReachData()
