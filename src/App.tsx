@@ -639,7 +639,7 @@ function App() {
                     <td className="p-4 text-sm text-white flex items-center">
                       <div 
                         className="w-2 h-2 rounded-full mr-2"
-                        style={{ backgroundColor: getStatusColor(campaign.status || 'Draft') }}
+                        style={{ backgroundColor: campaign.statusColor || getStatusColor(campaign.status || 'Draft') }}
                       />
                       {campaign.name}
                     </td>
