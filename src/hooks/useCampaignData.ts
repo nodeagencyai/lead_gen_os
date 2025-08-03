@@ -65,11 +65,24 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
           console.error('❌ STEP 3: CRITICAL - Main service FAILED, using fallback with ZEROS!', error);
           // Final fallback to original method
           const instantlyData = await IntegrationService.getInstantlyData();
-          const mappedCampaigns = instantlyData.campaigns?.map((camp: any) => ({
+          const mapCampaignStatus = (status: number): string => {
+            const statusMap: Record<number, string> = {
+              0: 'Draft',
+              1: 'Running',
+              2: 'Paused',
+              3: 'Stopped',
+              4: 'Completed'
+            };
+            return statusMap[status] || 'Draft';
+          };
+
+          const mappedCampaigns = instantlyData.campaigns?.map((camp: any) => {
+            const status = mapCampaignStatus(camp.status);
+            return {
             id: camp.id,
             name: camp.name,
-            status: camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused',
-            statusColor: getStatusColor(camp.status === 1 ? 'Running' : camp.status === 0 ? 'Draft' : 'Paused'),
+            status,
+            statusColor: getStatusColor(status as any),
             preparation: 75,
             leadsReady: 0,
             emailsSent: 0,
@@ -82,7 +95,8 @@ export const useCampaignData = (mode: 'email' | 'linkedin') => {
             openRate: 0,
             clickRate: 0,
             replyRate: 0
-          })) || [];
+          };
+          }) || [];
           setCampaigns(mappedCampaigns);
         }
         
