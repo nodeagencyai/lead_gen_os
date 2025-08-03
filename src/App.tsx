@@ -530,7 +530,7 @@ function App() {
                 {costLoading ? '...' : formatCost(costMetrics?.costBreakdown?.variable?.total || 0)}
               </div>
               <div className="text-xs" style={{ color: '#888888' }}>
-                This month's token costs
+                Total tokens cost this month
               </div>
             </div>
 
