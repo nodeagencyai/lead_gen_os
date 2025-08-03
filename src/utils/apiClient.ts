@@ -389,8 +389,21 @@ class ApiClient {
 
   async heyreach<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     // ALWAYS use serverless proxy - NO direct external API calls
-    console.log(`📡 FORCED PROXY: /api/heyreach${endpoint}`);
-    return this.post<T>(`/api/heyreach${endpoint}`, data);
+    console.log(`📡 HEYREACH API: /api/heyreach${endpoint}`);
+    
+    // Handle different endpoints appropriately
+    if (endpoint.includes('/campaigns/') && endpoint.includes('/analytics')) {
+      // Campaign analytics - use GET with query params
+      const campaignId = endpoint.split('/campaigns/')[1].split('/analytics')[0];
+      return this.get<T>(`/api/heyreach/analytics?id=${campaignId}`);
+    } else if (endpoint.includes('/campaigns/') && !endpoint.includes('/analytics')) {
+      // Campaign details - use GET with query params
+      const campaignId = endpoint.split('/campaigns/')[1];
+      return this.get<T>(`/api/heyreach/campaign-details?id=${campaignId}`);
+    } else {
+      // Default: use POST for most HeyReach endpoints
+      return this.post<T>(`/api/heyreach${endpoint}`, data);
+    }
   }
 
   // Add test method to verify proxy is working

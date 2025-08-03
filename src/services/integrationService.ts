@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { INTEGRATION_CONFIG } from '../config/integrations';
 import { apiClient } from '../utils/apiClient';
 import { getRequiredEnvVar } from '../utils/envValidator';
+import { getStatusColor } from '../config/campaignColors';
 
 export class IntegrationService {
   // Get encrypted API keys from Supabase
@@ -122,7 +123,7 @@ export class IntegrationService {
     }
   }
 
-  // HeyReach API Integration - Now using serverless API
+  // HeyReach API Integration - Now using serverless API with enhanced data transformation
   static async getHeyReachData() {
     console.log('🔄 Fetching HeyReach data via serverless API...');
     
@@ -137,33 +138,52 @@ export class IntegrationService {
 
       console.log('✅ HeyReach authentication successful');
 
-      // Fetch LinkedIn accounts
-      const accountsResult = await apiClient.heyreach('/accounts');
+      // Fetch data in parallel for better performance
+      const [accountsResult, campaignsResult, conversationsResult] = await Promise.all([
+        apiClient.heyreach('/accounts'),
+        apiClient.heyreach('/campaigns'),
+        apiClient.heyreach('/conversations')
+      ]);
+
       const accounts = accountsResult.data?.items || [];
-
-      // Fetch campaigns
-      const campaignsResult = await apiClient.heyreach('/campaigns');
       const campaigns = campaignsResult.data?.items || [];
-
-      // Fetch conversations
-      const conversationsResult = await apiClient.heyreach('/conversations');
       const conversations = conversationsResult.data?.items || [];
 
       console.log(`✅ HeyReach data: ${accounts.length} accounts, ${campaigns.length} campaigns, ${conversations.length} conversations`);
 
-      // Calculate analytics from the data we have
+      // Transform campaigns data to match dashboard expectations
+      const transformedCampaigns = campaigns.map((campaign: any) => ({
+        id: campaign.id,
+        name: campaign.name,
+        status: this.mapHeyReachStatus(campaign.status),
+        sent: campaign.sent_count || 0,
+        replies: campaign.replied_count || 0,
+        meetings: 0, // Not available in HeyReach API
+        rate: campaign.replied_count && campaign.sent_count 
+          ? `${Math.round((campaign.replied_count / campaign.sent_count) * 100)}%` 
+          : '0%',
+        // Add statusColor for dashboard compatibility
+        statusColor: this.getHeyReachStatusColor(campaign.status)
+      }));
+
+      // Calculate comprehensive analytics
       const analytics = {
+        connection_requests_sent: campaigns.reduce((sum: number, c: any) => sum + (c.sent_count || 0), 0),
+        connections_accepted: campaigns.reduce((sum: number, c: any) => sum + (c.connected_count || 0), 0),
+        messages_sent: conversations.length,
+        message_replies: campaigns.reduce((sum: number, c: any) => sum + (c.replied_count || 0), 0),
+        meetings_booked: 0, // Not available in current HeyReach API
         linkedin_accounts: accounts.length,
-        active_accounts: accounts.filter((acc: any) => acc.isActive).length,
+        active_accounts: accounts.filter((acc: any) => acc.isActive || acc.status === 'active').length,
         total_campaigns: campaigns.length,
-        active_campaigns: accounts.reduce((sum: number, acc: any) => sum + (acc.activeCampaigns || 0), 0),
+        active_campaigns: campaigns.filter((c: any) => c.status === 'active').length,
         total_conversations: conversations.length,
-        auth_valid_accounts: accounts.filter((acc: any) => acc.authIsValid).length
+        auth_valid_accounts: accounts.filter((acc: any) => acc.authIsValid !== false).length
       };
 
       return {
         accounts,
-        campaigns,
+        campaigns: transformedCampaigns,
         conversations,
         messages: [],
         analytics
@@ -173,6 +193,30 @@ export class IntegrationService {
       console.error('❌ HeyReach API Error:', error);
       throw error;
     }
+  }
+  
+  /**
+   * Map HeyReach status to unified format
+   */
+  private static mapHeyReachStatus(status: string): string {
+    const statusMap: Record<string, string> = {
+      'active': 'Running',
+      'running': 'Running',
+      'paused': 'Paused',
+      'completed': 'Completed',
+      'draft': 'Draft',
+      'stopped': 'Stopped'
+    };
+    
+    return statusMap[status?.toLowerCase()] || 'Draft';
+  }
+  
+  /**
+   * Get status color for HeyReach campaigns
+   */
+  private static getHeyReachStatusColor(status: string): string {
+    const mappedStatus = this.mapHeyReachStatus(status);
+    return getStatusColor(mappedStatus as any);
   }
 
   private static async fetchHeyReachViaProxy() {

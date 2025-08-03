@@ -1,0 +1,109 @@
+// Vercel Serverless Function for HeyReach Campaign Analytics
+export default async function handler(req, res) {
+  // Set comprehensive CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.setHeader('Access-Control-Allow-Credentials', 'false');
+  res.setHeader('Access-Control-Max-Age', '86400');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('🔄 CORS preflight request handled for /api/heyreach/analytics');
+    return res.status(200).end();
+  }
+
+  // Allow both GET and POST methods
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    // Use server-side environment variable (NO VITE_ prefix)
+    const HEYREACH_API_KEY = process.env.HEYREACH_API_KEY;
+    
+    if (!HEYREACH_API_KEY) {
+      console.error('❌ HeyReach API key not found');
+      return res.status(500).json({ 
+        error: 'API key not configured',
+        debug: 'HEYREACH_API_KEY environment variable is missing'
+      });
+    }
+
+    // Extract campaign ID from query
+    const campaignId = req.query.id || req.query.campaignId;
+    
+    if (!campaignId) {
+      return res.status(400).json({
+        error: 'Campaign ID is required',
+        usage: 'Use ?id=campaign_id or ?campaignId=campaign_id'
+      });
+    }
+
+    console.log(`🔄 Fetching analytics for campaign ${campaignId} from HeyReach...`);
+
+    // Fetch campaign analytics
+    const response = await fetch(`https://api.heyreach.io/api/public/campaigns/${campaignId}/analytics`, {
+      method: 'GET',
+      headers: {
+        'X-API-KEY': HEYREACH_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ HeyReach analytics error:', response.status, errorData);
+      
+      // If analytics endpoint doesn't exist, return mock data structure
+      if (response.status === 404) {
+        console.log('⚠️ Analytics endpoint not available, returning mock structure');
+        const mockAnalytics = {
+          summary: {
+            leads_added: 0,
+            profiles_viewed: 0,
+            connections_sent: 0,
+            connections_accepted: 0,
+            messages_sent: 0,
+            replies_received: 0,
+            acceptance_rate: 0,
+            reply_rate: 0
+          },
+          daily_stats: []
+        };
+        return res.status(200).json(mockAnalytics);
+      }
+      
+      return res.status(response.status).json({
+        error: 'Failed to fetch campaign analytics',
+        status: response.status,
+        details: errorData
+      });
+    }
+
+    const data = await response.json();
+    console.log(`✅ Fetched analytics for campaign ${campaignId}`);
+    res.status(200).json(data);
+
+  } catch (error) {
+    console.error('❌ HeyReach analytics error:', error);
+    
+    // Return mock data on error for graceful degradation
+    const mockAnalytics = {
+      summary: {
+        leads_added: 0,
+        profiles_viewed: 0,
+        connections_sent: 0,
+        connections_accepted: 0,
+        messages_sent: 0,
+        replies_received: 0,
+        acceptance_rate: 0,
+        reply_rate: 0
+      },
+      daily_stats: []
+    };
+    
+    res.status(200).json(mockAnalytics);
+  }
+}
