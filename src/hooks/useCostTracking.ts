@@ -10,6 +10,7 @@ interface CostMetrics {
   costPerEmail: number;
   costPerMeeting: number;
   totalMonthlySpend: number;
+  totalTokensUsed: number;
   costBreakdown: {
     fixed: {
       instantly: number;

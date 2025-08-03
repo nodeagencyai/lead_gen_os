@@ -387,7 +387,9 @@ export const useRealTimeData = () => {
         sent: camp.emailsSent || 0,
         replies: camp.replies || 0,
         meetings: camp.meetings || 0,
-        rate: camp.replyRate ? `${camp.replyRate}%` : '0%'
+        rate: camp.replyRate ? `${camp.replyRate}%` : '0%',
+        status: camp.status || 'Draft',
+        statusColor: camp.statusColor || '#4B5563'
       })) || [];
 
       return {

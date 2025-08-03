@@ -9,6 +9,7 @@ interface CostMetrics {
   costPerEmail: number;
   costPerMeeting: number;
   totalMonthlySpend: number;
+  totalTokensUsed: number;
   costBreakdown: {
     fixed: {
       instantly: number;
@@ -92,6 +93,7 @@ export class CostIntegrationService {
         costPerEmail: 0,
         costPerMeeting: 0,
         totalMonthlySpend: 123, // Fixed costs only
+        totalTokensUsed: 0,
         costBreakdown: {
           fixed: {
             instantly: 75,
