@@ -1,4 +1,6 @@
 // Vercel Serverless Function for HeyReach LinkedIn Accounts
+const { heyreachRateLimiter } = require('../utils/heyreachRateLimiter');
+
 export default async function handler(req, res) {
   // Set comprehensive CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,12 +15,24 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Only allow POST method
-  if (req.method !== 'POST') {
+  // Allow both GET and POST methods (GET is the correct one per docs)
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    // Check rate limit before making request
+    try {
+      await heyreachRateLimiter.checkLimit();
+    } catch (rateLimitError) {
+      console.warn('⚠️ Rate limit exceeded:', rateLimitError.message);
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        message: rateLimitError.message,
+        retryAfter: Math.ceil(rateLimitError.waitTime / 1000)
+      });
+    }
+    
     // Use server-side environment variable (NO VITE_ prefix)
     const HEYREACH_API_KEY = process.env.HEYREACH_API_KEY;
     
@@ -32,14 +46,13 @@ export default async function handler(req, res) {
 
     console.log('🔄 Fetching LinkedIn accounts from HeyReach...');
 
-    const response = await fetch('https://api.heyreach.io/api/public/li_account/GetAll', {
-      method: 'POST',
+    // Use correct endpoint from official documentation
+    const response = await fetch('https://api.heyreach.io/api/public/linkedin-accounts', {
+      method: 'GET',
       headers: {
         'X-API-KEY': HEYREACH_API_KEY,
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      },
-      body: JSON.stringify(req.body || {})
+      }
     });
 
     const data = await response.json();
@@ -53,8 +66,14 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`✅ Fetched ${data.items?.length || 0} LinkedIn accounts`);
-    res.status(200).json(data);
+    // Transform response to match expected format
+    const accounts = Array.isArray(data) ? data : (data.accounts || data.items || []);
+    console.log(`✅ Fetched ${accounts.length} LinkedIn accounts`);
+    
+    res.status(200).json({
+      items: accounts,
+      total_count: accounts.length
+    });
 
   } catch (error) {
     console.error('❌ HeyReach accounts error:', error);

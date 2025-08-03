@@ -1,4 +1,6 @@
 // Vercel Serverless Function for HeyReach Campaign Details
+const { heyreachRateLimiter } = require('../utils/heyreachRateLimiter');
+
 export default async function handler(req, res) {
   // Set comprehensive CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,6 +42,18 @@ export default async function handler(req, res) {
       });
     }
 
+    // Check rate limit before making request
+    try {
+      await heyreachRateLimiter.checkLimit();
+    } catch (rateLimitError) {
+      console.warn('⚠️ Rate limit exceeded:', rateLimitError.message);
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        message: rateLimitError.message,
+        retryAfter: Math.ceil(rateLimitError.waitTime / 1000)
+      });
+    }
+
     console.log(`🔄 Fetching details for campaign ${campaignId} from HeyReach...`);
 
     // Get specific campaign details
@@ -56,8 +70,27 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       console.error('❌ HeyReach campaign details error:', response.status, data);
+      
+      // Handle rate limit response from HeyReach
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('X-RateLimit-Reset') || '60';
+        return res.status(429).json({
+          error: 'HeyReach rate limit exceeded',
+          retryAfter: parseInt(retryAfter),
+          message: 'Too many requests to HeyReach API'
+        });
+      }
+      
+      // Handle specific error codes per documentation
+      const errorCodes = {
+        401: 'Invalid API key',
+        403: 'API key lacks required permissions',
+        404: 'Campaign not found',
+        500: 'HeyReach server error'
+      };
+      
       return res.status(response.status).json({
-        error: 'Failed to fetch campaign details',
+        error: errorCodes[response.status] || 'Failed to fetch campaign details',
         status: response.status,
         details: data
       });

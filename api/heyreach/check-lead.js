@@ -1,4 +1,6 @@
 // Vercel Serverless Function to check if a lead exists in HeyReach
+const { heyreachRateLimiter } = require('../utils/heyreachRateLimiter');
+
 export default async function handler(req, res) {
   // Set comprehensive CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,17 +42,29 @@ export default async function handler(req, res) {
       });
     }
 
+    // Check rate limit before making requests
+    try {
+      await heyreachRateLimiter.checkLimit();
+    } catch (rateLimitError) {
+      console.warn('⚠️ Rate limit exceeded:', rateLimitError.message);
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        message: rateLimitError.message,
+        retryAfter: Math.ceil(rateLimitError.waitTime / 1000),
+        synced: false,
+        platform: 'heyreach'
+      });
+    }
+
     console.log(`🔄 Checking if lead ${email} exists in HeyReach...`);
 
-    // First, get all campaigns
-    const campaignsResponse = await fetch('https://api.heyreach.io/api/public/campaign/GetAll', {
-      method: 'POST',
+    // First, get all campaigns using correct endpoint
+    const campaignsResponse = await fetch('https://api.heyreach.io/api/public/campaigns', {
+      method: 'GET',
       headers: {
         'X-API-KEY': HEYREACH_API_KEY,
-        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      },
-      body: JSON.stringify({})
+      }
     });
 
     if (!campaignsResponse.ok) {
@@ -68,29 +82,28 @@ export default async function handler(req, res) {
     // Check each campaign for the lead
     for (const campaign of campaigns) {
       try {
-        // Get campaign leads/prospects
-        const prospectsResponse = await fetch('https://api.heyreach.io/api/public/prospect/GetByCampaign', {
-          method: 'POST',
+        // Check rate limit before each additional request
+        await heyreachRateLimiter.checkLimit();
+        
+        // Get campaign leads/prospects using correct endpoint
+        // Note: This endpoint may not exist in HeyReach API - using conversations as fallback
+        const prospectsResponse = await fetch(`https://api.heyreach.io/api/public/conversations?campaign_id=${campaign.id}&limit=1000`, {
+          method: 'GET',
           headers: {
             'X-API-KEY': HEYREACH_API_KEY,
-            'Content-Type': 'application/json',
             'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            campaignId: campaign.id,
-            page: 1,
-            pageSize: 1000 // Check first 1000 leads
-          })
+          }
         });
 
         if (prospectsResponse.ok) {
           const prospectsData = await prospectsResponse.json();
-          const prospects = prospectsData.items || [];
+          const conversations = prospectsData.items || prospectsData.conversations || [];
           
-          // Check if email exists in this campaign
-          const leadExists = prospects.some(prospect => 
-            prospect.email?.toLowerCase() === email.toLowerCase() ||
-            prospect.linkedInEmail?.toLowerCase() === email.toLowerCase()
+          // Check if email exists in this campaign's conversations
+          const leadExists = conversations.some(conversation => 
+            conversation.lead_email?.toLowerCase() === email.toLowerCase() ||
+            conversation.email?.toLowerCase() === email.toLowerCase() ||
+            conversation.prospect_email?.toLowerCase() === email.toLowerCase()
           );
           
           if (leadExists) {
@@ -107,7 +120,15 @@ export default async function handler(req, res) {
         }
       } catch (err) {
         console.error(`Error checking campaign ${campaign.id}:`, err);
-        // Continue checking other campaigns
+        // If rate limit error, don't continue
+        if (err.message && err.message.includes('Rate limit')) {
+          return res.status(429).json({
+            error: 'Rate limit exceeded during lead check',
+            synced: false,
+            platform: 'heyreach'
+          });
+        }
+        // Continue checking other campaigns for other errors
       }
     }
 

@@ -400,9 +400,13 @@ class ApiClient {
       // Campaign details - use GET with query params
       const campaignId = endpoint.split('/campaigns/')[1];
       return this.get<T>(`/api/heyreach/campaign-details?id=${campaignId}`);
-    } else {
-      // Default: use POST for most HeyReach endpoints
+    } else if (endpoint === '/auth') {
+      // Auth check uses POST per our implementation
       return this.post<T>(`/api/heyreach${endpoint}`, data);
+    } else {
+      // For list endpoints (campaigns, accounts, conversations), use GET
+      // These endpoints now properly support GET method per HeyReach docs
+      return this.get<T>(`/api/heyreach${endpoint}`);
     }
   }
 
