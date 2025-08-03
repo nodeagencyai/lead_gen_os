@@ -500,12 +500,20 @@ function App() {
                 e.currentTarget.style.borderColor = '#444444';
               }}
             >
-              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Cost per Email</div>
+              <div className="text-sm mb-2" style={{ color: '#cccccc' }}>
+                {mode === 'email' ? 'Cost per Email' : 'Cost per DM'}
+              </div>
               <div className="text-2xl font-bold mb-2 text-white">
-                {costLoading ? '...' : emailMetrics.sent > 0 ? formatCost(123 / emailMetrics.sent) : '€0.00'}
+                {costLoading ? '...' : mode === 'email' 
+                  ? (emailMetrics.sent > 0 ? formatCost(123 / emailMetrics.sent) : '€0.00')
+                  : (linkedinMetrics.messagesSent > 0 ? formatCost(70 / linkedinMetrics.messagesSent) : '€0.00')
+                }
               </div>
               <div className="text-xs" style={{ color: '#888888' }}>
-                Total: {emailMetrics.sent.toLocaleString()} emails sent (Instantly)
+                {mode === 'email' 
+                  ? `Total: ${emailMetrics.sent.toLocaleString()} emails sent (Instantly)`
+                  : `Total: ${linkedinMetrics.messagesSent.toLocaleString()} DMs sent (HeyReach)`
+                }
               </div>
             </div>
 
@@ -577,10 +585,13 @@ function App() {
             >
               <div className="text-sm mb-2" style={{ color: '#cccccc' }}>Monthly Fixed Costs</div>
               <div className="text-2xl font-bold mb-2 text-white">
-                €125.00
+                {mode === 'email' ? '€125.00' : '€70.00'}
               </div>
               <div className="text-xs" style={{ color: '#888888' }}>
-                Instantly: €75 • Google: €50
+                {mode === 'email' 
+                  ? 'Instantly: €75 • Google: €50'
+                  : 'HeyReach: €70'
+                }
               </div>
             </div>
           </div>
