@@ -408,15 +408,15 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
 
       <div className="max-w-4xl mx-auto p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4 text-white">Settings</h1>
-          <p style={{ color: '#ffffff' }}>Connect your N8N workflows and automation platforms</p>
+          <h1 className="text-3xl font-bold mb-4" style={{ color: '#ffffff' }}>Settings</h1>
+          <p style={{ color: '#cccccc' }}>Connect your N8N workflows and automation platforms</p>
         </div>
 
         {/* Webhook Management Section */}
         <div className="mb-12">
           <div className="flex items-center space-x-3 mb-6">
-            <Webhook className="w-6 h-6" style={{ color: '#5BB0FF' }} />
-            <h2 className="text-2xl font-bold text-white">Webhook Management</h2>
+            <Webhook className="w-6 h-6" style={{ color: '#888888' }} />
+            <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>Webhook Management</h2>
           </div>
           <p className="mb-6" style={{ color: '#cccccc' }}>
             Configure webhook URLs for different events in your lead generation workflow. 
@@ -433,13 +433,13 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="font-semibold text-white">{event.name}</h3>
+                      <h3 className="font-semibold" style={{ color: '#ffffff' }}>{event.name}</h3>
                       <div className="flex items-center space-x-2">
                         {event.enabled && (
                           <span className="px-2 py-1 text-xs rounded-full" style={{ 
-                            backgroundColor: '#10b98120', 
-                            color: '#10b981',
-                            border: '1px solid #10b98140'
+                            backgroundColor: '#333333', 
+                            color: '#ffffff',
+                            border: '1px solid #555555'
                           }}>
                             Enabled
                           </span>
@@ -496,9 +496,9 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                     disabled={!event.url || testingWebhook === event.id}
                     className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80"
                     style={{
-                      backgroundColor: '#0A2540',
-                      border: '1px solid #082030',
-                      color: '#5BB0FF'
+                      backgroundColor: '#333333',
+                      border: '1px solid #555555',
+                      color: '#ffffff'
                     }}
                   >
                     {testingWebhook === event.id ? (
@@ -533,16 +533,16 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                 {/* Test Results */}
                 {webhookTestResults[event.id] && (
                   <div className={`mt-3 p-3 rounded-lg flex items-center space-x-2`} style={{
-                    backgroundColor: webhookTestResults[event.id].success ? '#0f1a1a' : '#1a0f0f',
-                    border: `1px solid ${webhookTestResults[event.id].success ? '#10b981' : '#ef4444'}`
+                    backgroundColor: webhookTestResults[event.id].success ? '#1a1a1a' : '#1a1a1a',
+                    border: `1px solid ${webhookTestResults[event.id].success ? '#333333' : '#ef4444'}`
                   }}>
                     {webhookTestResults[event.id].success ? (
-                      <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                      <Check className="w-4 h-4" style={{ color: '#ffffff' }} />
                     ) : (
                       <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
                     )}
                     <span className="text-sm" style={{ 
-                      color: webhookTestResults[event.id].success ? '#10b981' : '#ef4444' 
+                      color: webhookTestResults[event.id].success ? '#ffffff' : '#ef4444' 
                     }}>
                       {webhookTestResults[event.id].message}
                     </span>
@@ -553,14 +553,14 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
           </div>
 
           {/* Webhook Documentation */}
-          <div className="mt-8 p-4 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-            <h4 className="font-semibold mb-3 text-white flex items-center space-x-2">
-              <ExternalLink className="w-4 h-4" />
+          <div className="mt-8 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+            <h4 className="font-semibold mb-3 flex items-center space-x-2" style={{ color: '#ffffff' }}>
+              <ExternalLink className="w-4 h-4" style={{ color: '#888888' }} />
               <span>Webhook Payload Format</span>
             </h4>
             <div className="text-sm space-y-2" style={{ color: '#cccccc' }}>
               <p>All webhooks will receive a POST request with the following JSON structure:</p>
-              <pre className="p-3 rounded text-xs overflow-x-auto" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+              <pre className="p-3 rounded text-xs overflow-x-auto" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333', color: '#ffffff' }}>
 {`{
   "event_type": "lead_scraped",
   "event_name": "Lead Scraped", 
@@ -572,7 +572,7 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
 }`}
               </pre>
               <p className="mt-2">
-                <strong>Headers included:</strong> <code>Content-Type: application/json</code>, <code>X-Webhook-Event: {`{event_type}`}</code>, <code>User-Agent: LeadGenOS-Webhook/1.0</code>
+                <strong style={{ color: '#ffffff' }}>Headers included:</strong> <code style={{ backgroundColor: '#333333', color: '#ffffff', padding: '2px 4px', borderRadius: '3px' }}>Content-Type: application/json</code>, <code style={{ backgroundColor: '#333333', color: '#ffffff', padding: '2px 4px', borderRadius: '3px' }}>X-Webhook-Event: {`{event_type}`}</code>, <code style={{ backgroundColor: '#333333', color: '#ffffff', padding: '2px 4px', borderRadius: '3px' }}>User-Agent: LeadGenOS-Webhook/1.0</code>
               </p>
             </div>
           </div>
@@ -581,8 +581,8 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
         {/* API Integrations Section */}
         <div className="mb-8">
           <div className="flex items-center space-x-3 mb-6">
-            <Key className="w-6 h-6" style={{ color: '#5BB0FF' }} />
-            <h2 className="text-2xl font-bold text-white">API Integrations</h2>
+            <Key className="w-6 h-6" style={{ color: '#888888' }} />
+            <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>API Integrations</h2>
           </div>
           <p style={{ color: '#cccccc' }}>Connect your automation platforms and N8N workflows</p>
         </div>
