@@ -3,6 +3,8 @@
  * 🚨 SECURITY: Validates all required environment variables are present
  */
 
+import { logger } from './logger';
+
 export interface RequiredEnvVars {
   VITE_SUPABASE_URL: string;
   VITE_SUPABASE_ANON_KEY: string;
@@ -140,7 +142,7 @@ export function logEnvironmentStatus(): void {
     const validation = validateEnvironmentVariables();
     
     if (validation.isValid) {
-      console.log('✅ Environment variables validated successfully');
+      logger.log('✅ Environment variables validated successfully');
     } else {
       console.warn('⚠️ Environment validation issues found:', validation);
     }

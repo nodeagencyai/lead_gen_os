@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Clock, TrendingUp, Eye, Code } from 'lucide-react';
 import { InstantlyCampaignService } from '../services/instantlyCampaignService';
+import { logger } from '../utils/logger';
 
 interface SequenceStep {
   id: string;
@@ -66,7 +67,7 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
     setError(null);
     
     try {
-      console.log(`🔍 Sequence viewer fetching data for campaign: ${campaignId} (${campaignName})`);
+      logger.log(`🔍 Sequence viewer fetching data for campaign: ${campaignId} (${campaignName})`);
       
       // Fetch enhanced sequence data with campaign context
       const enhancedData = await InstantlyCampaignService.getEnhancedSequenceData(campaignId);
@@ -79,7 +80,7 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
       } else {
         // Combine main and follow-up sequences for display
         const allSequences = [...enhancedData.sequences.main, ...enhancedData.sequences.followUps];
-        console.log(`✅ Sequence viewer loaded ${allSequences.length} sequences for ${campaignName}:`, {
+        logger.log(`✅ Sequence viewer loaded ${allSequences.length} sequences for ${campaignName}:`, {
           main: enhancedData.sequences.main.length,
           followUps: enhancedData.sequences.followUps.length,
           total: enhancedData.sequences.total

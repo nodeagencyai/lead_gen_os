@@ -3,6 +3,8 @@
  * Handles all API calls with automatic environment detection and error handling
  */
 
+import { logger } from './logger';
+
 interface ApiResponse<T = any> {
   data?: T;
   error?: string;
@@ -31,7 +33,7 @@ class ApiClient {
     };
 
     if (this.config.debug) {
-      console.log('🔧 ApiClient initialized:', {
+      logger.log('🔧 ApiClient initialized:', {
         baseUrl: this.baseUrl,
         environment: import.meta.env.MODE,
         isDev: import.meta.env.DEV
@@ -69,7 +71,7 @@ class ApiClient {
     const url = `${this.baseUrl}${endpoint}${separator}_cb=${cacheBust}`;
     
     if (this.config.debug) {
-      console.log('📡 API Request:', { url, method: options.method || 'GET', options });
+      logger.log('📡 API Request:', { url, method: options.method || 'GET', options });
     }
 
     const controller = new AbortController();
@@ -94,7 +96,7 @@ class ApiClient {
       const data = await response.json();
 
       if (this.config.debug) {
-        console.log('📨 API Response:', { 
+        logger.log('📨 API Response:', { 
           url, 
           status: response.status, 
           ok: response.ok, 
@@ -116,11 +118,11 @@ class ApiClient {
       clearTimeout(timeoutId);
       
       if (error.name === 'AbortError') {
-        console.error('❌ API Request timeout:', url);
+        logger.error('❌ API Request timeout:', url);
         return { error: 'Request timeout', status: 408 };
       }
 
-      console.error('❌ API Request failed:', { url, error: error.message });
+      logger.error('❌ API Request failed:', { url, error: error.message });
       return { 
         error: error.message || 'Network error', 
         status: 0,
@@ -137,7 +139,7 @@ class ApiClient {
 
     for (let attempt = 1; attempt <= this.config.retries!; attempt++) {
       if (this.config.debug && attempt > 1) {
-        console.log(`🔄 Retry attempt ${attempt}/${this.config.retries} for ${endpoint}`);
+        logger.log(`🔄 Retry attempt ${attempt}/${this.config.retries} for ${endpoint}`);
       }
 
       const result = await this.makeRequest<T>(endpoint, options);
@@ -188,7 +190,7 @@ class ApiClient {
 
   // Specialized methods for different APIs with development fallback
   async instantly<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
-    console.log(`📡 INSTANTLY API: /api/instantly${endpoint}`);
+    logger.log(`📡 INSTANTLY API: /api/instantly${endpoint}`);
     
     // Always try proxy first (works in both dev server and production)
     const proxyResponse = data 
@@ -200,22 +202,22 @@ class ApiClient {
                         (proxyResponse.data as string).includes('Vercel Serverless Function');
     
     if (isSourceCode) {
-      console.warn('⚠️ Proxy serving source code - are you using Vite dev server? Use dev:real script instead');
+      logger.warn('⚠️ Proxy serving source code - are you using Vite dev server? Use dev:real script instead');
       return { error: 'Proxy not available - use npm run dev:real for real API data' };
     }
     
     if (proxyResponse.error) {
-      console.error('❌ Proxy failed:', proxyResponse.error);
+      logger.error('❌ Proxy failed:', proxyResponse.error);
       return proxyResponse;
     }
     
     // Special debugging for analytics-aggregated endpoint
     if (endpoint === '/analytics-aggregated') {
-      console.log('🔍 ANALYTICS-AGGREGATED RESPONSE:', JSON.stringify(proxyResponse.data, null, 2));
-      console.log('📊 RESPONSE TYPE:', typeof proxyResponse.data);
+      logger.log('🔍 ANALYTICS-AGGREGATED RESPONSE:', JSON.stringify(proxyResponse.data, null, 2));
+      logger.log('📊 RESPONSE TYPE:', typeof proxyResponse.data);
     }
     
-    console.log('✅ Proxy success:', { hasData: !!proxyResponse.data });
+    logger.log('✅ Proxy success:', { hasData: !!proxyResponse.data });
     return proxyResponse;
   }
 
@@ -237,7 +239,7 @@ class ApiClient {
       url = `${baseUrl}${endpoint}`;
     }
     
-    console.log(`🔗 DIRECT API CALL: ${url}`);
+    logger.log(`🔗 DIRECT API CALL: ${url}`);
     
     try {
       const response = await fetch(url, {
@@ -253,7 +255,7 @@ class ApiClient {
       const responseData = await response.json();
       
       if (!response.ok) {
-        console.error('❌ Direct API error:', response.status, responseData);
+        logger.error('❌ Direct API error:', response.status, responseData);
         return {
           error: `Direct API error: ${response.status}`,
           status: response.status,
@@ -261,15 +263,15 @@ class ApiClient {
         };
       }
       
-      console.log('✅ Direct API success:', { status: response.status, hasData: !!responseData });
+      logger.log('✅ Direct API success:', { status: response.status, hasData: !!responseData });
       return { data: responseData, status: response.status };
       
     } catch (error: any) {
-      console.error('❌ Direct API exception:', error);
+      logger.error('❌ Direct API exception:', error);
       
       // Only use mock data if in development AND it's a CORS error
       if (import.meta.env.DEV && error.message?.includes('fetch')) {
-        console.log('🔄 DEVELOPMENT FALLBACK: CORS blocked, using mock data');
+        logger.log('🔄 DEVELOPMENT FALLBACK: CORS blocked, using mock data');
         return this.getMockDataForDevelopment<T>(endpoint);
       }
       
@@ -282,7 +284,7 @@ class ApiClient {
 
   // Development mock data with real API structure
   private getMockDataForDevelopment<T>(endpoint: string): ApiResponse<T> {
-    console.log(`🎭 MOCK DATA: Providing development fallback for ${endpoint}`);
+    logger.log(`🎭 MOCK DATA: Providing development fallback for ${endpoint}`);
     
     // Mock campaigns list
     if (endpoint === '/campaigns') {
@@ -397,7 +399,7 @@ class ApiClient {
 
   async heyreach<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
     // ALWAYS use serverless proxy - NO direct external API calls
-    console.log(`📡 HEYREACH API: /api/heyreach${endpoint}`);
+    logger.log(`📡 HEYREACH API: /api/heyreach${endpoint}`);
     
     // Handle different endpoints appropriately
     if (endpoint.includes('/campaigns/') && endpoint.includes('/analytics')) {
@@ -425,7 +427,7 @@ class ApiClient {
 
   // Add test method to verify proxy is working
   async testProxy(): Promise<ApiResponse> {
-    console.log('🧪 Testing proxy connection...');
+    logger.log('🧪 Testing proxy connection...');
     return this.get('/api/test');
   }
 

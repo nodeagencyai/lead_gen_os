@@ -16,11 +16,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('=== Authentication Debug ===');
-    console.log('Form submitted');
-    console.log('Password entered:', password);
-    console.log('Expected password:', ADMIN_PASSWORD);
-    console.log('Passwords match:', password === ADMIN_PASSWORD);
     
     if (!password) {
       setError('Please enter a password.');
@@ -37,16 +32,12 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
           // Store auth state in sessionStorage
           sessionStorage.setItem('adminAuthenticated', 'true');
           sessionStorage.setItem('adminLoginTime', Date.now().toString());
-          console.log('✅ Admin login successful');
-          console.log('Calling onAuthenticated callback...');
           onAuthenticated();
         } else {
-          console.log('❌ Password incorrect');
           setError('Incorrect password. Please try again.');
           setPassword('');
         }
       } catch (error) {
-        console.error('Authentication error:', error);
         setError('Authentication failed. Please try again.');
       }
       setLoading(false);
@@ -177,10 +168,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
             <button
               type="button"
               disabled={loading || !password}
-              onClick={(e) => {
-                console.log('Button clicked!');
-                handleSubmit(e);
-              }}
+              onClick={handleSubmit}
               className="w-full py-3 px-10 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl"
               style={{
                 backgroundColor: '#333333',
