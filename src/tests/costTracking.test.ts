@@ -2,12 +2,10 @@
  * Cost Tracking System Tests
  * 
  * Basic test suite for the cost tracking functionality
- * Run with: npm run test (if test runner is configured)
+ * Updated to work with Jest testing framework
  */
 
-// Mock environment variables for testing
-process.env.OPENROUTER_API_KEY = 'test-api-key';
-process.env.MONTHLY_INSTANTLY_COST = '75';
+// Mock environment variables are handled in setupTests.ts
 process.env.MONTHLY_WORKSPACE_COST = '48';
 process.env.COST_ALERT_THRESHOLD = '200';
 process.env.USD_TO_EUR_RATE = '0.92';
