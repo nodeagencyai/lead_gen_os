@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Key, Check, AlertCircle } from 'lucide-react';
+import { Key, Check, AlertCircle, Webhook, TestTube, Save, Copy, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CampaignToggle from './CampaignToggle';
 
@@ -10,6 +10,16 @@ interface Integration {
   webhookUrl: string;
   isActive: boolean;
   status: 'connected' | 'disconnected' | 'error';
+}
+
+interface WebhookEvent {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  enabled: boolean;
+  lastTriggered?: string;
+  totalCalls?: number;
 }
 
 interface IntegrationSetupProps {
@@ -69,6 +79,161 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   ]);
 
   const [saving, setSaving] = useState<string | null>(null);
+  
+  // Webhook Events Management
+  const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([
+    {
+      id: 'lead_scraped',
+      name: 'Lead Scraped',
+      description: 'Triggered when a new lead is scraped from Apollo or LinkedIn',
+      url: '',
+      enabled: false,
+      totalCalls: 0
+    },
+    {
+      id: 'campaign_started',
+      name: 'Campaign Started',
+      description: 'Triggered when a new email or LinkedIn campaign is started',
+      url: '',
+      enabled: false,
+      totalCalls: 0
+    },
+    {
+      id: 'lead_responded',
+      name: 'Lead Responded',
+      description: 'Triggered when a lead responds to an email or LinkedIn message',
+      url: '',
+      enabled: false,
+      totalCalls: 0
+    },
+    {
+      id: 'campaign_completed',
+      name: 'Campaign Completed',
+      description: 'Triggered when a campaign finishes or reaches its end date',
+      url: '',
+      enabled: false,
+      totalCalls: 0
+    },
+    {
+      id: 'cost_threshold_reached',
+      name: 'Cost Threshold Reached',
+      description: 'Triggered when daily/monthly cost limits are exceeded',
+      url: '',
+      enabled: false,
+      totalCalls: 0
+    },
+    {
+      id: 'lead_status_changed',
+      name: 'Lead Status Changed',
+      description: 'Triggered when a lead status changes (e.g., qualified, unqualified)',
+      url: '',
+      enabled: false,
+      totalCalls: 0
+    }
+  ]);
+  
+  const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
+  const [webhookTestResults, setWebhookTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
+
+  // Webhook management functions
+  const updateWebhookEvent = (id: string, updates: Partial<WebhookEvent>) => {
+    setWebhookEvents(prev => prev.map(event => 
+      event.id === id ? { ...event, ...updates } : event
+    ));
+  };
+
+  const testWebhookEvent = async (eventId: string) => {
+    const event = webhookEvents.find(e => e.id === eventId);
+    if (!event || !event.url) return;
+
+    setTestingWebhook(eventId);
+    
+    try {
+      const testPayload = {
+        event_type: eventId,
+        event_name: event.name,
+        timestamp: new Date().toISOString(),
+        test: true,
+        data: getSamplePayload(eventId)
+      };
+
+      const response = await fetch(event.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Webhook-Event': eventId,
+          'User-Agent': 'LeadGenOS-Webhook/1.0'
+        },
+        body: JSON.stringify(testPayload)
+      });
+
+      const success = response.status >= 200 && response.status < 300;
+      setWebhookTestResults(prev => ({
+        ...prev,
+        [eventId]: {
+          success,
+          message: success 
+            ? `Success! Received ${response.status} ${response.statusText}` 
+            : `Failed: ${response.status} ${response.statusText}`
+        }
+      }));
+
+    } catch (error) {
+      setWebhookTestResults(prev => ({
+        ...prev,
+        [eventId]: {
+          success: false,
+          message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }
+      }));
+    } finally {
+      setTestingWebhook(null);
+    }
+  };
+
+  const getSamplePayload = (eventId: string) => {
+    const sampleData: Record<string, any> = {
+      lead_scraped: {
+        lead_id: 'lead_123',
+        name: 'John Doe',
+        email: 'john@example.com',
+        company: 'Example Corp',
+        source: 'apollo'
+      },
+      campaign_started: {
+        campaign_id: 'camp_456',
+        campaign_name: 'Q1 Outreach',
+        type: 'email',
+        leads_count: 150
+      },
+      lead_responded: {
+        lead_id: 'lead_123',
+        campaign_id: 'camp_456',
+        response_type: 'positive',
+        message: 'Thanks for reaching out!'
+      },
+      campaign_completed: {
+        campaign_id: 'camp_456',
+        final_stats: { sent: 150, opened: 45, replied: 12 }
+      },
+      cost_threshold_reached: {
+        current_cost: 250.50,
+        threshold: 200.00,
+        period: 'monthly'
+      },
+      lead_status_changed: {
+        lead_id: 'lead_123',
+        old_status: 'pending',
+        new_status: 'qualified'
+      }
+    };
+    
+    return sampleData[eventId] || {};
+  };
+
+  const copyWebhookUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+  };
 
   const handleWebhookUrlChange = (id: string, webhookUrl: string) => {
     setIntegrations(prev => prev.map(integration => 
@@ -245,6 +410,181 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4 text-white">Settings</h1>
           <p style={{ color: '#ffffff' }}>Connect your N8N workflows and automation platforms</p>
+        </div>
+
+        {/* Webhook Management Section */}
+        <div className="mb-12">
+          <div className="flex items-center space-x-3 mb-6">
+            <Webhook className="w-6 h-6" style={{ color: '#5BB0FF' }} />
+            <h2 className="text-2xl font-bold text-white">Webhook Management</h2>
+          </div>
+          <p className="mb-6" style={{ color: '#cccccc' }}>
+            Configure webhook URLs for different events in your lead generation workflow. 
+            These webhooks will be triggered automatically when specific events occur.
+          </p>
+
+          <div className="grid gap-4">
+            {webhookEvents.map((event) => (
+              <div 
+                key={event.id}
+                className="rounded-lg p-4 transition-all duration-200"
+                style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="font-semibold text-white">{event.name}</h3>
+                      <div className="flex items-center space-x-2">
+                        {event.enabled && (
+                          <span className="px-2 py-1 text-xs rounded-full" style={{ 
+                            backgroundColor: '#10b98120', 
+                            color: '#10b981',
+                            border: '1px solid #10b98140'
+                          }}>
+                            Enabled
+                          </span>
+                        )}
+                        {event.totalCalls !== undefined && event.totalCalls > 0 && (
+                          <span className="text-xs" style={{ color: '#888888' }}>
+                            {event.totalCalls} calls
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm mb-3" style={{ color: '#cccccc' }}>
+                      {event.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2 ml-4">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={event.enabled}
+                        onChange={(e) => updateWebhookEvent(event.id, { enabled: e.target.checked })}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm" style={{ color: '#cccccc' }}>Enable</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      placeholder="https://your-endpoint.com/webhook"
+                      value={event.url}
+                      onChange={(e) => updateWebhookEvent(event.id, { url: e.target.value })}
+                      className="w-full px-4 py-2 rounded-lg focus:outline-none transition-all duration-300"
+                      style={{
+                        backgroundColor: '#0f0f0f',
+                        border: '1px solid #333333',
+                        color: '#ffffff'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#555555';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#333333';
+                      }}
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={() => testWebhookEvent(event.id)}
+                    disabled={!event.url || testingWebhook === event.id}
+                    className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80"
+                    style={{
+                      backgroundColor: '#0A2540',
+                      border: '1px solid #082030',
+                      color: '#5BB0FF'
+                    }}
+                  >
+                    {testingWebhook === event.id ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        <span>Testing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <TestTube size={16} />
+                        <span>Test</span>
+                      </>
+                    )}
+                  </button>
+                  
+                  {event.url && (
+                    <button
+                      onClick={() => copyWebhookUrl(event.url)}
+                      className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                      style={{
+                        backgroundColor: '#333333',
+                        border: '1px solid #555555',
+                        color: '#ffffff'
+                      }}
+                      title="Copy webhook URL"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Test Results */}
+                {webhookTestResults[event.id] && (
+                  <div className={`mt-3 p-3 rounded-lg flex items-center space-x-2`} style={{
+                    backgroundColor: webhookTestResults[event.id].success ? '#0f1a1a' : '#1a0f0f',
+                    border: `1px solid ${webhookTestResults[event.id].success ? '#10b981' : '#ef4444'}`
+                  }}>
+                    {webhookTestResults[event.id].success ? (
+                      <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
+                    )}
+                    <span className="text-sm" style={{ 
+                      color: webhookTestResults[event.id].success ? '#10b981' : '#ef4444' 
+                    }}>
+                      {webhookTestResults[event.id].message}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Webhook Documentation */}
+          <div className="mt-8 p-4 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+            <h4 className="font-semibold mb-3 text-white flex items-center space-x-2">
+              <ExternalLink className="w-4 h-4" />
+              <span>Webhook Payload Format</span>
+            </h4>
+            <div className="text-sm space-y-2" style={{ color: '#cccccc' }}>
+              <p>All webhooks will receive a POST request with the following JSON structure:</p>
+              <pre className="p-3 rounded text-xs overflow-x-auto" style={{ backgroundColor: '#1a1a1a', color: '#ffffff' }}>
+{`{
+  "event_type": "lead_scraped",
+  "event_name": "Lead Scraped", 
+  "timestamp": "2025-08-04T10:30:00Z",
+  "test": false,
+  "data": {
+    // Event-specific payload data
+  }
+}`}
+              </pre>
+              <p className="mt-2">
+                <strong>Headers included:</strong> <code>Content-Type: application/json</code>, <code>X-Webhook-Event: {`{event_type}`}</code>, <code>User-Agent: LeadGenOS-Webhook/1.0</code>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* API Integrations Section */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <Key className="w-6 h-6" style={{ color: '#5BB0FF' }} />
+            <h2 className="text-2xl font-bold text-white">API Integrations</h2>
+          </div>
+          <p style={{ color: '#cccccc' }}>Connect your automation platforms and N8N workflows</p>
         </div>
 
         <div className="space-y-6">
