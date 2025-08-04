@@ -16,6 +16,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted with password:', password); // Debug log
     setLoading(true);
     setError(null);
 
@@ -28,6 +29,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
         console.log('Admin login successful');
         onAuthenticated();
       } else {
+        console.log('Password mismatch. Expected:', ADMIN_PASSWORD, 'Got:', password); // Debug log
         setError('Incorrect password. Please try again.');
       }
       setLoading(false);
@@ -98,8 +100,13 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSubmit(e);
+                    }
+                  }}
                   required
-                  className="w-full pl-10 pr-10 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl focus:outline-none transition-all duration-300"
                   style={{
                     backgroundColor: '#0f0f0f',
                     border: '1px solid #333333',
@@ -110,10 +117,12 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                   onFocus={(e) => {
                     e.target.style.borderColor = '#555555';
                     e.target.style.backgroundColor = '#1a1a1a';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(85, 85, 85, 0.2)';
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = '#333333';
                     e.target.style.backgroundColor = '#0f0f0f';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
                 <button
