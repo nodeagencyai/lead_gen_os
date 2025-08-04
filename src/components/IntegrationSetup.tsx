@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Key, Check, AlertCircle, Webhook, TestTube, Save, Copy, ExternalLink } from 'lucide-react';
+import { Key, Check, AlertCircle, Webhook, Save, Copy, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CampaignToggle from './CampaignToggle';
 
@@ -507,10 +507,7 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                         <span>Testing...</span>
                       </>
                     ) : (
-                      <>
-                        <TestTube size={16} />
-                        <span>Test</span>
-                      </>
+                      <span>Test</span>
                     )}
                   </button>
                   
