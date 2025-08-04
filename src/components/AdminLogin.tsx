@@ -11,8 +11,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Keep the same password as before
-  const ADMIN_PASSWORD = 'Kankermissfish69!';
+  // Use environment variable for admin password
+  const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

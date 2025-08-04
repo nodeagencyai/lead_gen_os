@@ -182,8 +182,8 @@ import MonitoringUpdated from './components/MonitoringUpdated';
 ### **4. Environment Variables**
 Ensure these are set:
 ```env
-# Already configured ✅
-VITE_SUPABASE_URL=https://efpwtvlgnftlabmliguf.supabase.co
+# Configure with your actual values
+VITE_SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-key-here
 ```
 
