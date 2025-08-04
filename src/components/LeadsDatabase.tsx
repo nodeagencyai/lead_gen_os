@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, Check, X, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, RefreshCw } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
-import { LeadsService, type ApolloLead, type LinkedInLead } from '../services/leadsService';
+import { LeadsService } from '../services/leadsService';
 // import { SyncService, type SyncStatus } from '../services/syncService'; // No longer needed - using instantly_synced column
 
 interface DisplayLead {

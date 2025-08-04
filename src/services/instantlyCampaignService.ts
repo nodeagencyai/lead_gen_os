@@ -700,7 +700,7 @@ export class InstantlyCampaignService {
       }
       
       // 2. Parse sequences from subsequences (follow-up sequences)
-      let followUpSequences: any[] = [];
+      const followUpSequences: any[] = [];
       if (subsequences && subsequences.length > 0) {
         console.log(`✅ Processing ${subsequences.length} subsequences`);
         subsequences.forEach((subseq: any, index: number) => {

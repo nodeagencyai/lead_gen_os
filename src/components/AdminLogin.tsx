@@ -37,7 +37,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
           setError('Incorrect password. Please try again.');
           setPassword('');
         }
-      } catch (error) {
+      } catch (_error) {
         setError('Authentication failed. Please try again.');
       }
       setLoading(false);

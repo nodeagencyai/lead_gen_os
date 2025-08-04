@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Mail, Clock, TrendingUp, Eye, Code } from 'lucide-react';
+import { X, Mail, Clock, Eye, Code } from 'lucide-react';
 import { InstantlyCampaignService } from '../services/instantlyCampaignService';
 import { logger } from '../utils/logger';
 
@@ -33,7 +33,7 @@ const SequenceViewerModal: React.FC<SequenceViewerModalProps> = ({
 }) => {
   const [sequences, setSequences] = useState<SequenceStep[]>([]);
   const [campaignInfo, setCampaignInfo] = useState<any>(null);
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [_analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

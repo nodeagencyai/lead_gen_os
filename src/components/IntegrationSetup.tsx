@@ -119,7 +119,7 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
 
         const response = await fetch(testUrl, { headers });
         return response.ok;
-      } catch (error) {
+      } catch (_error) {
         return false;
       }
     }

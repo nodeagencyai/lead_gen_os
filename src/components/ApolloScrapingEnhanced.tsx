@@ -44,7 +44,7 @@ const ApolloScrapingEnhanced = () => {
     } else {
       setNicheSuggestions([]);
     }
-  }, [niche]);
+  }, [niche, commonNiches]);
 
   const handleScrape = async () => {
     if (!url) {

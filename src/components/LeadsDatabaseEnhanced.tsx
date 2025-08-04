@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Filter, Download, Send, Calendar, Search, X, ChevronDown, Check } from 'lucide-react';
+import { Filter, Download, Send, Calendar, X } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -47,7 +47,7 @@ const LeadsDatabaseEnhanced: React.FC<LeadsDatabaseEnhancedProps> = ({ source = 
   const [selectedPlatform, setSelectedPlatform] = useState('instantly');
   
   const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [availableNiches, setAvailableNiches] = useState<string[]>([]);
+  const [_availableNiches, setAvailableNiches] = useState<string[]>([]);
 
   useEffect(() => {
     fetchLeads();

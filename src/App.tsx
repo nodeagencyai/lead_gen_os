@@ -90,16 +90,6 @@ function App() {
     { title: 'Meetings Booked', value: linkedinMetrics.meetings.toLocaleString(), change: '0%', positive: true }
   ];
 
-  const ChartSVG = ({ className }: { className?: string }) => (
-    <svg className={className} viewBox="0 0 400 100" fill="none">
-      <path
-        d="M10 80 L50 60 L90 70 L130 45 L170 55 L210 40 L250 65 L290 30 L330 40 L370 25"
-        stroke="#888888"
-        strokeWidth="2"
-        fill="none"
-      />
-    </svg>
-  );
 
   if (currentView === 'leadfinder') {
     return <LeadFinder onNavigate={setCurrentView} />;

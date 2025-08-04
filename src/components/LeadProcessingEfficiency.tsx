@@ -205,7 +205,7 @@ export const LeadProcessingEfficiency: React.FC = () => {
               <tbody>
                 {analysis.campaignBreakdown.map((campaign, index) => {
                   const sendRate = calculateSendRate(campaign.leadsActuallySent, campaign.leadsProcessed);
-                  const conversionRate = calculateConversionRate(campaign.meetingsBooked, campaign.leadsActuallySent);
+                  const _conversionRate = calculateConversionRate(campaign.meetingsBooked, campaign.leadsActuallySent);
                   
                   return (
                     <tr 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, AlertCircle, CheckCircle, Clock, TrendingUp, TrendingDown, RefreshCw, Filter, Search } from 'lucide-react';
+import { Activity, AlertCircle, CheckCircle, Clock, TrendingUp, TrendingDown, Search } from 'lucide-react';
 import CampaignToggle from './CampaignToggle';
 import { useMonitoringData } from '../hooks/useMonitoringData';
 
@@ -369,7 +369,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredWorkflows.map((workflow, index) => (
+                {filteredWorkflows.map((workflow, _index) => (
                   <tr 
                     key={workflow.id} 
                     className="transition-colors"

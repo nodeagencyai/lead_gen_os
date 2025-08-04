@@ -61,7 +61,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
     if (data.length < 3) return [];
     
     const labelCount = 5; // Reduce to 5 labels for cleaner look
-    const step = Math.max(1, Math.floor(data.length / labelCount));
+    const _step = Math.max(1, Math.floor(data.length / labelCount));
     const labels = [];
     
     // Always show first date

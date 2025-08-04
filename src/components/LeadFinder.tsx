@@ -85,7 +85,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
         throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
       }
       
-      const result = await response.json();
+      const _result = await response.json();
       
       const successMessage = actionType === 'scrape' 
         ? `N8N ${mode === 'email' ? 'Apollo' : 'LinkedIn'} scraping workflow triggered successfully!`

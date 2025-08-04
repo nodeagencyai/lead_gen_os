@@ -5,32 +5,34 @@
 
 const isDevelopment = import.meta.env.DEV;
 
-export const logger = {
-  log: (...args: any[]) => {
+type LoggerMethod = (...args: unknown[]) => void;
+
+export const logger: Record<'log' | 'error' | 'warn' | 'info' | 'debug', LoggerMethod> = {
+  log: (...args: unknown[]) => {
     if (isDevelopment) {
       console.log(...args);
     }
   },
   
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     if (isDevelopment) {
       console.error(...args);
     }
   },
   
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (isDevelopment) {
       console.warn(...args);
     }
   },
   
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (isDevelopment) {
       console.info(...args);
     }
   },
   
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDevelopment) {
       console.debug(...args);
     }
