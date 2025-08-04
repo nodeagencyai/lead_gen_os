@@ -74,7 +74,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
             }}
           />
           <p className="text-lg font-light" style={{ color: '#aaaaaa' }}>
-            Enter your password to access the dashboard
+            Enter admin password to access the dashboard
           </p>
         </div>
 
@@ -106,7 +106,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                     color: '#ffffff',
                     fontSize: '16px'
                   }}
-                  placeholder="Enter password"
+                  placeholder="Enter admin password"
                   onFocus={(e) => {
                     e.target.style.borderColor = '#555555';
                     e.target.style.backgroundColor = '#1a1a1a';
