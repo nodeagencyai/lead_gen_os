@@ -23,10 +23,10 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
   // Get the correct webhook URL based on mode and action type
   const getWebhookUrl = () => {
     const webhooks = {
-      apollo_scraping: import.meta.env.VITE_N8N_APOLLO_WEBHOOK,
-      linkedin_scraping: import.meta.env.VITE_N8N_LINKEDIN_WEBHOOK,
-      email_processing: import.meta.env.VITE_N8N_EMAIL_WEBHOOK,
-      linkedin_processing: import.meta.env.VITE_N8N_LINKEDIN_OUTREACH_WEBHOOK
+      apollo_scraping: import.meta.env.VITE_N8N_APOLLO_SCRAPER_WEBHOOK,
+      linkedin_scraping: import.meta.env.VITE_N8N_LINKEDIN_SCRAPER_WEBHOOK,
+      email_processing: import.meta.env.VITE_N8N_EMAIL_PROCESSING_WEBHOOK,
+      linkedin_processing: import.meta.env.VITE_N8N_LINKEDIN_PROCESSING_WEBHOOK
     };
 
     if (actionType === 'scrape') {

@@ -1,9 +1,8 @@
-// api/webhooks/api-usage.js - Track API usage and costs
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_KEY
 );
 
 // OpenRouter model pricing (cost per 1k tokens)
@@ -37,44 +36,47 @@ export default async function handler(req, res) {
   const {
     api_service,
     model_name,
-    endpoint,
-    method = 'POST',
-    request_data,
-    response_status,
-    response_data,
     prompt_tokens,
     completion_tokens,
-    duration_ms,
-    execution_id,
-    lead_id,
     workflow_name,
-    node_name
+    lead_id,
+    node_name,
+    endpoint = '/chat/completions',
+    duration_ms,
+    response_status = 200
   } = req.body;
 
   // Validate required fields
   if (!api_service || !model_name) {
-    return res.status(400).json({ 
-      error: 'Missing required fields: api_service, model_name' 
+    return res.status(400).json({
+      error: 'Missing required fields: api_service, model_name'
+    });
+  }
+
+  // Validate numeric fields
+  const promptTokens = parseInt(prompt_tokens) || 0;
+  const completionTokens = parseInt(completion_tokens) || 0;
+  const totalTokens = promptTokens + completionTokens;
+
+  if (totalTokens === 0) {
+    return res.status(400).json({
+      error: 'Either prompt_tokens or completion_tokens must be provided and greater than 0'
     });
   }
 
   try {
     // Get pricing for the model
     const pricing = MODEL_PRICING[model_name] || MODEL_PRICING[`${api_service}/${model_name}`];
-    
-    // Calculate token counts if not provided
-    let calculatedPromptTokens = prompt_tokens;
-    let calculatedCompletionTokens = completion_tokens;
 
-    if (!prompt_tokens && request_data) {
-      // Rough estimation: ~4 characters per token
-      const promptText = extractTextFromRequest(request_data);
-      calculatedPromptTokens = Math.ceil(promptText.length / 4);
-    }
+    // Calculate costs
+    let promptCost = 0;
+    let completionCost = 0;
+    let totalCost = 0;
 
-    if (!completion_tokens && response_data) {
-      const completionText = extractTextFromResponse(response_data);
-      calculatedCompletionTokens = Math.ceil(completionText.length / 4);
+    if (pricing) {
+      promptCost = (promptTokens / 1000) * pricing.prompt;
+      completionCost = (completionTokens / 1000) * pricing.completion;
+      totalCost = promptCost + completionCost;
     }
 
     // Prepare usage record
@@ -82,21 +84,21 @@ export default async function handler(req, res) {
       api_service,
       model_name,
       endpoint,
-      method,
-      request_data: sanitizeData(request_data),
-      response_status: response_status || 200,
-      response_data: sanitizeData(response_data),
-      prompt_tokens: calculatedPromptTokens,
-      completion_tokens: calculatedCompletionTokens,
-      duration_ms,
-      execution_id,
-      lead_id,
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: totalTokens,
+      prompt_cost: promptCost,
+      completion_cost: completionCost,
+      total_cost: totalCost,
       workflow_name,
-      node_name,
+      lead_id: lead_id || null,
+      node_name: node_name || null,
+      duration_ms: duration_ms || null,
+      response_status: response_status,
       called_at: new Date()
     };
 
-    // Add pricing if available
+    // Add pricing metadata if available
     if (pricing) {
       usageRecord.cost_per_1k_prompt_tokens = pricing.prompt;
       usageRecord.cost_per_1k_completion_tokens = pricing.completion;
@@ -104,148 +106,86 @@ export default async function handler(req, res) {
 
     // Insert usage record
     const { data, error } = await supabase
-      .from('api_usage')
+      .from('api_usage_tracking')
       .insert(usageRecord)
       .select()
       .single();
 
     if (error) {
       console.error('Error inserting API usage record:', error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Failed to record API usage',
         details: error.message
       });
     }
 
-    // Calculate and return cost information
-    const totalTokens = (calculatedPromptTokens || 0) + (calculatedCompletionTokens || 0);
-    const estimatedCost = pricing ? 
-      ((calculatedPromptTokens || 0) / 1000 * pricing.prompt) + 
-      ((calculatedCompletionTokens || 0) / 1000 * pricing.completion) : 0;
+    console.log(`✅ Recorded API usage: ${model_name} - ${totalTokens} tokens - $${totalCost.toFixed(6)}`);
 
-    return res.status(200).json({
+    // Update monthly cost tracking
+    await updateMonthlyCosts(api_service, totalCost);
+
+    res.status(200).json({
       success: true,
       data: {
         id: data.id,
         api_service,
         model_name,
         tokens: {
-          prompt: calculatedPromptTokens,
-          completion: calculatedCompletionTokens,
+          prompt: promptTokens,
+          completion: completionTokens,
           total: totalTokens
         },
         cost: {
-          estimated: estimatedCost,
-          currency: 'USD',
-          per_1k_prompt: pricing?.prompt,
-          per_1k_completion: pricing?.completion
+          prompt: promptCost,
+          completion: completionCost,
+          total: totalCost,
+          currency: 'USD'
         },
-        duration_ms,
+        pricing: pricing ? {
+          prompt_per_1k: pricing.prompt,
+          completion_per_1k: pricing.completion
+        } : null,
         recorded_at: data.called_at
       }
     });
 
-  } catch (error) {
-    console.error('Error processing API usage:', error);
-    return res.status(500).json({
-      error: 'Internal server error',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+  } catch (e) {
+    console.error('Error processing API usage:', e);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
 
-function extractTextFromRequest(requestData) {
-  if (!requestData) return '';
-  
+// Update monthly cost aggregates
+async function updateMonthlyCosts(apiService, cost) {
   try {
-    const data = typeof requestData === 'string' ? JSON.parse(requestData) : requestData;
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
     
-    // Common patterns for different APIs
-    if (data.messages) {
-      return data.messages.map(m => m.content || '').join(' ');
+    const { error } = await supabase
+      .from('monthly_api_costs')
+      .upsert({
+        api_service: apiService,
+        month: currentMonth,
+        total_cost: cost,
+        updated_at: new Date()
+      }, {
+        onConflict: 'api_service,month',
+        ignoreDuplicates: false
+      });
+
+    if (error) {
+      console.error('Error updating monthly costs:', error);
     }
-    if (data.prompt) {
-      return data.prompt;
-    }
-    if (data.input) {
-      return data.input;
-    }
-    if (data.query) {
-      return data.query;
-    }
-    
-    return JSON.stringify(data);
   } catch (e) {
-    return String(requestData);
+    console.error('Error in updateMonthlyCosts:', e);
   }
 }
 
-function extractTextFromResponse(responseData) {
-  if (!responseData) return '';
-  
-  try {
-    const data = typeof responseData === 'string' ? JSON.parse(responseData) : responseData;
-    
-    // Common patterns for different APIs
-    if (data.choices && data.choices[0]?.message?.content) {
-      return data.choices[0].message.content;
-    }
-    if (data.content) {
-      return Array.isArray(data.content) ? 
-        data.content.map(c => c.text || '').join(' ') : 
-        data.content;
-    }
-    if (data.text) {
-      return data.text;
-    }
-    if (data.output) {
-      return data.output;
-    }
-    if (data.response) {
-      return data.response;
-    }
-    
-    return JSON.stringify(data);
-  } catch (e) {
-    return String(responseData);
-  }
+// Helper function to estimate tokens from text (rough approximation)
+function estimateTokens(text) {
+  if (!text) return 0;
+  // Rough estimation: ~4 characters per token for English text
+  return Math.ceil(text.length / 4);
 }
 
-function sanitizeData(data) {
-  if (!data) return null;
-  
-  try {
-    const sanitized = typeof data === 'string' ? JSON.parse(data) : { ...data };
-    
-    // Remove potentially sensitive information
-    const sensitiveKeys = [
-      'api_key', 'apikey', 'token', 'password', 'secret', 
-      'authorization', 'auth', 'key', 'credentials'
-    ];
-    
-    function removeSensitiveData(obj) {
-      if (typeof obj !== 'object' || obj === null) return obj;
-      
-      if (Array.isArray(obj)) {
-        return obj.map(removeSensitiveData);
-      }
-      
-      const cleaned = {};
-      for (const [key, value] of Object.entries(obj)) {
-        const keyLower = key.toLowerCase();
-        if (sensitiveKeys.some(sk => keyLower.includes(sk))) {
-          cleaned[key] = '[REDACTED]';
-        } else {
-          cleaned[key] = removeSensitiveData(value);
-        }
-      }
-      return cleaned;
-    }
-    
-    return removeSensitiveData(sanitized);
-  } catch (e) {
-    // If parsing fails, return truncated string
-    const str = String(data);
-    return str.length > 1000 ? str.substring(0, 1000) + '...' : str;
-  }
-}
+// Export helper for external use
+export { estimateTokens };

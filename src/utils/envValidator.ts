@@ -12,10 +12,10 @@ export interface RequiredEnvVars {
   VITE_INSTANTLY_API_KEY: string;
   VITE_HEYREACH_API_KEY: string;
   VITE_N8N_AUTH_TOKEN: string;
-  VITE_N8N_APOLLO_WEBHOOK: string;
-  VITE_N8N_LINKEDIN_WEBHOOK: string;
-  VITE_N8N_EMAIL_WEBHOOK: string;
-  VITE_N8N_LINKEDIN_OUTREACH_WEBHOOK: string;
+  VITE_N8N_APOLLO_SCRAPER_WEBHOOK: string;
+  VITE_N8N_LINKEDIN_SCRAPER_WEBHOOK: string;
+  VITE_N8N_EMAIL_PROCESSING_WEBHOOK: string;
+  VITE_N8N_LINKEDIN_PROCESSING_WEBHOOK: string;
 }
 
 export interface ValidationResult {
@@ -35,10 +35,10 @@ export function validateEnvironmentVariables(): ValidationResult {
     'VITE_INSTANTLY_API_KEY',
     'VITE_HEYREACH_API_KEY',
     'VITE_N8N_AUTH_TOKEN',
-    'VITE_N8N_APOLLO_WEBHOOK',
-    'VITE_N8N_LINKEDIN_WEBHOOK',
-    'VITE_N8N_EMAIL_WEBHOOK',
-    'VITE_N8N_LINKEDIN_OUTREACH_WEBHOOK'
+    'VITE_N8N_APOLLO_SCRAPER_WEBHOOK',
+    'VITE_N8N_LINKEDIN_SCRAPER_WEBHOOK',
+    'VITE_N8N_EMAIL_PROCESSING_WEBHOOK',
+    'VITE_N8N_LINKEDIN_PROCESSING_WEBHOOK'
   ];
 
   const missing: string[] = [];
@@ -60,10 +60,10 @@ export function validateEnvironmentVariables(): ValidationResult {
 
   // Validate webhook URLs
   const webhookKeys = [
-    'VITE_N8N_APOLLO_WEBHOOK',
-    'VITE_N8N_LINKEDIN_WEBHOOK',
-    'VITE_N8N_EMAIL_WEBHOOK',
-    'VITE_N8N_LINKEDIN_OUTREACH_WEBHOOK'
+    'VITE_N8N_APOLLO_SCRAPER_WEBHOOK',
+    'VITE_N8N_LINKEDIN_SCRAPER_WEBHOOK',
+    'VITE_N8N_EMAIL_PROCESSING_WEBHOOK',
+    'VITE_N8N_LINKEDIN_PROCESSING_WEBHOOK'
   ];
 
   for (const key of webhookKeys) {
