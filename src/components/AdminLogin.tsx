@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 interface AdminLoginProps {
   onAuthenticated: () => void;
@@ -8,254 +8,194 @@ interface AdminLoginProps {
 const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Keep the same password as before
   const ADMIN_PASSWORD = 'Kankermissfish69!';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
+    setLoading(true);
+    setError(null);
 
-    // Simulate authentication delay for security
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (password === ADMIN_PASSWORD) {
-      // Store authentication in session storage
-      sessionStorage.setItem('adminAuthenticated', 'true');
-      sessionStorage.setItem('adminLoginTime', Date.now().toString());
-      console.log('Admin login successful');
-      onAuthenticated();
-    } else {
-      setError('Invalid password. Access denied.');
-      setPassword('');
-    }
-    
-    setIsLoading(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSubmit(e as any);
-    }
+    // Simulate a brief loading delay for better UX
+    setTimeout(() => {
+      if (password === ADMIN_PASSWORD) {
+        // Store auth state in sessionStorage (keeping consistent with old implementation)
+        sessionStorage.setItem('adminAuthenticated', 'true');
+        sessionStorage.setItem('adminLoginTime', Date.now().toString());
+        console.log('Admin login successful');
+        onAuthenticated();
+      } else {
+        setError('Incorrect password. Please try again.');
+      }
+      setLoading(false);
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center relative overflow-hidden">
-      {/* Premium Background Effects */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-gray-600/15 to-gray-700/15 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-gray-700/15 to-gray-800/15 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-gray-500/10 to-gray-600/10 rounded-full blur-2xl"></div>
+    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div 
+          className="absolute -top-40 -right-40 w-80 h-80 rounded-full opacity-10"
+          style={{ 
+            background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)',
+            filter: 'blur(40px)'
+          }}
+        />
+        <div 
+          className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full opacity-10"
+          style={{ 
+            background: 'radial-gradient(circle, #ffffff 0%, transparent 70%)',
+            filter: 'blur(40px)'
+          }}
+        />
       </div>
       
-      {/* Subtle Grid Pattern */}
-      <div 
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.8) 1px, transparent 0)`,
-          backgroundSize: '24px 24px'
-        }}
-      ></div>
-
-      <div className="w-full max-w-lg mx-auto px-8 relative z-10">
-        {/* Premium Logo and Title */}
+      <div className="max-w-md w-full">
+        {/* Logo */}
         <div className="text-center mb-12">
-          {/* Elegant Logo */}
-          <div className="flex justify-center mb-8">
-            <div className="relative">
-              <div 
-                className="w-20 h-20 rounded-2xl flex items-center justify-center backdrop-blur-xl border-2 shadow-2xl overflow-hidden"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
-                  borderColor: 'rgba(255,255,255,0.2)',
-                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
-                }}
-              >
-                <img 
-                  src="/Node Logo-White.png" 
-                  alt="Node AI Logo" 
-                  className="w-12 h-12 object-contain"
-                  style={{ filter: 'brightness(1.1) contrast(1.1)' }}
-                />
-              </div>
-              {/* Glow effect */}
-              <div 
-                className="absolute inset-0 w-20 h-20 rounded-2xl blur-xl opacity-30"
-                style={{ background: 'linear-gradient(135deg, #666666, #888888)' }}
-              ></div>
-            </div>
-          </div>
-          
-          <h1 className="text-4xl font-light mb-3 tracking-wide" style={{ 
-            color: '#ffffff',
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-          }}>
-            Admin Access
-          </h1>
-          <div className="w-16 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent mx-auto mb-4"></div>
-          <p className="text-lg font-light tracking-wide" style={{ color: '#a1a1aa' }}>
-            Enter the admin password to access
-          </p>
-          <p className="text-xl font-medium bg-gradient-to-r from-gray-300 to-gray-400 bg-clip-text text-transparent">
+          <img 
+            src="/Node Logo-White.png" 
+            alt="Node AI Logo" 
+            className="h-16 w-auto mx-auto mb-8 opacity-90"
+          />
+          <h1 className="text-4xl font-bold text-white mb-4 tracking-tight">
             LeadGenOS
+          </h1>
+          <div 
+            className="w-16 h-0.5 mx-auto mb-4 rounded-full"
+            style={{ 
+              background: 'linear-gradient(90deg, transparent 0%, #333333 20%, #666666 50%, #333333 80%, transparent 100%)',
+              boxShadow: '0 0 8px rgba(102, 102, 102, 0.3)',
+              opacity: '0.6'
+            }}
+          />
+          <p className="text-lg font-light" style={{ color: '#aaaaaa' }}>
+            Enter your password to access the dashboard
           </p>
         </div>
 
-        {/* Premium Login Form */}
+        {/* Auth Form */}
         <div 
-          className="rounded-3xl p-10 backdrop-blur-xl border shadow-2xl relative"
+          className="rounded-xl p-6 shadow-2xl"
           style={{ 
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-            borderColor: 'rgba(255,255,255,0.1)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+            backgroundColor: '#1a1a1a', 
+            border: '1px solid #333333',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
           }}
         >
-          {/* Inner glow effect */}
-          <div 
-            className="absolute inset-0 rounded-3xl opacity-10"
-            style={{
-              background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.1), rgba(160, 160, 160, 0.1))',
-              filter: 'blur(1px)'
-            }}
-          ></div>
-          
-          <div className="relative z-10">
-            {/* Premium Error Message */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Password Input */}
+            <div className="relative">
+                <Lock 
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+                  style={{ color: '#888888' }}
+                />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full pl-10 pr-10 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
+                  style={{
+                    backgroundColor: '#0f0f0f',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    fontSize: '16px'
+                  }}
+                  placeholder="Enter password"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#555555';
+                    e.target.style.backgroundColor = '#1a1a1a';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#333333';
+                    e.target.style.backgroundColor = '#0f0f0f';
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
+                  )}
+                </button>
+            </div>
+
+            {/* Error Message */}
             {error && (
               <div 
-                className="mb-8 p-5 rounded-2xl flex items-center space-x-3 backdrop-blur-sm border"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.1), rgba(160, 160, 160, 0.05))',
-                  borderColor: 'rgba(128, 128, 128, 0.3)',
-                  color: '#cccccc',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+                className="p-4 rounded-xl text-sm font-medium"
+                style={{ 
+                  backgroundColor: '#1a1a1a', 
+                  border: '1px solid #ef4444', 
+                  color: '#ef4444' 
                 }}
               >
-                <AlertCircle className="w-5 h-5 text-gray-400" />
-                <span className="font-medium">{error}</span>
+                {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              {/* Premium Password Input */}
-              <div className="mb-8">
-                <div className="relative group">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Enter admin password"
-                    className="w-full px-6 py-4 pr-14 rounded-2xl backdrop-blur-sm border transition-all duration-300 focus:outline-none text-lg font-medium placeholder:text-gray-500"
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading || !password}
+              className="w-full py-3 px-10 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl"
+              style={{
+                backgroundColor: '#333333',
+                color: '#ffffff',
+                border: '1px solid #555555'
+              }}
+              onMouseEnter={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.backgroundColor = '#444444';
+                  e.currentTarget.style.borderColor = '#666666';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!e.currentTarget.disabled) {
+                  e.currentTarget.style.backgroundColor = '#333333';
+                  e.currentTarget.style.borderColor = '#555555';
+                  e.currentTarget.style.transform = 'translateY(0px)';
+                }
+              }}
+            >
+              {loading ? (
+                <>
+                  <div 
+                    className="animate-spin rounded-full border-2 border-t-transparent w-5 h-5"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      color: '#ffffff',
-                      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3)'
+                      borderColor: '#ffffff',
+                      borderTopColor: 'transparent'
                     }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(128, 128, 128, 0.5)';
-                      e.target.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04))';
-                      e.target.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(128, 128, 128, 0.2), 0 8px 32px rgba(128, 128, 128, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(255,255,255,0.1)';
-                      e.target.style.background = 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))';
-                      e.target.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.3)';
-                    }}
-                    required
-                    disabled={isLoading}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                    disabled={isLoading}
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Premium Login Button */}
-              <button
-                type="submit"
-                disabled={!password.trim() || isLoading}
-                className="w-full px-8 py-5 rounded-2xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 relative group overflow-hidden"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.3), rgba(160, 160, 160, 0.3))',
-                  border: '1px solid rgba(128, 128, 128, 0.5)',
-                  color: '#ffffff',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-                  fontSize: '1.1rem',
-                  letterSpacing: '0.025em'
-                }}
-                onMouseEnter={(e) => {
-                  if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(128, 128, 128, 0.4), rgba(160, 160, 160, 0.4))';
-                    e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.7)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!e.currentTarget.disabled) {
-                    e.currentTarget.style.background = 'linear-gradient(135deg, rgba(128, 128, 128, 0.3), rgba(160, 160, 160, 0.3))';
-                    e.currentTarget.style.borderColor = 'rgba(128, 128, 128, 0.5)';
-                    e.currentTarget.style.transform = 'translateY(0px)';
-                    e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)';
-                  }
-                }}
-              >
-                {/* Button background glow effect */}
-                <div 
-                  className="absolute inset-0 rounded-2xl opacity-30 group-hover:opacity-50 transition-opacity duration-300"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(128, 128, 128, 0.2), rgba(160, 160, 160, 0.2))',
-                    filter: 'blur(1px)'
-                  }}
-                ></div>
-                
-                <div className="relative z-10 flex items-center space-x-3">
-                  {isLoading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Authenticating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Access Dashboard</span>
-                      <div className="w-5 h-5 flex items-center justify-center">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="group-hover:translate-x-1 transition-transform duration-300">
-                          <path d="M1 8h14m-6-6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </button>
-            </form>
-
-            {/* Premium Security Notice */}
-            <div className="mt-8 text-center">
-              <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#888888' }}>
-                <div className="w-3 h-3 rounded-full bg-gray-400/60 shadow-sm shadow-gray-400/30"></div>
-                <span className="font-medium">Secure Admin Access</span>
-                <div className="w-px h-4 bg-gray-600"></div>
-                <span>Session Auto-Expires</span>
-              </div>
-            </div>
-          </div>
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Access Dashboard</span>
+                  <ArrowRight size={20} />
+                </>
+              )}
+            </button>
+          </form>
         </div>
 
-        {/* Premium Footer */}
-        <div className="text-center mt-12">
-          <div className="flex items-center justify-center space-x-2 text-sm" style={{ color: '#666666' }}>
-            <span>Powered by</span>
-            <span className="font-semibold text-gray-300">Node AI</span>
+        {/* Footer */}
+        <div className="text-center text-sm mt-12" style={{ color: '#555555' }}>
+          <div className="flex items-center justify-center space-x-2 mb-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#10b981' }} />
+            <span>Secure Connection</span>
           </div>
+          <div>Powered by Node AI</div>
         </div>
       </div>
     </div>

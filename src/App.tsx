@@ -501,7 +501,7 @@ function App() {
               }}
             >
               <div className="text-sm mb-2" style={{ color: '#cccccc' }}>
-                {mode === 'email' ? 'Cost per Email' : 'Cost per DM'}
+                {mode === 'email' ? 'Cost per Email' : 'Cost per Connection & DM'}
               </div>
               <div className="text-2xl font-bold mb-2 text-white">
                 {costLoading ? '...' : mode === 'email' 
