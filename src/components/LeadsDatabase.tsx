@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService } from '../services/leadsService';
-// import { SyncService, type SyncStatus } from '../services/syncService'; // No longer needed - using instantly_synced column
+// Sync status type
+type SyncStatus = 'synced' | 'not-synced' | 'pending' | 'unknown';
 
 interface DisplayLead {
   id: number;
@@ -344,6 +345,22 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     }
   }, [sendingStatus]);
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showExport && !target.closest('.export-dropdown')) {
+        setShowExport(false);
+      }
+      if (showFilters && !target.closest('.filters-panel') && !target.closest('.filter-button')) {
+        setShowFilters(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showExport, showFilters]);
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
@@ -467,7 +484,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             <div className="relative">
               <button 
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                className="filter-button flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
                 style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
               >
                 <Filter size={16} />
@@ -476,7 +493,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
               </button>
             </div>
 
-            <div className="relative">
+            <div className="relative export-dropdown">
               <button 
                 onClick={() => setShowExport(!showExport)}
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
@@ -486,13 +503,81 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                 <span>Export</span>
                 <ChevronDown size={16} />
               </button>
+              
+              {/* Export Dropdown */}
+              {showExport && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-xl z-10" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+                  <div className="py-2">
+                    <button
+                      onClick={() => {
+                        const csvContent = [
+                          ['Name', 'Title', 'Company', 'Email', 'Niche'].join(','),
+                          ...filteredLeads.map(lead => [
+                            lead.full_name || '',
+                            lead.title || '',
+                            lead.company || '',
+                            lead.email || '',
+                            lead.niche || ''
+                          ].map(field => `"${field}"`).join(','))
+                        ].join('\n');
+                        
+                        const blob = new Blob([csvContent], { type: 'text/csv' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${mode}-leads-${new Date().toISOString().split('T')[0]}.csv`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        setShowExport(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#333333';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Export as CSV
+                    </button>
+                    <button
+                      onClick={() => {
+                        const jsonContent = JSON.stringify(filteredLeads, null, 2);
+                        const blob = new Blob([jsonContent], { type: 'application/json' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${mode}-leads-${new Date().toISOString().split('T')[0]}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        setShowExport(false);
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80"
+                      style={{ color: '#ffffff' }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#333333';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      Export as JSON
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Enhanced Filters Panel */}
         {showFilters && (
-          <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+          <div className="filters-panel mb-6 p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Niche Filter */}
               <div>
@@ -662,12 +747,6 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   <X size={14} />
                   <span>Not Synced</span>
                 </button>
-                {syncLoading && (
-                  <div className="flex items-center space-x-2 px-4 py-2">
-                    <RefreshCw size={14} className="animate-spin" style={{ color: '#888888' }} />
-                    <span className="text-sm" style={{ color: '#888888' }}>Checking sync status...</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
