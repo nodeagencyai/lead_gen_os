@@ -14,23 +14,40 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
   // Keep the same password as before
   const ADMIN_PASSWORD = 'Kankermissfish69!';
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with password:', password); // Debug log
+    console.log('=== Authentication Debug ===');
+    console.log('Form submitted');
+    console.log('Password entered:', password);
+    console.log('Expected password:', ADMIN_PASSWORD);
+    console.log('Passwords match:', password === ADMIN_PASSWORD);
+    
+    if (!password) {
+      setError('Please enter a password.');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
     // Simulate a brief loading delay for better UX
     setTimeout(() => {
-      if (password === ADMIN_PASSWORD) {
-        // Store auth state in sessionStorage (keeping consistent with old implementation)
-        sessionStorage.setItem('adminAuthenticated', 'true');
-        sessionStorage.setItem('adminLoginTime', Date.now().toString());
-        console.log('Admin login successful');
-        onAuthenticated();
-      } else {
-        console.log('Password mismatch. Expected:', ADMIN_PASSWORD, 'Got:', password); // Debug log
-        setError('Incorrect password. Please try again.');
+      try {
+        if (password === ADMIN_PASSWORD) {
+          // Store auth state in sessionStorage
+          sessionStorage.setItem('adminAuthenticated', 'true');
+          sessionStorage.setItem('adminLoginTime', Date.now().toString());
+          console.log('✅ Admin login successful');
+          console.log('Calling onAuthenticated callback...');
+          onAuthenticated();
+        } else {
+          console.log('❌ Password incorrect');
+          setError('Incorrect password. Please try again.');
+          setPassword('');
+        }
+      } catch (error) {
+        console.error('Authentication error:', error);
+        setError('Authentication failed. Please try again.');
       }
       setLoading(false);
     }, 800);
@@ -99,9 +116,13 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) setError(null);
+                  }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === 'Enter' && !loading) {
+                      e.preventDefault();
                       handleSubmit(e);
                     }
                   }}
@@ -154,8 +175,12 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onAuthenticated }) => {
 
             {/* Submit Button */}
             <button
-              type="submit"
+              type="button"
               disabled={loading || !password}
+              onClick={(e) => {
+                console.log('Button clicked!');
+                handleSubmit(e);
+              }}
               className="w-full py-3 px-10 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3 shadow-lg hover:shadow-xl"
               style={{
                 backgroundColor: '#333333',
