@@ -198,8 +198,15 @@ export const DebugPanel: React.FC = () => {
   
   try {
     return (
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}>
-        <div className="rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+      <div className="fixed inset-0 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 9999 }}>
+        <div 
+          className="rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" 
+          style={{ 
+            backgroundColor: '#1a1a1a', 
+            border: '3px solid #00ff00',  // Bright green border for visibility testing
+            minHeight: '400px'
+          }}
+        >
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>🔧 Debug Panel</h2>
