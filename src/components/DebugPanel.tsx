@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, AlertCircle, Clock, Zap } from 'lucide-react';
+import { X, Circle, AlertTriangle, Clock, Activity } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
 
 interface DebugInfo {
@@ -193,99 +193,99 @@ export const DebugPanel: React.FC = () => {
   
   try {
     return (
-      <div className="fixed inset-0 flex items-center justify-center p-6" style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 50 }}>
+      <div className="fixed inset-0 flex items-center justify-center p-6" style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 50 }}>
         <div 
-          className="rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-auto" 
+          className="rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto" 
           style={{ 
-            backgroundColor: '#1a1a1a', 
-            border: '1px solid #333333'
+            backgroundColor: '#0f0f0f', 
+            border: '1px solid #222222'
           }}
         >
-          <div className="p-8">
-            <div className="flex justify-between items-center mb-8">
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
               <div className="flex items-center space-x-3">
-                <Zap size={24} style={{ color: '#ffffff' }} />
-                <h2 className="text-2xl font-semibold" style={{ color: '#ffffff' }}>System Diagnostics</h2>
+                <Activity size={20} style={{ color: '#cccccc' }} />
+                <h2 className="text-xl font-medium" style={{ color: '#ffffff' }}>System Diagnostics</h2>
               </div>
               <button
                 onClick={() => setIsVisible(false)}
-                className="p-2 rounded-lg transition-all duration-200 hover:opacity-80"
-                style={{ backgroundColor: '#333333', border: '1px solid #555555' }}
+                className="p-1.5 rounded transition-all duration-200 hover:opacity-70"
+                style={{ backgroundColor: '#222222' }}
               >
-                <X size={20} style={{ color: '#ffffff' }} />
+                <X size={16} style={{ color: '#cccccc' }} />
               </button>
             </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* API Tests Section */}
             <div>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-medium" style={{ color: '#ffffff' }}>API Connectivity Tests</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-medium" style={{ color: '#cccccc' }}>API Connectivity</h3>
                 <button
                   onClick={runTests}
                   disabled={isLoading}
-                  className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
-                  style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+                  className="flex items-center space-x-2 px-3 py-1.5 rounded text-sm font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
+                  style={{ backgroundColor: '#222222', border: '1px solid #333333', color: '#cccccc' }}
                 >
                   {isLoading ? (
                     <>
-                      <Clock size={16} className="animate-spin" />
+                      <Clock size={14} className="animate-spin" />
                       <span>Testing...</span>
                     </>
                   ) : (
                     <>
-                      <Zap size={16} />
+                      <Activity size={14} />
                       <span>Run Tests</span>
                     </>
                   )}
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {testResults.length === 0 ? (
-                  <div className="p-4 rounded-lg text-center" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <Clock size={18} style={{ color: '#888888' }} />
-                      <span style={{ color: '#cccccc' }}>Ready to run diagnostics</span>
+                  <div className="p-3 rounded text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #222222' }}>
+                    <div className="flex items-center justify-center space-x-2 mb-1">
+                      <Clock size={16} style={{ color: '#666666' }} />
+                      <span className="text-sm" style={{ color: '#888888' }}>Ready to run diagnostics</span>
                     </div>
-                    <p className="text-sm" style={{ color: '#888888' }}>
-                      Click "Run Tests" to check API connectivity and system status
+                    <p className="text-xs" style={{ color: '#666666' }}>
+                      Click "Run Tests" to check connectivity
                     </p>
                   </div>
                 ) : (
                   testResults.map((test, index) => (
                     <div
                       key={index}
-                      className="p-4 rounded-lg"
+                      className="p-3 rounded"
                       style={{
-                        backgroundColor: test.status === 'success' ? '#0f1a0f' : test.status === 'error' ? '#1a0f0f' : '#0f0f0f',
-                        border: `1px solid ${test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#333333'}`
+                        backgroundColor: test.status === 'success' ? '#1a1a1a' : test.status === 'error' ? '#1a1a1a' : '#1a1a1a',
+                        border: `1px solid ${test.status === 'success' ? '#444444' : test.status === 'error' ? '#333333' : '#222222'}`
                       }}
                     >
                       <div className="flex justify-between items-start">
-                        <div className="flex items-start space-x-3">
+                        <div className="flex items-start space-x-2">
                           <div className="flex-shrink-0 mt-0.5">
                             {test.status === 'success' ? (
-                              <CheckCircle size={18} style={{ color: '#10b981' }} />
+                              <Circle size={14} style={{ color: '#888888' }} />
                             ) : test.status === 'error' ? (
-                              <AlertCircle size={18} style={{ color: '#ef4444' }} />
+                              <AlertTriangle size={14} style={{ color: '#999999' }} />
                             ) : (
-                              <Clock size={18} style={{ color: '#888888' }} />
+                              <Clock size={14} style={{ color: '#666666' }} />
                             )}
                           </div>
                           <div>
-                            <div className="font-medium mb-1" style={{ 
-                              color: test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#ffffff' 
+                            <div className="font-medium text-sm mb-1" style={{ 
+                              color: test.status === 'success' ? '#cccccc' : test.status === 'error' ? '#cccccc' : '#888888' 
                             }}>
                               {test.name}
                             </div>
-                            <div className="text-sm" style={{ color: '#cccccc' }}>{test.message}</div>
+                            <div className="text-xs" style={{ color: '#888888' }}>{test.message}</div>
                           </div>
                         </div>
                         {test.duration && (
-                          <div className="text-xs px-2 py-1 rounded" style={{ 
-                            color: '#888888', 
-                            backgroundColor: '#333333' 
+                          <div className="text-xs px-1.5 py-0.5 rounded" style={{ 
+                            color: '#666666', 
+                            backgroundColor: '#222222' 
                           }}>
                             {test.duration}ms
                           </div>
@@ -300,41 +300,41 @@ export const DebugPanel: React.FC = () => {
             {/* Environment Information */}
             {debugInfo && (
               <div>
-                <h3 className="text-lg font-medium mb-6" style={{ color: '#ffffff' }}>System Environment</h3>
-                <div className="p-4 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                <h3 className="text-base font-medium mb-4" style={{ color: '#cccccc' }}>System Environment</h3>
+                <div className="p-4 rounded-lg" style={{ backgroundColor: '#1a1a1a', border: '1px solid #222222' }}>
                   <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div style={{ color: '#cccccc' }}>
-                      <strong style={{ color: '#ffffff' }}>Environment:</strong> {debugInfo.environment}
+                    <div style={{ color: '#888888' }}>
+                      <strong style={{ color: '#cccccc' }}>Environment:</strong> {debugInfo.environment}
                     </div>
-                    <div style={{ color: '#cccccc' }}>
-                      <strong style={{ color: '#ffffff' }}>Vercel Env:</strong> {debugInfo.vercel_env}
+                    <div style={{ color: '#888888' }}>
+                      <strong style={{ color: '#cccccc' }}>Vercel Env:</strong> {debugInfo.vercel_env}
                     </div>
-                    <div style={{ color: '#cccccc' }}>
-                      <strong style={{ color: '#ffffff' }}>Timestamp:</strong> {new Date(debugInfo.timestamp).toLocaleString()}
+                    <div style={{ color: '#888888' }}>
+                      <strong style={{ color: '#cccccc' }}>Timestamp:</strong> {new Date(debugInfo.timestamp).toLocaleString()}
                     </div>
-                    <div style={{ color: '#cccccc' }}>
-                      <strong style={{ color: '#ffffff' }}>URL:</strong> {debugInfo.vercel_url}
+                    <div style={{ color: '#888888' }}>
+                      <strong style={{ color: '#cccccc' }}>URL:</strong> {debugInfo.vercel_url}
                     </div>
                   </div>
 
                   <div className="mb-4">
-                    <strong style={{ color: '#ffffff' }}>API Keys Status:</strong>
+                    <strong style={{ color: '#cccccc' }}>API Keys Status:</strong>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {Object.entries(debugInfo.api_keys).map(([key, status]) => (
-                        <div key={key} className="text-sm" style={{ color: '#cccccc' }}>
-                          <span className="font-medium" style={{ color: '#ffffff' }}>{key}:</span> {status}
+                        <div key={key} className="text-sm" style={{ color: '#888888' }}>
+                          <span className="font-medium" style={{ color: '#cccccc' }}>{key}:</span> {status}
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* SECURITY: Environment variables removed for production safety */}
-                  <div className="p-4 rounded-lg text-center" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-                    <div className="flex items-center justify-center space-x-2 mb-2">
-                      <CheckCircle size={18} style={{ color: '#10b981' }} />
-                      <span className="font-medium" style={{ color: '#ffffff' }}>Environment Secured</span>
+                  <div className="p-3 rounded text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #222222' }}>
+                    <div className="flex items-center justify-center space-x-2 mb-1">
+                      <Circle size={14} style={{ color: '#888888' }} />
+                      <span className="font-medium text-sm" style={{ color: '#cccccc' }}>Environment Secured</span>
                     </div>
-                    <p className="text-xs" style={{ color: '#888888' }}>
+                    <p className="text-xs" style={{ color: '#666666' }}>
                       Sensitive environment variables are protected and not displayed for security
                     </p>
                   </div>
