@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { X, CheckCircle, AlertCircle, Clock, Zap } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
 
 interface DebugInfo {
@@ -198,70 +199,102 @@ export const DebugPanel: React.FC = () => {
   
   try {
     return (
-      <div className="fixed inset-0 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)', zIndex: 9999 }}>
+      <div className="fixed inset-0 flex items-center justify-center p-6" style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', zIndex: 50 }}>
         <div 
-          className="rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" 
+          className="rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-auto" 
           style={{ 
             backgroundColor: '#1a1a1a', 
-            border: '3px solid #00ff00',  // Bright green border for visibility testing
-            minHeight: '400px'
+            border: '1px solid #333333'
           }}
         >
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>🔧 Debug Panel</h2>
-            <button
-              onClick={() => setIsVisible(false)}
-              className="text-xl transition-colors hover:opacity-80"
-              style={{ color: '#888888' }}
-            >
-              ✕
-            </button>
-          </div>
+          <div className="p-8">
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center space-x-3">
+                <Zap size={24} style={{ color: '#ffffff' }} />
+                <h2 className="text-2xl font-semibold" style={{ color: '#ffffff' }}>System Diagnostics</h2>
+              </div>
+              <button
+                onClick={() => setIsVisible(false)}
+                className="p-2 rounded-lg transition-all duration-200 hover:opacity-80"
+                style={{ backgroundColor: '#333333', border: '1px solid #555555' }}
+              >
+                <X size={20} style={{ color: '#ffffff' }} />
+              </button>
+            </div>
 
-          <div className="space-y-6">
-            {/* Test Results */}
+          <div className="space-y-8">
+            {/* API Tests Section */}
             <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>API Tests</h3>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-medium" style={{ color: '#ffffff' }}>API Connectivity Tests</h3>
                 <button
                   onClick={runTests}
                   disabled={isLoading}
-                  className="px-4 py-2 rounded transition-colors hover:opacity-80 disabled:opacity-50"
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
                   style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
                 >
-                  {isLoading ? '🔄 Testing...' : '🧪 Run Tests'}
+                  {isLoading ? (
+                    <>
+                      <Clock size={16} className="animate-spin" />
+                      <span>Testing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={16} />
+                      <span>Run Tests</span>
+                    </>
+                  )}
                 </button>
               </div>
 
-              <div className="grid gap-3">
+              <div className="space-y-3">
                 {testResults.length === 0 ? (
-                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
-                    <div className="text-center" style={{ color: '#cccccc' }}>
-                      No tests have been run yet. Click the "🧪 Run Tests" button to start API diagnostics.
+                  <div className="p-4 rounded-lg text-center" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <Clock size={18} style={{ color: '#888888' }} />
+                      <span style={{ color: '#cccccc' }}>Ready to run diagnostics</span>
                     </div>
+                    <p className="text-sm" style={{ color: '#888888' }}>
+                      Click "Run Tests" to check API connectivity and system status
+                    </p>
                   </div>
                 ) : (
                   testResults.map((test, index) => (
                     <div
                       key={index}
-                      className="p-3 rounded-lg"
+                      className="p-4 rounded-lg"
                       style={{
                         backgroundColor: test.status === 'success' ? '#0f1a0f' : test.status === 'error' ? '#1a0f0f' : '#0f0f0f',
                         border: `1px solid ${test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#333333'}`
                       }}
                     >
                       <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium" style={{ 
-                            color: test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#ffffff' 
-                          }}>
-                            {test.status === 'success' ? '✅' : test.status === 'error' ? '❌' : '⏳'} {test.name}
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0 mt-0.5">
+                            {test.status === 'success' ? (
+                              <CheckCircle size={18} style={{ color: '#10b981' }} />
+                            ) : test.status === 'error' ? (
+                              <AlertCircle size={18} style={{ color: '#ef4444' }} />
+                            ) : (
+                              <Clock size={18} style={{ color: '#888888' }} />
+                            )}
                           </div>
-                          <div className="text-sm mt-1" style={{ color: '#cccccc' }}>{test.message}</div>
+                          <div>
+                            <div className="font-medium mb-1" style={{ 
+                              color: test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#ffffff' 
+                            }}>
+                              {test.name}
+                            </div>
+                            <div className="text-sm" style={{ color: '#cccccc' }}>{test.message}</div>
+                          </div>
                         </div>
                         {test.duration && (
-                          <div className="text-xs" style={{ color: '#888888' }}>{test.duration}ms</div>
+                          <div className="text-xs px-2 py-1 rounded" style={{ 
+                            color: '#888888', 
+                            backgroundColor: '#333333' 
+                          }}>
+                            {test.duration}ms
+                          </div>
                         )}
                       </div>
                     </div>
@@ -270,10 +303,10 @@ export const DebugPanel: React.FC = () => {
               </div>
             </div>
 
-            {/* Environment Info */}
+            {/* Environment Information */}
             {debugInfo && (
               <div>
-                <h3 className="text-lg font-semibold mb-4" style={{ color: '#ffffff' }}>Environment Information</h3>
+                <h3 className="text-lg font-medium mb-6" style={{ color: '#ffffff' }}>System Environment</h3>
                 <div className="p-4 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div style={{ color: '#cccccc' }}>
