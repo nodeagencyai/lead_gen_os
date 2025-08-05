@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle, Clock } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService } from '../services/leadsService';
@@ -61,6 +61,9 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   
   // Sync status states - now using instantly_synced column directly from lead data
   const [showSyncedFilter, setShowSyncedFilter] = useState<'all' | 'synced' | 'not-synced'>('all');
+  
+  // Processed status filter
+  const [showProcessedFilter, setShowProcessedFilter] = useState<'all' | 'processed' | 'not-processed'>('all');
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -179,7 +182,13 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
       (showSyncedFilter === 'synced' && isSynced) ||
       (showSyncedFilter === 'not-synced' && !isSynced);
     
-    return matchesSearch && matchesNiche && matchesTag && matchesDateRange && matchesSyncFilter;
+    // Processed status filter
+    const isProcessed = (lead as any).processed === true;
+    const matchesProcessedFilter = showProcessedFilter === 'all' ||
+      (showProcessedFilter === 'processed' && isProcessed) ||
+      (showProcessedFilter === 'not-processed' && !isProcessed);
+    
+    return matchesSearch && matchesNiche && matchesTag && matchesDateRange && matchesSyncFilter && matchesProcessedFilter;
   });
 
   const handleSelectAll = (checked: boolean) => {
@@ -693,6 +702,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                   setTagFilter('');
                   setDateRange({ start: '', end: '' });
                   setShowSyncedFilter('all');
+                  setShowProcessedFilter('all');
                 }}
                 className="text-xs px-3 py-1 rounded transition-colors hover:opacity-80"
                 style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
@@ -746,6 +756,55 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                 >
                   <X size={14} />
                   <span>Not Synced</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Processed Status Filter */}
+            <div className="mt-4 pt-4" style={{ borderTop: '1px solid #333333' }}>
+              <label className="block text-xs font-medium mb-2" style={{ color: '#cccccc' }}>
+                Filter by Processed Status
+              </label>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setShowProcessedFilter('all')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showProcessedFilter === 'all' ? 'text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                  style={{
+                    backgroundColor: showProcessedFilter === 'all' ? '#333333' : '#0f0f0f',
+                    border: showProcessedFilter === 'all' ? '1px solid #555555' : '1px solid #333333'
+                  }}
+                >
+                  All Leads
+                </button>
+                <button
+                  onClick={() => setShowProcessedFilter('processed')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showProcessedFilter === 'processed' ? '' : 'hover:opacity-80'
+                  }`}
+                  style={{
+                    backgroundColor: showProcessedFilter === 'processed' ? '#8b5cf620' : '#0f0f0f',
+                    border: showProcessedFilter === 'processed' ? '1px solid #8b5cf6' : '1px solid #333333',
+                    color: showProcessedFilter === 'processed' ? '#8b5cf6' : '#888888'
+                  }}
+                >
+                  <CheckCircle size={14} />
+                  <span>Processed</span>
+                </button>
+                <button
+                  onClick={() => setShowProcessedFilter('not-processed')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    showProcessedFilter === 'not-processed' ? '' : 'hover:opacity-80'
+                  }`}
+                  style={{
+                    backgroundColor: showProcessedFilter === 'not-processed' ? '#f59e0b20' : '#0f0f0f',
+                    border: showProcessedFilter === 'not-processed' ? '1px solid #f59e0b' : '1px solid #333333',
+                    color: showProcessedFilter === 'not-processed' ? '#f59e0b' : '#888888'
+                  }}
+                >
+                  <Clock size={14} />
+                  <span>Not Processed</span>
                 </button>
               </div>
             </div>
