@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Circle, AlertTriangle, Clock, Activity } from 'lucide-react';
+import { X, Circle, AlertTriangle, Clock, Activity, Check, XCircle } from 'lucide-react';
 import { apiClient } from '../utils/apiClient';
 
 interface DebugInfo {
@@ -320,11 +320,25 @@ export const DebugPanel: React.FC = () => {
                   <div className="mb-4">
                     <strong style={{ color: '#cccccc' }}>API Keys Status:</strong>
                     <div className="grid grid-cols-2 gap-2 mt-2">
-                      {Object.entries(debugInfo.api_keys).map(([key, status]) => (
-                        <div key={key} className="text-sm" style={{ color: '#888888' }}>
-                          <span className="font-medium" style={{ color: '#cccccc' }}>{key}:</span> {status}
-                        </div>
-                      ))}
+                      {Object.entries(debugInfo.api_keys).map(([key, status]) => {
+                        const isPresent = status.includes('Present') || status.includes('✅');
+                        return (
+                          <div key={key} className="flex items-center space-x-2 text-sm p-2 rounded" style={{ 
+                            backgroundColor: '#222222',
+                            border: `1px solid ${isPresent ? '#444444' : '#333333'}`
+                          }}>
+                            {isPresent ? (
+                              <Check size={12} style={{ color: '#10b981' }} />
+                            ) : (
+                              <XCircle size={12} style={{ color: '#ef4444' }} />
+                            )}
+                            <span className="font-medium" style={{ color: '#cccccc' }}>{key}</span>
+                            <span style={{ color: isPresent ? '#10b981' : '#ef4444', fontSize: '11px' }}>
+                              {isPresent ? 'Present' : 'Missing'}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
