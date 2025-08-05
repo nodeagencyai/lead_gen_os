@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle, ArrowUpDown, Circle } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService } from '../services/leadsService';
@@ -593,7 +593,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                         backgroundColor: sortBy === 'synced-first' ? '#333333' : 'transparent'
                       }}
                     >
-                      ✅ Synced First
+                      <CheckCircle size={14} className="inline mr-2" />
+                      Synced First
                     </button>
                     <button
                       onClick={() => { setSortBy('not-synced-first'); setShowSort(false); }}
@@ -603,7 +604,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                         backgroundColor: sortBy === 'not-synced-first' ? '#333333' : 'transparent'
                       }}
                     >
-                      ❌ Not Synced First
+                      <Circle size={14} className="inline mr-2" />
+                      Not Synced First
                     </button>
                     <button
                       onClick={() => { setSortBy('processed-first'); setShowSort(false); }}
@@ -613,7 +615,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                         backgroundColor: sortBy === 'processed-first' ? '#333333' : 'transparent'
                       }}
                     >
-                      ✅ Processed First
+                      <CheckCircle size={14} className="inline mr-2" />
+                      Processed First
                     </button>
                     <button
                       onClick={() => { setSortBy('not-processed-first'); setShowSort(false); }}
@@ -623,7 +626,8 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                         backgroundColor: sortBy === 'not-processed-first' ? '#333333' : 'transparent'
                       }}
                     >
-                      ❌ Not Processed First
+                      <Circle size={14} className="inline mr-2" />
+                      Not Processed First
                     </button>
                     <div className="border-t mx-2 my-1" style={{ borderColor: '#333333' }}></div>
                     <button
