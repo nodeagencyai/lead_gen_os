@@ -1314,11 +1314,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{formatFieldValue(lead.company)}</td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
                       {lead.niche ? (
-                        <span className="px-2 py-1 rounded-full text-xs" style={{ 
-                          backgroundColor: '#333333', 
-                          color: '#ffffff',
-                          border: '1px solid #555555'
-                        }}>
+                        <span style={{ color: '#cccccc' }}>
                           {lead.niche}
                         </span>
                       ) : (
@@ -1327,22 +1323,12 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     </td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>
                       {lead.tags && Array.isArray(lead.tags) && lead.tags.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {lead.tags.slice(0, 2).map((tag, index) => (
-                            <span key={index} className="px-2 py-1 rounded-full text-xs" style={{ 
-                              backgroundColor: '#1a1a1a', 
-                              color: '#cccccc',
-                              border: '1px solid #333333'
-                            }}>
-                              {tag}
-                            </span>
-                          ))}
+                        <span style={{ color: '#cccccc' }}>
+                          {lead.tags.slice(0, 2).join(', ')}
                           {lead.tags.length > 2 && (
-                            <span className="text-xs" style={{ color: '#888888' }}>
-                              +{lead.tags.length - 2}
-                            </span>
+                            <span style={{ color: '#888888' }}> +{lead.tags.length - 2}</span>
                           )}
-                        </div>
+                        </span>
                       ) : (
                         <span style={{ color: '#666666' }}>N/A</span>
                       )}
