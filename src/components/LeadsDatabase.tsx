@@ -406,26 +406,15 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
 
   // Delete handler
   const handleBulkDelete = () => {
-    console.log('🗑️ Delete button clicked');
-    console.log('Selected leads:', selectedLeads);
-    if (selectedLeads.length === 0) {
-      console.log('⚠️ No leads selected');
-      return;
-    }
-    console.log('📋 Setting delete target for', selectedLeads.length, 'leads');
+    if (selectedLeads.length === 0) return;
     setDeleteTarget({ id: -1, type: 'bulk' });
     setShowDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
-    console.log('✅ Confirm delete clicked');
-    if (!deleteTarget) {
-      console.log('⚠️ No delete target');
-      return;
-    }
+    if (!deleteTarget) return;
     
     setIsDeleting(true);
-    console.log('🚀 Starting delete operation...');
     try {
       if (deleteTarget.type === 'single') {
         // Delete single lead
@@ -1409,11 +1398,10 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
         <div className="mt-6 text-center text-sm" style={{ color: '#777777' }}>
           Showing {filteredLeads.length} leads • {selectedLeads.length} selected
         </div>
-      </div>
 
-      {/* Delete Confirmation Modal - Moved outside main content */}
-      {showDeleteConfirm && console.log('🔴 Delete modal should be visible') && (
-          <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 9999 }}>
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div 
               className="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-sm" 
               onClick={() => !isDeleting && setShowDeleteConfirm(false)}
@@ -1475,6 +1463,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             </div>
           </div>
         )}
+      </div>
     </div>
   );
 };
