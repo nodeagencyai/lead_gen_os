@@ -157,68 +157,136 @@ export class LeadsService {
 
   static async deleteApolloLead(id: number): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('🗑️ Attempting to delete Apollo lead:', id);
+      
+      // Check current user session
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔐 Current user:', user?.id, 'Auth error:', authError);
+      
+      const { data, error } = await supabase
         .from('Apollo')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select(); // Add select() to see what would be deleted
+
+      console.log('📊 Delete result:', { data, error });
 
       if (error) {
-        console.error('Error deleting Apollo lead:', error);
+        console.error('❌ Error deleting Apollo lead:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          rawError: error
+        });
         throw error;
       }
+
+      console.log('✅ Successfully deleted Apollo lead:', id, 'Deleted rows:', data?.length || 0);
     } catch (error) {
-      console.error('Failed to delete Apollo lead:', error);
+      console.error('💥 Failed to delete Apollo lead:', error);
       throw error;
     }
   }
 
   static async deleteLinkedInLead(id: number): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('🗑️ Attempting to delete LinkedIn lead:', id);
+      
+      // Check current user session
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔐 Current user:', user?.id, 'Auth error:', authError);
+      
+      const { data, error } = await supabase
         .from('LinkedIn')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select(); // Add select() to see what would be deleted
+
+      console.log('📊 Delete result:', { data, error });
 
       if (error) {
-        console.error('Error deleting LinkedIn lead:', error);
+        console.error('❌ Error deleting LinkedIn lead:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          rawError: error
+        });
         throw error;
       }
+
+      console.log('✅ Successfully deleted LinkedIn lead:', id, 'Deleted rows:', data?.length || 0);
     } catch (error) {
-      console.error('Failed to delete LinkedIn lead:', error);
+      console.error('💥 Failed to delete LinkedIn lead:', error);
       throw error;
     }
   }
 
   static async deleteApolloLeads(ids: number[]): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('🗑️ Attempting to bulk delete Apollo leads:', ids);
+      
+      // Check current user session
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔐 Current user:', user?.id, 'Auth error:', authError);
+      
+      const { data, error } = await supabase
         .from('Apollo')
         .delete()
-        .in('id', ids);
+        .in('id', ids)
+        .select(); // Add select() to see what would be deleted
+
+      console.log('📊 Bulk delete result:', { data, error, requestedIds: ids });
 
       if (error) {
-        console.error('Error deleting Apollo leads:', error);
+        console.error('❌ Error deleting Apollo leads:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          rawError: error
+        });
         throw error;
       }
+
+      console.log('✅ Successfully bulk deleted Apollo leads:', ids, 'Deleted rows:', data?.length || 0);
     } catch (error) {
-      console.error('Failed to delete Apollo leads:', error);
+      console.error('💥 Failed to bulk delete Apollo leads:', error);
       throw error;
     }
   }
 
   static async deleteLinkedInLeads(ids: number[]): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('🗑️ Attempting to bulk delete LinkedIn leads:', ids);
+      
+      // Check current user session
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('🔐 Current user:', user?.id, 'Auth error:', authError);
+      
+      const { data, error } = await supabase
         .from('LinkedIn')
         .delete()
-        .in('id', ids);
+        .in('id', ids)
+        .select(); // Add select() to see what would be deleted
+
+      console.log('📊 Bulk delete result:', { data, error, requestedIds: ids });
 
       if (error) {
-        console.error('Error deleting LinkedIn leads:', error);
+        console.error('❌ Error deleting LinkedIn leads:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          rawError: error
+        });
         throw error;
       }
+
+      console.log('✅ Successfully bulk deleted LinkedIn leads:', ids, 'Deleted rows:', data?.length || 0);
     } catch (error) {
-      console.error('Failed to delete LinkedIn leads:', error);
+      console.error('💥 Failed to bulk delete LinkedIn leads:', error);
       throw error;
     }
   }
