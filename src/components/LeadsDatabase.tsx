@@ -1444,7 +1444,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     onClick={confirmDelete}
                     disabled={isDeleting}
                     className="px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50 flex items-center space-x-2"
-                    style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                    style={{ backgroundColor: '#3B0E0E', border: '1px solid #5C1616', color: '#FF5757' }}
                   >
                     {isDeleting ? (
                       <>
