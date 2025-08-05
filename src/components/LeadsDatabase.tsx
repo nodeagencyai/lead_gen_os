@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle, Clock } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService } from '../services/leadsService';
@@ -784,9 +784,9 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     showProcessedFilter === 'processed' ? '' : 'hover:opacity-80'
                   }`}
                   style={{
-                    backgroundColor: showProcessedFilter === 'processed' ? '#8b5cf620' : '#0f0f0f',
-                    border: showProcessedFilter === 'processed' ? '1px solid #8b5cf6' : '1px solid #333333',
-                    color: showProcessedFilter === 'processed' ? '#8b5cf6' : '#888888'
+                    backgroundColor: showProcessedFilter === 'processed' ? '#10b98120' : '#0f0f0f',
+                    border: showProcessedFilter === 'processed' ? '1px solid #10b981' : '1px solid #333333',
+                    color: showProcessedFilter === 'processed' ? '#10b981' : '#888888'
                   }}
                 >
                   <CheckCircle size={14} />
@@ -798,12 +798,12 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
                     showProcessedFilter === 'not-processed' ? '' : 'hover:opacity-80'
                   }`}
                   style={{
-                    backgroundColor: showProcessedFilter === 'not-processed' ? '#f59e0b20' : '#0f0f0f',
-                    border: showProcessedFilter === 'not-processed' ? '1px solid #f59e0b' : '1px solid #333333',
-                    color: showProcessedFilter === 'not-processed' ? '#f59e0b' : '#888888'
+                    backgroundColor: showProcessedFilter === 'not-processed' ? '#ef444420' : '#0f0f0f',
+                    border: showProcessedFilter === 'not-processed' ? '1px solid #ef4444' : '1px solid #333333',
+                    color: showProcessedFilter === 'not-processed' ? '#ef4444' : '#888888'
                   }}
                 >
-                  <Clock size={14} />
+                  <X size={14} />
                   <span>Not Processed</span>
                 </button>
               </div>
