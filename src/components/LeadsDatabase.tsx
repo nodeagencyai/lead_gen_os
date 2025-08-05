@@ -1409,10 +1409,11 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
         <div className="mt-6 text-center text-sm" style={{ color: '#777777' }}>
           Showing {filteredLeads.length} leads • {selectedLeads.length} selected
         </div>
+      </div>
 
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && console.log('🔴 Delete modal should be visible') && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Delete Confirmation Modal - Moved outside main content */}
+      {showDeleteConfirm && console.log('🔴 Delete modal should be visible') && (
+          <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 9999 }}>
             <div 
               className="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-sm" 
               onClick={() => !isDeleting && setShowDeleteConfirm(false)}
@@ -1474,7 +1475,6 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };
