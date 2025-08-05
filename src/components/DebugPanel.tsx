@@ -8,7 +8,17 @@ interface DebugInfo {
   vercel_url: string;
   api_keys: Record<string, string>;
   api_key_lengths: Record<string, number>;
-  all_env_vars: Array<{
+  all_env_vars?: Array<{
+    key: string;
+    length: number;
+    preview: string;
+  }>;
+  server_env_vars?: Array<{
+    key: string;
+    length: number;
+    preview: string;
+  }>;
+  frontend_env_vars?: Array<{
     key: string;
     length: number;
     preview: string;
@@ -27,10 +37,17 @@ export const DebugPanel: React.FC = () => {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const runTests = async () => {
-    setIsLoading(true);
-    const results: TestResult[] = [];
+    try {
+      console.log('🧪 Starting debug tests...');
+      setHasError(false);
+      setIsLoading(true);
+      const results: TestResult[] = [];
+    
+      // Reset debug info to avoid stale data
+      setDebugInfo(null);
 
     // Test 1: Environment Debug
     try {
@@ -122,21 +139,40 @@ export const DebugPanel: React.FC = () => {
       });
     }
 
-    setTestResults(results);
-    setIsLoading(false);
+      setTestResults(results);
+      setIsLoading(false);
+      console.log('🧪 Debug tests completed:', results.length, 'tests');
+    } catch (error) {
+      console.error('❌ Debug tests failed with error:', error);
+      setHasError(true);
+      setIsLoading(false);
+      setTestResults([{
+        name: 'Debug Tests',
+        status: 'error',
+        message: `Failed to run tests: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }]);
+    }
   };
 
   useEffect(() => {
-    // Auto-run tests on mount in development
-    if (import.meta.env.DEV) {
-      runTests();
+    // Only auto-run tests if modal is visible to avoid background API calls
+    // This prevents API calls from interfering with component rendering
+    if (isVisible && import.meta.env.DEV && testResults.length === 0) {
+      runTests().catch(error => {
+        console.error('Auto-run tests failed:', error);
+        setHasError(true);
+        setIsLoading(false);
+      });
     }
-  }, []);
+  }, [isVisible]);
 
   if (!isVisible) {
     return (
       <button
-        onClick={() => setIsVisible(true)}
+        onClick={() => {
+          console.log('Debug panel button clicked');
+          setIsVisible(true);
+        }}
         className="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-colors z-50"
         style={{ 
           backgroundColor: '#333333', 
@@ -158,9 +194,12 @@ export const DebugPanel: React.FC = () => {
     );
   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+  console.log('🔧 Rendering debug panel modal, isVisible:', isVisible, 'testResults:', testResults.length, 'debugInfo:', !!debugInfo);
+  
+  try {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}>
+        <div className="rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>🔧 Debug Panel</h2>
@@ -256,14 +295,46 @@ export const DebugPanel: React.FC = () => {
                   </div>
 
                   <div>
-                    <strong style={{ color: '#ffffff' }}>Environment Variables ({debugInfo.all_env_vars.length}):</strong>
-                    <div className="max-h-40 overflow-auto mt-2">
-                      {debugInfo.all_env_vars.map((envVar, index) => (
-                        <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
-                          <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
+                    {debugInfo.all_env_vars ? (
+                      <>
+                        <strong style={{ color: '#ffffff' }}>Environment Variables ({debugInfo.all_env_vars.length}):</strong>
+                        <div className="max-h-40 overflow-auto mt-2">
+                          {debugInfo.all_env_vars.map((envVar, index) => (
+                            <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
+                              <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <strong style={{ color: '#ffffff' }}>Environment Variables:</strong>
+                        {debugInfo.server_env_vars && (
+                          <div className="mt-2">
+                            <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Server Variables ({debugInfo.server_env_vars.length}):</div>
+                            <div className="max-h-32 overflow-auto mt-1">
+                              {debugInfo.server_env_vars.map((envVar, index) => (
+                                <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
+                                  <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {debugInfo.frontend_env_vars && (
+                          <div className="mt-2">
+                            <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Frontend Variables ({debugInfo.frontend_env_vars.length}):</div>
+                            <div className="max-h-32 overflow-auto mt-1">
+                              {debugInfo.frontend_env_vars.map((envVar, index) => (
+                                <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
+                                  <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -272,5 +343,32 @@ export const DebugPanel: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('DebugPanel render error:', error);
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+        <div className="rounded-lg shadow-xl max-w-md w-full" style={{ backgroundColor: '#1a1a1a', border: '1px solid #ef4444' }}>
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold" style={{ color: '#ef4444' }}>Debug Panel Error</h2>
+              <button
+                onClick={() => setIsVisible(false)}
+                className="text-xl transition-colors hover:opacity-80"
+                style={{ color: '#888888' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-sm" style={{ color: '#cccccc' }}>
+              An error occurred while rendering the debug panel:
+            </div>
+            <div className="text-xs mt-2 p-2 rounded" style={{ backgroundColor: '#2a1a1a', color: '#ff6b6b' }}>
+              {error instanceof Error ? error.message : 'Unknown error'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 };

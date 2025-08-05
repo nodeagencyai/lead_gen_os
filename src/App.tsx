@@ -9,6 +9,7 @@ import AdminLogin from './components/AdminLogin';
 import CampaignToggle from './components/CampaignToggle';
 import PerformanceChart from './components/PerformanceChart';
 import { DebugPanel } from './components/DebugPanel';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useCampaignStore } from './store/campaignStore';
 import { useRealTimeData } from './hooks/useRealTimeData';
 import { useChartData } from './hooks/useChartData';
@@ -683,7 +684,9 @@ function App() {
       </div>
 
       {/* Debug Panel - Only show in development or when needed */}
-      <DebugPanel />
+      <ErrorBoundary>
+        <DebugPanel />
+      </ErrorBoundary>
     </div>
   );
 }
