@@ -134,21 +134,16 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
   const formatDateTime = (timestamp: string): string => {
     const date = new Date(timestamp);
     
-    // Manual formatting for complete consistency
+    // Manual formatting for complete consistency (24-hour format)
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const year = date.getFullYear();
     
-    let hours = date.getHours();
+    const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
     
-    hours = hours % 12;
-    hours = hours ? hours : 12; // 0 should be 12
-    const hoursStr = String(hours).padStart(2, '0');
-    
-    return `${month}/${day}/${year} ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
   // Calculate metrics from real data
