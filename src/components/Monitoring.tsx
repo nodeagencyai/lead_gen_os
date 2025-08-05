@@ -119,7 +119,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
         workflow: activity.title || 'Unknown Workflow',
         status,
         started: new Date(activity.timestamp).toLocaleString(),
-        duration: calculateDuration(activity.timestamp, activity.completed_at),
+        duration: '—', // Duration removed due to data accuracy issues
         leadsProcessed: activity.metric_value || 0,
         campaign: activity.subtitle || 'Unknown Campaign',
         errorMessage: activity.activity_type === 'error' ? activity.details : undefined,
@@ -130,29 +130,6 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
     });
   };
 
-  const calculateDuration = (startTimestamp: string, completedTimestamp?: string): string => {
-    // If no completion time, return empty or dash for running workflows
-    if (!completedTimestamp) {
-      return '—';
-    }
-    
-    const startTime = new Date(startTimestamp);
-    const endTime = new Date(completedTimestamp);
-    const diffMs = endTime.getTime() - startTime.getTime();
-    
-    // Handle invalid duration
-    if (diffMs < 0) {
-      return '—';
-    }
-    
-    const minutes = Math.floor(diffMs / 60000);
-    const seconds = Math.floor((diffMs % 60000) / 1000);
-    
-    if (minutes > 0) {
-      return `${minutes}m ${seconds}s`;
-    }
-    return `${seconds}s`;
-  };
 
   // Calculate metrics from real data
   const systemHealthMetrics = dashboardData ? [
@@ -521,9 +498,6 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Platform</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Status</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Started</th>
-                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Duration</th>
-                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Leads Processed</th>
-                  <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Campaign</th>
                   <th className="text-left p-4 text-sm font-medium" style={{ color: '#999999' }}>Details</th>
                 </tr>
               </thead>
@@ -574,9 +548,6 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                       </div>
                     </td>
                     <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{workflow.started}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{workflow.duration}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{workflow.leadsProcessed}</td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{workflow.campaign}</td>
                     <td className="p-4">
                       {workflow.status === 'failed' && workflow.errorMessage ? (
                         <div className="max-w-xs">
@@ -598,7 +569,7 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                 ))}
                 {filteredWorkflows.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center" style={{ color: '#888888' }}>
+                    <td colSpan={5} className="p-8 text-center" style={{ color: '#888888' }}>
                       {recentWorkflows.length === 0 
                         ? 'No workflow data available. Start sending webhook data from N8N to see activity here.' 
                         : 'No workflows match your current filters.'
