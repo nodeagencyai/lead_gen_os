@@ -230,7 +230,7 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
       id: `activity-${index}`,
       workflow: activity.title || 'Unknown Workflow',
       status,
-      started: new Date(activity.timestamp).toLocaleString().replace(',', ''),
+      started: formatDateTime(activity.timestamp),
       duration: '—', // Duration removed due to data accuracy issues
       leadsProcessed: activity.metric_value || 0,
       campaign: activity.subtitle || 'Unknown Campaign',
@@ -242,6 +242,22 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
   }).slice(0, 10); // Limit to 10 most recent
 }
 
+// Format date and time consistently
+function formatDateTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  const dateStr = date.toLocaleDateString('en-US', {
+    month: '2-digit',
+    day: '2-digit', 
+    year: 'numeric'
+  });
+  const timeStr = date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  return `${dateStr} ${timeStr}`;
+}
 
 function transformCostBreakdown(models: any[]): Array<{model: string; cost: number; percentage: number}> {
   return models.slice(0, 3).map(model => ({
