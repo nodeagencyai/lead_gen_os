@@ -137,7 +137,20 @@ export const DebugPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors z-50"
+        className="fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-colors z-50"
+        style={{ 
+          backgroundColor: '#333333', 
+          border: '1px solid #555555', 
+          color: '#ffffff' 
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#444444';
+          e.currentTarget.style.borderColor = '#666666';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#333333';
+          e.currentTarget.style.borderColor = '#555555';
+        }}
         title="Show Debug Panel"
       >
         🔧 Debug
@@ -176,30 +189,38 @@ export const DebugPanel: React.FC = () => {
               </div>
 
               <div className="grid gap-3">
-                {testResults.map((test, index) => (
-                  <div
-                    key={index}
-                    className="p-3 rounded-lg"
-                    style={{
-                      backgroundColor: test.status === 'success' ? '#0f1a0f' : test.status === 'error' ? '#1a0f0f' : '#0f0f0f',
-                      border: `1px solid ${test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#333333'}`
-                    }}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium" style={{ 
-                          color: test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#ffffff' 
-                        }}>
-                          {test.status === 'success' ? '✅' : test.status === 'error' ? '❌' : '⏳'} {test.name}
-                        </div>
-                        <div className="text-sm mt-1" style={{ color: '#cccccc' }}>{test.message}</div>
-                      </div>
-                      {test.duration && (
-                        <div className="text-xs" style={{ color: '#888888' }}>{test.duration}ms</div>
-                      )}
+                {testResults.length === 0 ? (
+                  <div className="p-3 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="text-center" style={{ color: '#cccccc' }}>
+                      No tests have been run yet. Click the "🧪 Run Tests" button to start API diagnostics.
                     </div>
                   </div>
-                ))}
+                ) : (
+                  testResults.map((test, index) => (
+                    <div
+                      key={index}
+                      className="p-3 rounded-lg"
+                      style={{
+                        backgroundColor: test.status === 'success' ? '#0f1a0f' : test.status === 'error' ? '#1a0f0f' : '#0f0f0f',
+                        border: `1px solid ${test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#333333'}`
+                      }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium" style={{ 
+                            color: test.status === 'success' ? '#10b981' : test.status === 'error' ? '#ef4444' : '#ffffff' 
+                          }}>
+                            {test.status === 'success' ? '✅' : test.status === 'error' ? '❌' : '⏳'} {test.name}
+                          </div>
+                          <div className="text-sm mt-1" style={{ color: '#cccccc' }}>{test.message}</div>
+                        </div>
+                        {test.duration && (
+                          <div className="text-xs" style={{ color: '#888888' }}>{test.duration}ms</div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
