@@ -9,21 +9,7 @@ interface DebugInfo {
   vercel_url: string;
   api_keys: Record<string, string>;
   api_key_lengths: Record<string, number>;
-  all_env_vars?: Array<{
-    key: string;
-    length: number;
-    preview: string;
-  }>;
-  server_env_vars?: Array<{
-    key: string;
-    length: number;
-    preview: string;
-  }>;
-  frontend_env_vars?: Array<{
-    key: string;
-    length: number;
-    preview: string;
-  }>;
+  // SECURITY: Environment variable fields removed for production safety
 }
 
 interface TestResult {
@@ -156,8 +142,8 @@ export const DebugPanel: React.FC = () => {
   };
 
   useEffect(() => {
-    // Only auto-run tests if modal is visible to avoid background API calls
-    // This prevents API calls from interfering with component rendering
+    // Only auto-run tests if modal is visible AND in development
+    // SECURITY: Never auto-run in production to avoid exposing sensitive data
     if (isVisible && import.meta.env.DEV && testResults.length === 0) {
       runTests().catch(error => {
         console.error('Auto-run tests failed:', error);
@@ -166,6 +152,14 @@ export const DebugPanel: React.FC = () => {
       });
     }
   }, [isVisible]);
+
+  // SECURITY: Only show debug panel in development or with explicit production flag
+  const isProduction = import.meta.env.PROD;
+  const allowProductionDebug = import.meta.env.VITE_ALLOW_PRODUCTION_DEBUG === 'true';
+  
+  if (isProduction && !allowProductionDebug) {
+    return null; // Hide debug panel completely in production
+  }
 
   if (!isVisible) {
     return (
@@ -334,47 +328,15 @@ export const DebugPanel: React.FC = () => {
                     </div>
                   </div>
 
-                  <div>
-                    {debugInfo.all_env_vars ? (
-                      <>
-                        <strong style={{ color: '#ffffff' }}>Environment Variables ({debugInfo.all_env_vars.length}):</strong>
-                        <div className="max-h-40 overflow-auto mt-2">
-                          {debugInfo.all_env_vars.map((envVar, index) => (
-                            <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
-                              <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <strong style={{ color: '#ffffff' }}>Environment Variables:</strong>
-                        {debugInfo.server_env_vars && (
-                          <div className="mt-2">
-                            <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Server Variables ({debugInfo.server_env_vars.length}):</div>
-                            <div className="max-h-32 overflow-auto mt-1">
-                              {debugInfo.server_env_vars.map((envVar, index) => (
-                                <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
-                                  <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {debugInfo.frontend_env_vars && (
-                          <div className="mt-2">
-                            <div className="text-sm font-medium" style={{ color: '#cccccc' }}>Frontend Variables ({debugInfo.frontend_env_vars.length}):</div>
-                            <div className="max-h-32 overflow-auto mt-1">
-                              {debugInfo.frontend_env_vars.map((envVar, index) => (
-                                <div key={index} className="text-xs py-1" style={{ color: '#888888' }}>
-                                  <strong style={{ color: '#cccccc' }}>{envVar.key}:</strong> {envVar.preview} (length: {envVar.length})
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                  {/* SECURITY: Environment variables removed for production safety */}
+                  <div className="p-4 rounded-lg text-center" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+                    <div className="flex items-center justify-center space-x-2 mb-2">
+                      <CheckCircle size={18} style={{ color: '#10b981' }} />
+                      <span className="font-medium" style={{ color: '#ffffff' }}>Environment Secured</span>
+                    </div>
+                    <p className="text-xs" style={{ color: '#888888' }}>
+                      Sensitive environment variables are protected and not displayed for security
+                    </p>
                   </div>
                 </div>
               </div>
