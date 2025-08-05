@@ -9,7 +9,7 @@ interface LeadFinderProps {
 
 const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
   const [targetUrl, setTargetUrl] = useState('');
-  const [leadsLimit, setLeadsLimit] = useState(100);
+  const [leadsLimit, setLeadsLimit] = useState(0);
   const [actionType, setActionType] = useState<'scrape' | 'process'>('scrape');
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
@@ -43,8 +43,8 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
       return;
     }
     
-    if (actionType === 'process' && !leadsLimit) {
-      setStatusMessage('Please specify number of leads to process');
+    if (!leadsLimit || leadsLimit <= 0) {
+      setStatusMessage(`Please specify number of leads to ${actionType === 'scrape' ? 'scrape' : 'process'} (must be greater than 0)`);
       setActionStatus('error');
       return;
     }
@@ -380,8 +380,20 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   type="number"
                   min="1"
                   max="10000"
-                  value={leadsLimit}
-                  onChange={(e) => setLeadsLimit(Number(e.target.value))}
+                  value={leadsLimit === 0 ? '' : leadsLimit}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string for better UX when clearing the field
+                    if (value === '') {
+                      setLeadsLimit(0);
+                    } else {
+                      const num = parseInt(value, 10);
+                      // Only update if it's a valid number
+                      if (!isNaN(num) && num >= 0) {
+                        setLeadsLimit(num);
+                      }
+                    }
+                  }}
                   placeholder="Enter number of leads to scrape"
                   className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
                   style={{
@@ -417,8 +429,20 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   type="number"
                   min="1"
                   max="10000"
-                  value={leadsLimit}
-                  onChange={(e) => setLeadsLimit(Number(e.target.value))}
+                  value={leadsLimit === 0 ? '' : leadsLimit}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty string for better UX when clearing the field
+                    if (value === '') {
+                      setLeadsLimit(0);
+                    } else {
+                      const num = parseInt(value, 10);
+                      // Only update if it's a valid number
+                      if (!isNaN(num) && num >= 0) {
+                        setLeadsLimit(num);
+                      }
+                    }
+                  }}
                   placeholder="Enter number of leads to process"
                   className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
                   style={{
@@ -447,7 +471,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
           <div className="text-center">
             <button
               onClick={handleTriggerWebhook}
-              disabled={(actionType === 'scrape' && !targetUrl.trim()) || !leadsLimit || isLoading}
+              disabled={(actionType === 'scrape' && !targetUrl.trim()) || leadsLimit <= 0 || isLoading}
               className="px-10 py-3 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-3 mx-auto shadow-lg hover:shadow-xl"
               style={{
                 backgroundColor: '#333333',
