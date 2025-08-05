@@ -12,6 +12,8 @@ interface WorkflowRun {
   workflow: string;
   status: 'success' | 'failed' | 'running';
   started: string;
+  startedDate: string;
+  startedTime: string;
   duration: string;
   leadsProcessed: number;
   campaign: string;
@@ -114,11 +116,14 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
         workflowType = 'email_sending';
       }
 
+      const formattedDateTime = formatDateTime(activity.timestamp);
       return {
         id: `activity-${index}`,
         workflow: activity.title || 'Unknown Workflow',
         status,
-        started: formatDateTime(activity.timestamp),
+        started: `${formattedDateTime.date}`, // Will be used for display
+        startedDate: formattedDateTime.date,
+        startedTime: formattedDateTime.time,
         duration: '—', // Duration removed due to data accuracy issues
         leadsProcessed: activity.metric_value || 0,
         campaign: activity.subtitle || 'Unknown Campaign',
@@ -130,20 +135,23 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
     });
   };
 
-  // Format date and time consistently
-  const formatDateTime = (timestamp: string): string => {
-    const date = new Date(timestamp);
+  // Format date and time consistently (two-line format)
+  const formatDateTime = (timestamp: string): { date: string; time: string } => {
+    const dateObj = new Date(timestamp);
     
-    // Manual formatting for complete consistency (24-hour format)
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
+    // Manual formatting for complete consistency
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    const year = dateObj.getFullYear();
     
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    const seconds = String(dateObj.getSeconds()).padStart(2, '0');
     
-    return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
+    return {
+      date: `${month}/${day}/${year}`,
+      time: `${hours}:${minutes}:${seconds}`
+    };
   };
 
   // Calculate metrics from real data
@@ -562,7 +570,12 @@ const Monitoring: React.FC<MonitoringProps> = ({ onNavigate }) => {
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm" style={{ color: '#cccccc' }}>{workflow.started}</td>
+                    <td className="p-4">
+                      <div className="text-sm" style={{ color: '#cccccc' }}>
+                        <div>{workflow.startedDate}</div>
+                        <div style={{ color: '#999999' }}>{workflow.startedTime}</div>
+                      </div>
+                    </td>
                     <td className="p-4">
                       {workflow.status === 'failed' && workflow.errorMessage ? (
                         <div className="max-w-xs">

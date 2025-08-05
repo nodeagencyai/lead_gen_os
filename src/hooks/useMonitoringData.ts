@@ -42,6 +42,8 @@ interface WorkflowExecution {
   workflow: string;
   status: 'success' | 'failed' | 'running' | 'started';
   started: string;
+  startedDate: string;
+  startedTime: string;
   duration: string;
   leadsProcessed: number;
   campaign: string;
@@ -226,11 +228,14 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
       workflowType = 'email_sending';
     }
 
+    const formattedDateTime = formatDateTime(activity.timestamp);
     return {
       id: `activity-${index}`,
       workflow: activity.title || 'Unknown Workflow',
       status,
-      started: formatDateTime(activity.timestamp),
+      started: `${formattedDateTime.date}`, // Will be used for display
+      startedDate: formattedDateTime.date,
+      startedTime: formattedDateTime.time,
       duration: '—', // Duration removed due to data accuracy issues
       leadsProcessed: activity.metric_value || 0,
       campaign: activity.subtitle || 'Unknown Campaign',
@@ -242,20 +247,23 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
   }).slice(0, 10); // Limit to 10 most recent
 }
 
-// Format date and time consistently
-function formatDateTime(timestamp: string): string {
-  const date = new Date(timestamp);
+// Format date and time consistently (two-line format)
+function formatDateTime(timestamp: string): { date: string; time: string } {
+  const dateObj = new Date(timestamp);
   
-  // Manual formatting for complete consistency (24-hour format)
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = date.getFullYear();
+  // Manual formatting for complete consistency
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const year = dateObj.getFullYear();
   
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  const seconds = String(dateObj.getSeconds()).padStart(2, '0');
   
-  return `${month}/${day}/${year} ${hours}:${minutes}:${seconds}`;
+  return {
+    date: `${month}/${day}/${year}`,
+    time: `${hours}:${minutes}:${seconds}`
+  };
 }
 
 function transformCostBreakdown(models: any[]): Array<{model: string; cost: number; percentage: number}> {
