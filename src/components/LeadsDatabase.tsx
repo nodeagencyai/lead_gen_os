@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle, ArrowUpDown, Circle } from 'lucide-react';
+import { Search, Filter, Download, ChevronDown, MoreHorizontal, Loader, Send, AlertCircle, X, CheckCircle, ArrowUpDown, Circle, Trash2 } from 'lucide-react';
 import { useCampaignStore } from '../store/campaignStore';
 import CampaignToggle from './CampaignToggle';
 import { LeadsService } from '../services/leadsService';
@@ -62,6 +62,11 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   
   // Sync status states - now using instantly_synced column directly from lead data
   const [showSyncedFilter, setShowSyncedFilter] = useState<'all' | 'synced' | 'not-synced'>('all');
+  
+  // Delete states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; type: 'single' | 'bulk' } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Processed status filter
   const [showProcessedFilter, setShowProcessedFilter] = useState<'all' | 'processed' | 'not-processed'>('all');
@@ -399,6 +404,50 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
     }
   };
 
+  // Delete handler
+  const handleBulkDelete = () => {
+    if (selectedLeads.length === 0) return;
+    setDeleteTarget({ id: -1, type: 'bulk' });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    
+    setIsDeleting(true);
+    try {
+      if (deleteTarget.type === 'single') {
+        // Delete single lead
+        if (mode === 'email') {
+          await LeadsService.deleteApolloLead(deleteTarget.id);
+          setApolloLeads(prev => prev.filter(lead => lead.id !== deleteTarget.id));
+        } else {
+          await LeadsService.deleteLinkedInLead(deleteTarget.id);
+          setLinkedinLeads(prev => prev.filter(lead => lead.id !== deleteTarget.id));
+        }
+      } else {
+        // Bulk delete
+        const idsToDelete = selectedLeads.map(id => parseInt(id));
+        if (mode === 'email') {
+          await LeadsService.deleteApolloLeads(idsToDelete);
+          setApolloLeads(prev => prev.filter(lead => !idsToDelete.includes(lead.id)));
+        } else {
+          await LeadsService.deleteLinkedInLeads(idsToDelete);
+          setLinkedinLeads(prev => prev.filter(lead => !idsToDelete.includes(lead.id)));
+        }
+        setSelectedLeads([]);
+      }
+      
+      setShowDeleteConfirm(false);
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error('Failed to delete leads:', error);
+      alert('Failed to delete leads. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Auto-clear status messages after 5 seconds
   useEffect(() => {
     if (sendingStatus === 'success' || sendingStatus === 'error') {
@@ -533,19 +582,30 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
           <div className="flex items-center space-x-3">
             {/* Send to Campaign Button - Only show when leads are selected */}
             {selectedLeads.length > 0 && (
-              <button 
-                onClick={() => {
-                  setShowCampaignSend(!showCampaignSend);
-                  if (!showCampaignSend) {
-                    fetchCampaigns();
-                  }
-                }}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-                style={{ backgroundColor: '#0A2540', border: '1px solid #082030', color: '#5BB0FF' }}
-              >
-                <Send size={16} />
-                <span>Send to Campaign ({selectedLeads.length})</span>
-              </button>
+              <>
+                <button 
+                  onClick={() => {
+                    setShowCampaignSend(!showCampaignSend);
+                    if (!showCampaignSend) {
+                      fetchCampaigns();
+                    }
+                  }}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                  style={{ backgroundColor: '#0A2540', border: '1px solid #082030', color: '#5BB0FF' }}
+                >
+                  <Send size={16} />
+                  <span>Send to Campaign ({selectedLeads.length})</span>
+                </button>
+                
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                  style={{ backgroundColor: '#3B0E0E', border: '1px solid #5C1616', color: '#FF5757' }}
+                >
+                  <Trash2 size={16} />
+                  <span>Delete ({selectedLeads.length})</span>
+                </button>
+              </>
             )}
 
             <div className="relative">
@@ -1338,6 +1398,71 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
         <div className="mt-6 text-center text-sm" style={{ color: '#777777' }}>
           Showing {filteredLeads.length} leads • {selectedLeads.length} selected
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div 
+              className="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-sm" 
+              onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+            />
+            
+            <div 
+              className="relative rounded-lg shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300"
+              style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
+            >
+              <div className="p-6">
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ef444420' }}>
+                    <AlertCircle size={24} style={{ color: '#ef4444' }} />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-lg font-semibold" style={{ color: '#ffffff' }}>
+                      Delete {deleteTarget?.type === 'bulk' ? `${selectedLeads.length} Leads` : 'Lead'}
+                    </h3>
+                    <p className="text-sm" style={{ color: '#888888' }}>
+                      This action cannot be undone
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-sm mb-6" style={{ color: '#cccccc' }}>
+                  Are you sure you want to permanently delete {deleteTarget?.type === 'bulk' ? `these ${selectedLeads.length} leads` : 'this lead'} from {mode === 'email' ? 'Apollo' : 'LinkedIn'}? 
+                  This will remove {deleteTarget?.type === 'bulk' ? 'them' : 'it'} from your database and cannot be recovered.
+                </p>
+                
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    disabled={isDeleting}
+                    className="px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50"
+                    style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    disabled={isDeleting}
+                    className="px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80 disabled:opacity-50 flex items-center space-x-2"
+                    style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                        <span>Deleting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        <span>Delete {deleteTarget?.type === 'bulk' ? `${selectedLeads.length} Leads` : 'Lead'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

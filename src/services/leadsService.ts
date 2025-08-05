@@ -154,4 +154,72 @@ export class LeadsService {
       })
       .subscribe();
   }
+
+  static async deleteApolloLead(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('Apollo')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting Apollo lead:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to delete Apollo lead:', error);
+      throw error;
+    }
+  }
+
+  static async deleteLinkedInLead(id: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('LinkedIn')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting LinkedIn lead:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to delete LinkedIn lead:', error);
+      throw error;
+    }
+  }
+
+  static async deleteApolloLeads(ids: number[]): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('Apollo')
+        .delete()
+        .in('id', ids);
+
+      if (error) {
+        console.error('Error deleting Apollo leads:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to delete Apollo leads:', error);
+      throw error;
+    }
+  }
+
+  static async deleteLinkedInLeads(ids: number[]): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('LinkedIn')
+        .delete()
+        .in('id', ids);
+
+      if (error) {
+        console.error('Error deleting LinkedIn leads:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Failed to delete LinkedIn leads:', error);
+      throw error;
+    }
+  }
 }
