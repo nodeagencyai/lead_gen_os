@@ -67,7 +67,7 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
   const [showProcessedFilter, setShowProcessedFilter] = useState<'all' | 'processed' | 'not-processed'>('all');
   
   // Sort/View options
-  const [sortBy, setSortBy] = useState<'recent' | 'synced-first' | 'not-synced-first' | 'processed-first' | 'not-processed-first' | 'company-az' | 'company-za'>('recent');
+  const [sortBy, setSortBy] = useState<'recent' | 'synced-first' | 'not-synced-first' | 'processed-first' | 'not-processed-first' | 'company-az' | 'company-za' | 'name-az' | 'name-za'>('recent');
 
   const formatFieldValue = (value: any): string => {
     if (value === null || value === undefined || value === '') {
@@ -229,6 +229,16 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
         const aCompanyZ = (a.company || '').toLowerCase();
         const bCompanyZ = (b.company || '').toLowerCase();
         return bCompanyZ.localeCompare(aCompanyZ);
+        
+      case 'name-az':
+        const aName = (a.full_name || '').toLowerCase();
+        const bName = (b.full_name || '').toLowerCase();
+        return aName.localeCompare(bName);
+        
+      case 'name-za':
+        const aNameZ = (a.full_name || '').toLowerCase();
+        const bNameZ = (b.full_name || '').toLowerCase();
+        return bNameZ.localeCompare(aNameZ);
         
       case 'recent':
       default:
@@ -550,6 +560,117 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
               </button>
             </div>
 
+            <div className="relative">
+              <button 
+                onClick={() => setShowSort(!showSort)}
+                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
+              >
+                <ArrowUpDown size={16} />
+                <span>Sort By</span>
+                <ChevronDown size={16} />
+              </button>
+              
+              {/* Sort Dropdown */}
+              {showSort && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-xl z-10" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
+                  <div className="py-2">
+                    <button
+                      onClick={() => { setSortBy('recent'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'recent' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'recent' ? '#ffffff' : '#cccccc',
+                        backgroundColor: sortBy === 'recent' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      Most Recent First
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('synced-first'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'synced-first' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'synced-first' ? '#10b981' : '#cccccc',
+                        backgroundColor: sortBy === 'synced-first' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      ✅ Synced First
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('not-synced-first'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'not-synced-first' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'not-synced-first' ? '#ef4444' : '#cccccc',
+                        backgroundColor: sortBy === 'not-synced-first' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      ❌ Not Synced First
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('processed-first'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'processed-first' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'processed-first' ? '#10b981' : '#cccccc',
+                        backgroundColor: sortBy === 'processed-first' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      ✅ Processed First
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('not-processed-first'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'not-processed-first' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'not-processed-first' ? '#ef4444' : '#cccccc',
+                        backgroundColor: sortBy === 'not-processed-first' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      ❌ Not Processed First
+                    </button>
+                    <div className="border-t mx-2 my-1" style={{ borderColor: '#333333' }}></div>
+                    <button
+                      onClick={() => { setSortBy('name-az'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'name-az' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'name-az' ? '#ffffff' : '#cccccc',
+                        backgroundColor: sortBy === 'name-az' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      Name A → Z
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('name-za'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'name-za' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'name-za' ? '#ffffff' : '#cccccc',
+                        backgroundColor: sortBy === 'name-za' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      Name Z → A
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('company-az'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'company-az' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'company-az' ? '#ffffff' : '#cccccc',
+                        backgroundColor: sortBy === 'company-az' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      Company A → Z
+                    </button>
+                    <button
+                      onClick={() => { setSortBy('company-za'); setShowSort(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'company-za' ? 'font-semibold' : ''}`}
+                      style={{ 
+                        color: sortBy === 'company-za' ? '#ffffff' : '#cccccc',
+                        backgroundColor: sortBy === 'company-za' ? '#333333' : 'transparent'
+                      }}
+                    >
+                      Company Z → A
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="relative export-dropdown">
               <button 
                 onClick={() => setShowExport(!showExport)}
@@ -630,96 +751,6 @@ const LeadsDatabase: React.FC<LeadsDatabaseProps> = ({ onNavigate }) => {
               )}
             </div>
 
-            <div className="relative">
-              <button 
-                onClick={() => setShowSort(!showSort)}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
-                style={{ backgroundColor: '#333333', border: '1px solid #555555', color: '#ffffff' }}
-              >
-                <ArrowUpDown size={16} />
-                <span>Sort By</span>
-                <ChevronDown size={16} />
-              </button>
-              
-              {/* Sort Dropdown */}
-              {showSort && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-xl z-10" style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}>
-                  <div className="py-2">
-                    <button
-                      onClick={() => { setSortBy('recent'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'recent' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'recent' ? '#ffffff' : '#cccccc',
-                        backgroundColor: sortBy === 'recent' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      Most Recent First
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('synced-first'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'synced-first' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'synced-first' ? '#10b981' : '#cccccc',
-                        backgroundColor: sortBy === 'synced-first' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      ✅ Synced First
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('not-synced-first'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'not-synced-first' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'not-synced-first' ? '#ef4444' : '#cccccc',
-                        backgroundColor: sortBy === 'not-synced-first' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      ❌ Not Synced First
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('processed-first'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'processed-first' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'processed-first' ? '#10b981' : '#cccccc',
-                        backgroundColor: sortBy === 'processed-first' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      ✅ Processed First
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('not-processed-first'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'not-processed-first' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'not-processed-first' ? '#ef4444' : '#cccccc',
-                        backgroundColor: sortBy === 'not-processed-first' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      ❌ Not Processed First
-                    </button>
-                    <div className="border-t mx-2 my-1" style={{ borderColor: '#333333' }}></div>
-                    <button
-                      onClick={() => { setSortBy('company-az'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'company-az' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'company-az' ? '#ffffff' : '#cccccc',
-                        backgroundColor: sortBy === 'company-az' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      Company A → Z
-                    </button>
-                    <button
-                      onClick={() => { setSortBy('company-za'); setShowSort(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm transition-colors hover:opacity-80 ${sortBy === 'company-za' ? 'font-semibold' : ''}`}
-                      style={{ 
-                        color: sortBy === 'company-za' ? '#ffffff' : '#cccccc',
-                        backgroundColor: sortBy === 'company-za' ? '#333333' : 'transparent'
-                      }}
-                    >
-                      Company Z → A
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
