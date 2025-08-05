@@ -231,7 +231,7 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
       workflow: activity.title || 'Unknown Workflow',
       status,
       started: new Date(activity.timestamp).toLocaleString(),
-      duration: calculateDuration(activity.timestamp),
+      duration: calculateDuration(activity.timestamp, activity.completed_at),
       leadsProcessed: activity.metric_value || 0,
       campaign: activity.subtitle || 'Unknown Campaign',
       errorMessage: activity.activity_type === 'error' ? activity.details : undefined,
@@ -242,10 +242,20 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
   }).slice(0, 10); // Limit to 10 most recent
 }
 
-function calculateDuration(timestamp: string): string {
-  const startTime = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - startTime.getTime();
+function calculateDuration(startTimestamp: string, completedTimestamp?: string): string {
+  // If no completion time, return empty or dash for running workflows
+  if (!completedTimestamp) {
+    return '—';
+  }
+  
+  const startTime = new Date(startTimestamp);
+  const endTime = new Date(completedTimestamp);
+  const diffMs = endTime.getTime() - startTime.getTime();
+  
+  // Handle invalid duration
+  if (diffMs < 0) {
+    return '—';
+  }
   
   const minutes = Math.floor(diffMs / 60000);
   const seconds = Math.floor((diffMs % 60000) / 1000);

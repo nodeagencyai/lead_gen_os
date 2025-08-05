@@ -130,6 +130,7 @@ export default async function handler(req, res) {
         subtitle: e.campaign_name || 'No campaign',
         details: e.status,
         timestamp: e.started_at,
+        completed_at: e.completed_at,
         metric_value: e.leads_processed,
         metric_unit: 'leads',
         severity: e.status === 'failed' ? 'error' : 'success'
