@@ -230,7 +230,7 @@ function transformRecentActivity(activities: any[]): WorkflowExecution[] {
       id: `activity-${index}`,
       workflow: activity.title || 'Unknown Workflow',
       status,
-      started: new Date(activity.timestamp).toLocaleString(),
+      started: new Date(activity.timestamp).toLocaleString().replace(',', ''),
       duration: '—', // Duration removed due to data accuracy issues
       leadsProcessed: activity.metric_value || 0,
       campaign: activity.subtitle || 'Unknown Campaign',
