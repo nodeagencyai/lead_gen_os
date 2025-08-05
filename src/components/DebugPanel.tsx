@@ -153,6 +153,27 @@ export const DebugPanel: React.FC = () => {
     }
   }, [isVisible]);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isVisible) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
+      
+      return () => {
+        // Restore scroll position when modal closes
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isVisible]);
+
   // SECURITY: Only show debug panel in development or with explicit production flag
   const isProduction = import.meta.env.PROD;
   const allowProductionDebug = import.meta.env.VITE_ALLOW_PRODUCTION_DEBUG === 'true';
@@ -340,17 +361,6 @@ export const DebugPanel: React.FC = () => {
                         );
                       })}
                     </div>
-                  </div>
-
-                  {/* SECURITY: Environment variables removed for production safety */}
-                  <div className="p-3 rounded text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #222222' }}>
-                    <div className="flex items-center justify-center space-x-2 mb-1">
-                      <Circle size={14} style={{ color: '#888888' }} />
-                      <span className="font-medium text-sm" style={{ color: '#cccccc' }}>Environment Secured</span>
-                    </div>
-                    <p className="text-xs" style={{ color: '#666666' }}>
-                      Sensitive environment variables are protected and not displayed for security
-                    </p>
                   </div>
                 </div>
               </div>
