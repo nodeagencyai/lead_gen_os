@@ -29,7 +29,7 @@ interface IntegrationSetupProps {
 const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   const [linkedinCookies, setLinkedinCookies] = useState('');
   const [cookiesSaving, setCookiesSaving] = useState(false);
-  const [cookiesStatus, setCookiesStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [cookiesStatus, setCookiesStatus] = useState<'idle' | 'success' | 'error' | 'warning'>('idle');
   const [cookiesMessage, setCookiesMessage] = useState('');
   const [integrations, setIntegrations] = useState<Integration[]>([
     {
@@ -143,19 +143,19 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   useEffect(() => {
     const loadLinkedinCookies = async () => {
       try {
-        // First try to load from Supabase
+        // Try to load from the new linkedin_cookies table
         const { data, error } = await supabase
-          .from('integrations')
-          .select('api_key_encrypted, settings')
-          .eq('platform', 'sales_navigator')
+          .from('linkedin_cookies')
+          .select('cookies')
           .eq('is_active', true)
-          .order('created_at', { ascending: false });
-          
-        // Filter for cookies type
-        const cookiesRecord = data?.find(record => record.settings?.type === 'cookies');
+          .order('last_updated', { ascending: false })
+          .limit(1)
+          .single();
 
-        if (cookiesRecord && !error) {
-          setLinkedinCookies(cookiesRecord.api_key_encrypted);
+        if (data && !error) {
+          setLinkedinCookies(data.cookies);
+          // Also update localStorage as backup
+          localStorage.setItem('linkedin_cookies', data.cookies);
         } else {
           // Fallback to localStorage if Supabase fails
           const storedCookies = localStorage.getItem('linkedin_cookies');
@@ -391,54 +391,51 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
         throw new Error('Invalid JSON format. Please check your cookies.');
       }
 
-      // First, delete any existing cookies
-      const { error: deleteError } = await supabase
-        .from('integrations')
-        .delete()
-        .eq('platform', 'sales_navigator')
-        .match({ 'settings->type': 'cookies' });
+      // First, deactivate any existing active cookies
+      const { error: updateError } = await supabase
+        .from('linkedin_cookies')
+        .update({ is_active: false })
+        .eq('is_active', true);
 
-      if (deleteError) {
-        console.error('Delete error:', deleteError);
+      if (updateError) {
+        console.error('Update error:', updateError);
       }
 
       // Now insert the new cookies
       const { error: insertError } = await supabase
-        .from('integrations')
+        .from('linkedin_cookies')
         .insert({
-          platform: 'sales_navigator',
-          api_key_encrypted: linkedinCookies, // Store cookies as JSON string
+          cookies: linkedinCookies,
           is_active: true,
-          settings: {
-            last_updated: new Date().toISOString(),
-            type: 'cookies' // Mark this as cookies, not API key
-          }
+          notes: 'Added via Settings page'
         });
 
       if (insertError) {
         console.error('Insert error details:', insertError);
         // If Supabase fails, save to localStorage as fallback
         localStorage.setItem('linkedin_cookies', linkedinCookies);
-        setCookiesStatus('success');
-        setCookiesMessage('LinkedIn cookies saved successfully (local storage)');
+        setCookiesStatus('warning');
+        setCookiesMessage('Saved to browser only - check if linkedin_cookies table exists in Supabase');
       } else {
         // Also save to localStorage as backup
         localStorage.setItem('linkedin_cookies', linkedinCookies);
         setCookiesStatus('success');
-        setCookiesMessage('LinkedIn cookies saved successfully');
+        setCookiesMessage('LinkedIn cookies saved successfully to cloud storage');
       }
 
-      // Clear success message after 3 seconds
+      // Clear success message after 5 seconds
       setTimeout(() => {
         setCookiesStatus('idle');
         setCookiesMessage('');
-      }, 3000);
+      }, 5000);
 
     } catch (error) {
       console.error('LinkedIn cookies save error:', error);
+      // Still save to localStorage on any error
+      localStorage.setItem('linkedin_cookies', linkedinCookies);
       setCookiesStatus('error');
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save cookies';
-      setCookiesMessage(`Error: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save to cloud';
+      setCookiesMessage(`Saved locally. Cloud error: ${errorMessage}`);
     } finally {
       setCookiesSaving(false);
     }
@@ -893,11 +890,14 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
                   <div className={`flex items-center space-x-2`}>
                     {cookiesStatus === 'success' ? (
                       <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                    ) : cookiesStatus === 'warning' ? (
+                      <AlertCircle className="w-4 h-4" style={{ color: '#f59e0b' }} />
                     ) : (
                       <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
                     )}
                     <span className="text-sm" style={{ 
-                      color: cookiesStatus === 'success' ? '#10b981' : '#ef4444'
+                      color: cookiesStatus === 'success' ? '#10b981' : 
+                             cookiesStatus === 'warning' ? '#f59e0b' : '#ef4444'
                     }}>
                       {cookiesMessage}
                     </span>

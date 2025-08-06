@@ -62,18 +62,18 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
       let cookies = undefined;
       if (mode === 'linkedin' && actionType === 'scrape') {
         try {
+          // Try the new linkedin_cookies table first
           const { data, error } = await supabase
-            .from('integrations')
-            .select('api_key_encrypted, settings')
-            .eq('platform', 'sales_navigator')
-            .eq('is_active', true);
+            .from('linkedin_cookies')
+            .select('cookies')
+            .eq('is_active', true)
+            .order('last_updated', { ascending: false })
+            .limit(1)
+            .single();
           
-          // Filter for cookies type
-          const cookiesRecord = data?.find(record => record.settings?.type === 'cookies');
-          
-          if (cookiesRecord && !error) {
+          if (data && !error) {
             // Send cookies as raw string to preserve exact JSON format
-            cookies = cookiesRecord.api_key_encrypted;
+            cookies = data.cookies;
           } else {
             // Fallback to localStorage
             const storedCookies = localStorage.getItem('linkedin_cookies');
