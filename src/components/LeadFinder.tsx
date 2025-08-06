@@ -62,20 +62,16 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
       let cookies = undefined;
       if (mode === 'linkedin' && actionType === 'scrape') {
         try {
-          const { data: user } = await supabase.auth.getUser();
-          if (user.user) {
-            const { data, error } = await supabase
-              .from('integrations')
-              .select('api_key_encrypted')
-              .eq('user_id', user.user.id)
-              .eq('platform', 'linkedin_cookies')
-              .eq('is_active', true)
-              .single();
-            
-            if (data && !error) {
-              // Send cookies as raw string to preserve exact JSON format
-              cookies = data.api_key_encrypted;
-            }
+          const { data, error } = await supabase
+            .from('integrations')
+            .select('api_key_encrypted')
+            .eq('platform', 'linkedin_cookies')
+            .eq('is_active', true)
+            .single();
+          
+          if (data && !error) {
+            // Send cookies as raw string to preserve exact JSON format
+            cookies = data.api_key_encrypted;
           }
         } catch (error) {
           console.error('Error fetching LinkedIn cookies:', error);

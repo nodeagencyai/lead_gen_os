@@ -143,13 +143,9 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   useEffect(() => {
     const loadLinkedinCookies = async () => {
       try {
-        const { data: user } = await supabase.auth.getUser();
-        if (!user.user) return;
-
         const { data, error } = await supabase
           .from('integrations')
           .select('api_key_encrypted')
-          .eq('user_id', user.user.id)
           .eq('platform', 'linkedin_cookies')
           .eq('is_active', true)
           .single();
@@ -338,13 +334,9 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
       }
 
       // Save to Supabase
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
-
       const { error } = await supabase
         .from('integrations')
         .upsert({
-          user_id: user.user.id,
           platform: id,
           api_key_encrypted: integration.webhookUrl, // Store webhook URL or API key
           is_active: true,
@@ -385,13 +377,9 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
       }
 
       // Save to Supabase
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('User not authenticated');
-
       const { error } = await supabase
         .from('integrations')
         .upsert({
-          user_id: user.user.id,
           platform: 'linkedin_cookies',
           api_key_encrypted: linkedinCookies, // Store cookies as JSON string
           is_active: true,
