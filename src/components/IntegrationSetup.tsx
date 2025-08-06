@@ -145,13 +145,17 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
       try {
         const { data, error } = await supabase
           .from('integrations')
-          .select('api_key_encrypted')
-          .eq('platform', 'linkedin_cookies')
+          .select('api_key_encrypted, settings')
+          .eq('platform', 'sales_navigator')
           .eq('is_active', true)
-          .single();
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        // Filter for cookies type
+        const cookiesRecord = data?.find(record => record.settings?.type === 'cookies');
 
-        if (data && !error) {
-          setLinkedinCookies(data.api_key_encrypted);
+        if (cookiesRecord && !error) {
+          setLinkedinCookies(cookiesRecord.api_key_encrypted);
         }
       } catch (error) {
         console.error('Error loading LinkedIn cookies:', error);
@@ -380,11 +384,12 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
       const { error } = await supabase
         .from('integrations')
         .upsert({
-          platform: 'linkedin_cookies',
+          platform: 'sales_navigator',
           api_key_encrypted: linkedinCookies, // Store cookies as JSON string
           is_active: true,
           settings: {
-            last_updated: new Date().toISOString()
+            last_updated: new Date().toISOString(),
+            type: 'cookies' // Mark this as cookies, not API key
           }
         });
 

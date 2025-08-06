@@ -65,7 +65,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
           const { data, error } = await supabase
             .from('integrations')
             .select('api_key_encrypted')
-            .eq('platform', 'linkedin_cookies')
+            .eq('platform', 'sales_navigator')
             .eq('is_active', true)
             .single();
           
