@@ -93,12 +93,14 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
       
       const payload = actionType === 'scrape' 
         ? {
-            url: targetUrl,
-            limit: leadsLimit,
-            startPage: mode === 'linkedin' ? startPage : undefined,
-            cookies: mode === 'linkedin' ? cookies : undefined,
-            niche: niche || 'uncategorized',
-            tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+            input: {
+              url: targetUrl,
+              limit: leadsLimit,
+              startPage: mode === 'linkedin' ? startPage : undefined,
+              cookies: mode === 'linkedin' ? cookies : undefined,
+              niche: niche || 'uncategorized',
+              tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+            },
             timestamp: new Date().toISOString(),
             action: 'scrape',
             source: mode === 'email' ? 'apollo' : 'sales_navigator'
