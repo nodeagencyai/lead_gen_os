@@ -143,22 +143,33 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   useEffect(() => {
     const loadLinkedinCookies = async () => {
       try {
+        // First try to load from Supabase
         const { data, error } = await supabase
           .from('integrations')
           .select('api_key_encrypted, settings')
           .eq('platform', 'sales_navigator')
           .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(1);
+          .order('created_at', { ascending: false });
           
         // Filter for cookies type
         const cookiesRecord = data?.find(record => record.settings?.type === 'cookies');
 
         if (cookiesRecord && !error) {
           setLinkedinCookies(cookiesRecord.api_key_encrypted);
+        } else {
+          // Fallback to localStorage if Supabase fails
+          const storedCookies = localStorage.getItem('linkedin_cookies');
+          if (storedCookies) {
+            setLinkedinCookies(storedCookies);
+          }
         }
       } catch (error) {
         console.error('Error loading LinkedIn cookies:', error);
+        // Fallback to localStorage
+        const storedCookies = localStorage.getItem('linkedin_cookies');
+        if (storedCookies) {
+          setLinkedinCookies(storedCookies);
+        }
       }
     };
 
@@ -380,10 +391,21 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
         throw new Error('Invalid JSON format. Please check your cookies.');
       }
 
-      // Save to Supabase
-      const { error } = await supabase
+      // First, delete any existing cookies
+      const { error: deleteError } = await supabase
         .from('integrations')
-        .upsert({
+        .delete()
+        .eq('platform', 'sales_navigator')
+        .match({ 'settings->type': 'cookies' });
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+      }
+
+      // Now insert the new cookies
+      const { error: insertError } = await supabase
+        .from('integrations')
+        .insert({
           platform: 'sales_navigator',
           api_key_encrypted: linkedinCookies, // Store cookies as JSON string
           is_active: true,
@@ -393,10 +415,18 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
           }
         });
 
-      if (error) throw error;
-
-      setCookiesStatus('success');
-      setCookiesMessage('LinkedIn cookies saved successfully');
+      if (insertError) {
+        console.error('Insert error details:', insertError);
+        // If Supabase fails, save to localStorage as fallback
+        localStorage.setItem('linkedin_cookies', linkedinCookies);
+        setCookiesStatus('success');
+        setCookiesMessage('LinkedIn cookies saved successfully (local storage)');
+      } else {
+        // Also save to localStorage as backup
+        localStorage.setItem('linkedin_cookies', linkedinCookies);
+        setCookiesStatus('success');
+        setCookiesMessage('LinkedIn cookies saved successfully');
+      }
 
       // Clear success message after 3 seconds
       setTimeout(() => {
@@ -407,7 +437,8 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
     } catch (error) {
       console.error('LinkedIn cookies save error:', error);
       setCookiesStatus('error');
-      setCookiesMessage(error instanceof Error ? error.message : 'Failed to save cookies');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save cookies';
+      setCookiesMessage(`Error: ${errorMessage}`);
     } finally {
       setCookiesSaving(false);
     }
