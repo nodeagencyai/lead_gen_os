@@ -73,7 +73,8 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
               .single();
             
             if (data && !error) {
-              cookies = JSON.parse(data.api_key_encrypted);
+              // Send cookies as raw string to preserve exact JSON format
+              cookies = data.api_key_encrypted;
             }
           }
         } catch (error) {
