@@ -10,6 +10,7 @@ interface LeadFinderProps {
 const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
   const [targetUrl, setTargetUrl] = useState('');
   const [leadsLimit, setLeadsLimit] = useState(0);
+  const [startPage, setStartPage] = useState(1);
   const [actionType, setActionType] = useState<'scrape' | 'process'>('scrape');
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
@@ -60,6 +61,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
         ? {
             url: targetUrl,
             limit: leadsLimit,
+            startPage: mode === 'linkedin' ? startPage : undefined,
             niche: niche || 'uncategorized',
             tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
             timestamp: new Date().toISOString(),
@@ -99,6 +101,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
         setTargetUrl('');
         setNiche('');
         setTags('');
+        setStartPage(1);
       }
       
     } catch (error) {
@@ -292,8 +295,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                     border: '1px solid #333333',
                     color: '#ffffff',
                     fontSize: '16px',
-                    lineHeight: '1.6',
-                    focusRingColor: '#555555'
+                    lineHeight: '1.6'
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = '#555555';
@@ -372,7 +374,7 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
               </div>
 
               {/* Leads Limit for Scraping */}
-              <div className="mb-8">
+              <div className="mb-6">
                 <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
                   Number of leads to scrape
                 </label>
@@ -417,6 +419,53 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
                   </div>
                 )}
               </div>
+
+              {/* Start Page for LinkedIn */}
+              {mode === 'linkedin' && (
+                <div className="mb-8">
+                  <label className="block text-sm font-semibold mb-4" style={{ color: '#ffffff' }}>
+                    Start Page
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    value={startPage === 0 ? '' : startPage}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow empty string for better UX when clearing the field
+                      if (value === '') {
+                        setStartPage(0);
+                      } else {
+                        const num = parseInt(value, 10);
+                        // Only update if it's a valid number
+                        if (!isNaN(num) && num >= 0) {
+                          setStartPage(num);
+                        }
+                      }
+                    }}
+                    placeholder="Enter page number to start scraping from"
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all duration-300"
+                    style={{
+                      backgroundColor: '#0f0f0f',
+                      border: '1px solid #333333',
+                      color: '#ffffff',
+                      fontSize: '16px'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#555555';
+                      e.target.style.backgroundColor = '#1a1a1a';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#333333';
+                      e.target.style.backgroundColor = '#0f0f0f';
+                    }}
+                  />
+                  <div className="text-xs mt-2" style={{ color: '#888888' }}>
+                    Specify which page to start scraping from in Sales Navigator search results
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>
