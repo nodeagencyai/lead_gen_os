@@ -72,13 +72,13 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
             .single();
           
           if (data && !error) {
-            // Send cookies as raw string to preserve exact JSON format
-            cookies = data.cookies;
+            // Parse cookies string to actual JSON array for the API
+            cookies = JSON.parse(data.cookies);
           } else {
             // Fallback to localStorage
             const storedCookies = localStorage.getItem('linkedin_cookies');
             if (storedCookies) {
-              cookies = storedCookies;
+              cookies = JSON.parse(storedCookies);
             }
           }
         } catch (error) {
@@ -86,25 +86,33 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
           // Fallback to localStorage
           const storedCookies = localStorage.getItem('linkedin_cookies');
           if (storedCookies) {
-            cookies = storedCookies;
+            try {
+              cookies = JSON.parse(storedCookies);
+            } catch (parseError) {
+              console.error('Error parsing cookies:', parseError);
+            }
           }
         }
       }
       
       const payload = actionType === 'scrape' 
-        ? {
-            url: targetUrl,
-            cookies: mode === 'linkedin' ? cookies : undefined,
-            deep_profile: false,
-            max_results: leadsLimit,
-            search: targetUrl,
-            start_page: mode === 'linkedin' ? startPage : 1,
-            niche: niche || 'uncategorized',
-            tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
-            timestamp: new Date().toISOString(),
-            action: 'scrape',
-            source: mode === 'email' ? 'apollo' : 'sales_navigator'
-          }
+        ? mode === 'linkedin' 
+          ? {
+              cookies: cookies || [],
+              deep_profile: false,
+              max_results: leadsLimit,
+              search: targetUrl,
+              start_page: startPage
+            }
+          : {
+              url: targetUrl,
+              limit: leadsLimit,
+              niche: niche || 'uncategorized',
+              tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+              timestamp: new Date().toISOString(),
+              action: 'scrape',
+              source: 'apollo'
+            }
         : {
             limit: leadsLimit,
             timestamp: new Date().toISOString(),
