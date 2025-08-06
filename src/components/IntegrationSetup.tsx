@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Key, Check, AlertCircle, Webhook, Save, Copy, ExternalLink } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CampaignToggle from './CampaignToggle';
@@ -27,6 +27,10 @@ interface IntegrationSetupProps {
 }
 
 const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
+  const [linkedinCookies, setLinkedinCookies] = useState('');
+  const [cookiesSaving, setCookiesSaving] = useState(false);
+  const [cookiesStatus, setCookiesStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [cookiesMessage, setCookiesMessage] = useState('');
   const [integrations, setIntegrations] = useState<Integration[]>([
     {
       id: 'instantly',
@@ -134,6 +138,32 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
   
   const [testingWebhook, setTestingWebhook] = useState<string | null>(null);
   const [webhookTestResults, setWebhookTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
+
+  // Load LinkedIn cookies on mount
+  useEffect(() => {
+    const loadLinkedinCookies = async () => {
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user) return;
+
+        const { data, error } = await supabase
+          .from('integrations')
+          .select('api_key_encrypted')
+          .eq('user_id', user.user.id)
+          .eq('platform', 'linkedin_cookies')
+          .eq('is_active', true)
+          .single();
+
+        if (data && !error) {
+          setLinkedinCookies(data.api_key_encrypted);
+        }
+      } catch (error) {
+        console.error('Error loading LinkedIn cookies:', error);
+      }
+    };
+
+    loadLinkedinCookies();
+  }, []);
 
   // Webhook management functions
   const updateWebhookEvent = (id: string, updates: Partial<WebhookEvent>) => {
@@ -339,6 +369,54 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
       ));
     } finally {
       setSaving(null);
+    }
+  };
+
+  const saveLinkedinCookies = async () => {
+    setCookiesSaving(true);
+    setCookiesStatus('idle');
+
+    try {
+      // Validate JSON format
+      try {
+        JSON.parse(linkedinCookies);
+      } catch (e) {
+        throw new Error('Invalid JSON format. Please check your cookies.');
+      }
+
+      // Save to Supabase
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('integrations')
+        .upsert({
+          user_id: user.user.id,
+          platform: 'linkedin_cookies',
+          api_key_encrypted: linkedinCookies, // Store cookies as JSON string
+          is_active: true,
+          settings: {
+            last_updated: new Date().toISOString()
+          }
+        });
+
+      if (error) throw error;
+
+      setCookiesStatus('success');
+      setCookiesMessage('LinkedIn cookies saved successfully');
+
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setCookiesStatus('idle');
+        setCookiesMessage('');
+      }, 3000);
+
+    } catch (error) {
+      console.error('LinkedIn cookies save error:', error);
+      setCookiesStatus('error');
+      setCookiesMessage(error instanceof Error ? error.message : 'Failed to save cookies');
+    } finally {
+      setCookiesSaving(false);
     }
   };
 
@@ -679,6 +757,143 @@ const IntegrationSetup: React.FC<IntegrationSetupProps> = ({ onNavigate }) => {
             <li><strong style={{ color: '#ffffff' }}>N8N Workflows:</strong> Copy the webhook URL from each workflow's webhook trigger node</li>
             <li><strong style={{ color: '#ffffff' }}>Webhook Format:</strong> https://your-n8n-instance.com/webhook/workflow-name</li>
           </ul>
+        </div>
+
+        {/* LinkedIn Cookies Section */}
+        <div className="mt-12">
+          <div className="flex items-center space-x-3 mb-6">
+            <Key className="w-6 h-6" style={{ color: '#888888' }} />
+            <h2 className="text-2xl font-bold" style={{ color: '#ffffff' }}>LinkedIn Cookies</h2>
+          </div>
+          <p className="mb-6" style={{ color: '#cccccc' }}>
+            Configure LinkedIn cookies for Sales Navigator scraping. These cookies are required for authenticated access to LinkedIn data.
+          </p>
+
+          <div 
+            className="rounded-lg p-6 transition-all duration-200"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #333333' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#555555';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#333333';
+            }}
+          >
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-white mb-2">LinkedIn Session Cookies</h3>
+              <p className="text-sm mb-4" style={{ color: '#888888' }}>
+                Paste your LinkedIn cookies JSON here. These typically expire after a few weeks and need to be updated regularly.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <textarea
+                value={linkedinCookies}
+                onChange={(e) => setLinkedinCookies(e.target.value)}
+                placeholder={`Paste your LinkedIn cookies JSON here, e.g.:
+{
+  "li_at": "your_li_at_cookie_value",
+  "JSESSIONID": "your_jsessionid_value",
+  ...
+}`}
+                className="w-full h-32 p-4 rounded-lg resize-none font-mono text-sm focus:outline-none transition-all duration-300"
+                style={{
+                  backgroundColor: '#0f0f0f',
+                  border: '1px solid #333333',
+                  color: '#ffffff'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#555555';
+                  e.target.style.backgroundColor = '#1a1a1a';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#333333';
+                  e.target.style.backgroundColor = '#0f0f0f';
+                }}
+              />
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={saveLinkedinCookies}
+                    disabled={!linkedinCookies.trim() || cookiesSaving}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80"
+                    style={{
+                      backgroundColor: '#333333',
+                      border: '1px solid #555555',
+                      color: '#ffffff'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = '#444444';
+                        e.currentTarget.style.borderColor = '#666666';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!e.currentTarget.disabled) {
+                        e.currentTarget.style.backgroundColor = '#333333';
+                        e.currentTarget.style.borderColor = '#555555';
+                      }
+                    }}
+                  >
+                    {cookiesSaving ? 'Saving...' : 'Save Cookies'}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setLinkedinCookies('');
+                      setCookiesStatus('idle');
+                      setCookiesMessage('');
+                    }}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200 hover:opacity-80"
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: '1px solid #333333',
+                      color: '#888888'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#555555';
+                      e.currentTarget.style.color = '#ffffff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#333333';
+                      e.currentTarget.style.color = '#888888';
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+
+                {/* Status Message */}
+                {cookiesStatus !== 'idle' && (
+                  <div className={`flex items-center space-x-2`}>
+                    {cookiesStatus === 'success' ? (
+                      <Check className="w-4 h-4" style={{ color: '#10b981' }} />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" style={{ color: '#ef4444' }} />
+                    )}
+                    <span className="text-sm" style={{ 
+                      color: cookiesStatus === 'success' ? '#10b981' : '#ef4444'
+                    }}>
+                      {cookiesMessage}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: '#0f0f0f', border: '1px solid #333333' }}>
+              <h4 className="text-sm font-semibold mb-2" style={{ color: '#ffffff' }}>How to get LinkedIn cookies:</h4>
+              <ol className="space-y-2 text-sm" style={{ color: '#888888' }}>
+                <li>1. Open LinkedIn in your browser and log in</li>
+                <li>2. Open Developer Tools (F12 or right-click → Inspect)</li>
+                <li>3. Go to the Application/Storage tab</li>
+                <li>4. Find Cookies → linkedin.com</li>
+                <li>5. Copy the required cookie values (li_at, JSESSIONID, etc.)</li>
+                <li>6. Format them as JSON and paste above</li>
+              </ol>
+            </div>
+          </div>
         </div>
       </div>
     </div>

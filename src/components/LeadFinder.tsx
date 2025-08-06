@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 import CampaignToggle from './CampaignToggle';
 import { useCampaignStore } from '../store/campaignStore';
+import { supabase } from '../lib/supabase';
 
 interface LeadFinderProps {
   onNavigate: (view: 'dashboard' | 'leadfinder' | 'campaigns' | 'leads' | 'integrations' | 'monitoring') => void;
@@ -57,11 +58,35 @@ const LeadFinder: React.FC<LeadFinderProps> = ({ onNavigate }) => {
     try {
       const webhookUrl = getWebhookUrl();
       
+      // Fetch LinkedIn cookies if needed
+      let cookies = undefined;
+      if (mode === 'linkedin' && actionType === 'scrape') {
+        try {
+          const { data: user } = await supabase.auth.getUser();
+          if (user.user) {
+            const { data, error } = await supabase
+              .from('integrations')
+              .select('api_key_encrypted')
+              .eq('user_id', user.user.id)
+              .eq('platform', 'linkedin_cookies')
+              .eq('is_active', true)
+              .single();
+            
+            if (data && !error) {
+              cookies = JSON.parse(data.api_key_encrypted);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching LinkedIn cookies:', error);
+        }
+      }
+      
       const payload = actionType === 'scrape' 
         ? {
             url: targetUrl,
             limit: leadsLimit,
             startPage: mode === 'linkedin' ? startPage : undefined,
+            cookies: mode === 'linkedin' ? cookies : undefined,
             niche: niche || 'uncategorized',
             tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
             timestamp: new Date().toISOString(),
